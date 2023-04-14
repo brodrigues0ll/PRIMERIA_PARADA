@@ -1,5 +1,7 @@
 {
-  "vueIndentScriptAndStyle": true,
-  "htmlWhitespaceSensitivity": "ignore",
-  "endOfLine": "lf"
+  "semi": true,
+  "singleQuote": false,
+  "jsxBracketSameLine": false,
+  "jsxSingleQuote": false,
+  "trailingComma": "es5"
 }
