@@ -1,42 +1,104 @@
-import { InputAdornment, TextField, Typography } from "@mui/material";
+import CurrencyTextField from "../components/CurrencyTextField";
+import {
+  Box,
+  Button,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function Home() {
-  const [quantity, setQuantity] = useState(10.95);
-  const [price, setPrice] = useState(30.82);
+  const [quantity, setQuantity] = useState();
+  const [price, setPrice] = useState();
+  const [uniPrice, setUniPrice] = useState(10);
+  const [uniPriceIsVisible, setUniPriceIsVisible] = useState(false);
   return (
     <>
-      <Typography variant="h3">Price Calculator - Primeira Parada</Typography>
-
-      <Typography variant="h4"> Hello World!! </Typography>
-
-      <TextField
-        value={quantity}
-        type="number"
-        id="outlined-basic"
-        label="Quantidade"
-        variant="outlined"
-        InputProps={{
-          startAdornment: <InputAdornment position="start">UN</InputAdornment>,
-        }}
+      <Box
         sx={{
-          width: "30%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "",
+          justifyContent: "center",
+          height: "calc(100vh - 80px)",
+          padding: "2rem",
         }}
-      />
+      >
+        <Image
+          src="/assets/images/LOGO-2.png"
+          alt="Logo"
+          width={200}
+          height={200}
+          style={{
+            margin: "1rem auto",
+          }}
+        />
 
-      <TextField
-        value={price}
-        type="number"
-        id="outlined-basic"
-        label="Preço Total"
-        variant="outlined"
-        InputProps={{
-          startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-        }}
-        sx={{
-          width: "30%",
-        }}
-      />
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-evenly",
+            margin: "1rem 0",
+          }}
+        >
+          <TextField
+            value={quantity}
+            id="outlined-basic"
+            label="Quantidade"
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">UN</InputAdornment>
+              ),
+            }}
+            onChange={(e) => setQuantity(e.target.value)}
+            sx={{
+              width: "40%",
+            }}
+          />
+
+          <CurrencyTextField
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+        </Box>
+
+        <Button
+          variant="contained"
+          onClick={() => {
+            setUniPriceIsVisible(true);
+            setUniPrice(parseFloat(price) / parseFloat(quantity));
+          }}
+        >
+          Calcular
+        </Button>
+
+        {uniPriceIsVisible && (
+          <>
+            <Typography
+              variant="h5"
+              sx={{
+                margin: "1rem 0",
+                textAlign: "center",
+              }}
+            >
+              O valor pago na unidade do produto foi:
+            </Typography>
+            <Typography
+              variant="h4"
+              sx={{
+                textAlign: "center",
+              }}
+            >
+              R$ {uniPrice.toFixed(2)}
+            </Typography>
+          </>
+        )}
+      </Box>
     </>
   );
 }
