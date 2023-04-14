@@ -53,6 +53,7 @@ export default function Home() {
           style={{
             margin: "1rem auto",
           }}
+          loading="lazy"
         />
 
         <Box
