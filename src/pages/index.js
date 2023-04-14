@@ -23,6 +23,7 @@ export default function Home() {
     if (isTableVisible === true) {
       return "green";
     }
+    return "#1976d2";
   }
 
   return (
@@ -146,22 +147,26 @@ export default function Home() {
         )}
 
         {isUniPriceVisible && (
-          <Button
-            variant="contained"
+          <button
             onClick={() => {
               setIsTableVisible(!isTableVisible);
             }}
-            sx={{
-              "&:hover": { backgroundColor: "green" },
+            style={{
               fontSize: "1.2rem",
+              border: "none",
+              borderRadius: "5px",
+              height: "3.2rem",
+              color: "white",
+              fontFamily: "Roboto, sans-serif",
               margin: "1rem 0",
               fontWeight: "bold",
               boxShadow: "2px 2px 10px #7a7a7a",
-              bgcolor: colorSelect(),
+              backgroundColor: colorSelect(),
+              cursor: "pointer",
             }}
           >
-            Tabela de Porcentagem
-          </Button>
+            TABELA DE PORCENTAGEM
+          </button>
         )}
 
         {isTableVisible && <PercentTable price={uniPrice} />}
