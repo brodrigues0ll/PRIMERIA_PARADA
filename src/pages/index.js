@@ -98,6 +98,7 @@ export default function Home() {
             fontSize: "1.3rem",
             fontWeight: "bold",
             boxShadow: "2px 2px 10px #7a7a7a",
+            "&:hover": { backgroundColor: "none" },
           }}
         >
           Calcular
@@ -138,6 +139,7 @@ export default function Home() {
               setIsTableVisible(!isTableVisible);
             }}
             sx={{
+              "&:hover": { backgroundColor: "none" },
               fontSize: "1.2rem",
               margin: "1rem 0",
               fontWeight: "bold",
