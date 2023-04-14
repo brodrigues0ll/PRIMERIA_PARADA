@@ -1,3 +1,4 @@
+import PercentTable from "../components/PercentTable";
 import CurrencyTextField from "../components/CurrencyTextField";
 import {
   Box,
@@ -10,20 +11,35 @@ import Image from "next/image";
 import { useState } from "react";
 
 export default function Home() {
-  const [quantity, setQuantity] = useState();
-  const [price, setPrice] = useState();
+  const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
   const [uniPrice, setUniPrice] = useState(10);
-  const [uniPriceIsVisible, setUniPriceIsVisible] = useState(false);
+  const [isUniPriceVisible, setIsUniPriceVisible] = useState(false);
+  const [isTableVisible, setIsTableVisible] = useState(false);
+
+  function colorSelect() {
+    if (isTableVisible === true) {
+      return "green";
+    }
+  }
+
   return (
-    <>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "96vh",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
-          alignItems: "",
           justifyContent: "center",
-          height: "calc(100vh - 80px)",
           padding: "2rem",
+          maxWidth: "500px",
         }}
       >
         <Image
@@ -46,6 +62,7 @@ export default function Home() {
           }}
         >
           <TextField
+            placeholder="0"
             required
             value={quantity}
             id="outlined-basic"
@@ -63,6 +80,7 @@ export default function Home() {
           />
 
           <CurrencyTextField
+            placeholder="0,00"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
@@ -71,7 +89,7 @@ export default function Home() {
         <Button
           variant="contained"
           onClick={() => {
-            setUniPriceIsVisible(true);
+            setIsUniPriceVisible(true);
             setUniPrice(parseFloat(price) / parseFloat(quantity));
           }}
           sx={{
@@ -83,7 +101,7 @@ export default function Home() {
           Calcular
         </Button>
 
-        {uniPriceIsVisible && (
+        {isUniPriceVisible && (
           <>
             {uniPrice ? (
               <>
@@ -110,7 +128,27 @@ export default function Home() {
             )}
           </>
         )}
+
+        {isUniPriceVisible && (
+          <Button
+            variant="contained"
+            onClick={() => {
+              setIsTableVisible(!isTableVisible);
+            }}
+            sx={{
+              fontSize: "1.2rem",
+              margin: "1rem 0",
+              fontWeight: "bold",
+              boxShadow: "2px 2px 10px #7a7a7a",
+              bgcolor: colorSelect(),
+            }}
+          >
+            Tabela de Porcentagem
+          </Button>
+        )}
+
+        {isTableVisible && <PercentTable price={uniPrice} />}
       </Box>
-    </>
+    </Box>
   );
 }
