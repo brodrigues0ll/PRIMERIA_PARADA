@@ -91,6 +91,8 @@ export default function Home() {
           onClick={() => {
             setIsUniPriceVisible(true);
             setUniPrice(parseFloat(price) / parseFloat(quantity));
+            setPrice("");
+            setQuantity("");
           }}
           sx={{
             fontSize: "1.3rem",
