@@ -1,4 +1,4 @@
-import PercentTable from "../components/PercentTable";
+import dynamic from "next/dynamic";
 import CurrencyTextField from "../components/CurrencyTextField";
 import {
   Box,
@@ -18,6 +18,10 @@ export default function Home() {
   const [uniPrice, setUniPrice] = useState(10);
   const [isUniPriceVisible, setIsUniPriceVisible] = useState(false);
   const [isTableVisible, setIsTableVisible] = useState(false);
+
+  const PercentTable = dynamic(() => import("../components/PercentTable"), {
+  ssr: false,
+  });
 
   function colorSelect() {
     if (isTableVisible === true) {
