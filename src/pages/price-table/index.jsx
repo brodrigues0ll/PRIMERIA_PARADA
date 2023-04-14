@@ -30,7 +30,7 @@ const Index = () => {
 
   return (
     <div>
-      <h1>Cardápio</h1>
+      <h1 style={{ fontFamily: "sans-serif" }}>Cardápio</h1>
       <TextField
         label="Pesquisar"
         variant="outlined"
@@ -41,6 +41,7 @@ const Index = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Categoria</TableCell>
               <TableCell>Nome</TableCell>
               <TableCell>Preço</TableCell>
             </TableRow>
@@ -48,10 +49,16 @@ const Index = () => {
           <TableBody>
             {Object.keys(filteredMenu).map((categoria) => (
               <React.Fragment key={categoria}>
+                <TableRow>
+                  <TableCell colSpan={3} style={{ fontWeight: "bold" }}>
+                    {categoria}
+                  </TableCell>
+                </TableRow>
                 {filteredMenu[categoria].map((item) => (
                   <TableRow key={item.nome}>
-                    <TableCell>{`${item.nome} - ${categoria}`}</TableCell>
-                    <TableCell>{`R$ ${item.preco.toFixed(2)}`}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell>{item.nome}</TableCell>
+                    <TableCell>{item.preco.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </React.Fragment>
