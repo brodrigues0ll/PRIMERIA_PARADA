@@ -13,6 +13,8 @@ import { useState } from "react";
 export default function Home() {
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
+  const [quantidade, setQuantidade] = useState(0);
+  const [preco, setPreco] = useState(0);
   const [uniPrice, setUniPrice] = useState(10);
   const [isUniPriceVisible, setIsUniPriceVisible] = useState(false);
   const [isTableVisible, setIsTableVisible] = useState(false);
@@ -91,6 +93,8 @@ export default function Home() {
           onClick={() => {
             setIsUniPriceVisible(true);
             setUniPrice(parseFloat(price) / parseFloat(quantity));
+            setQuantidade(quantity);
+            setPreco(price);
             setPrice("");
             setQuantity("");
           }}
@@ -111,7 +115,16 @@ export default function Home() {
                 <Typography
                   variant="h5"
                   sx={{
-                    margin: "2rem 0",
+                    marginTop: "2rem",
+                    textAlign: "center",
+                  }}
+                >
+                  {quantidade} unidades a R$ {preco}
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    marginBottom: "2rem",
                     textAlign: "center",
                   }}
                 >
