@@ -1,8 +1,10 @@
+import { Typography } from "@mui/material";
+
 export default function Home() {
   return (
     <>
-      <h1>Price Calculator - Primeira Parada</h1>
-      <h3> Hello World!! </h3>
+      <Typography variant="h3">Price Calculator - Primeira Parada</Typography>
+      <Typography variant="h4"> Hello World!! </Typography>
     </>
   );
 }
