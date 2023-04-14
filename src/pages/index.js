@@ -46,6 +46,7 @@ export default function Home() {
           }}
         >
           <TextField
+            required
             value={quantity}
             id="outlined-basic"
             label="Quantidade"
@@ -73,29 +74,40 @@ export default function Home() {
             setUniPriceIsVisible(true);
             setUniPrice(parseFloat(price) / parseFloat(quantity));
           }}
+          sx={{
+            fontSize: "1.3rem",
+            fontWeight: "bold",
+            boxShadow: "2px 2px 10px #7a7a7a",
+          }}
         >
           Calcular
         </Button>
 
         {uniPriceIsVisible && (
           <>
-            <Typography
-              variant="h5"
-              sx={{
-                margin: "1rem 0",
-                textAlign: "center",
-              }}
-            >
-              O valor pago na unidade do produto foi:
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{
-                textAlign: "center",
-              }}
-            >
-              R$ {uniPrice.toFixed(2)}
-            </Typography>
+            {uniPrice ? (
+              <>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    margin: "2rem 0",
+                    textAlign: "center",
+                  }}
+                >
+                  O valor pago na unidade do produto foi:
+                </Typography>
+                <Typography variant="h4" sx={{ textAlign: "center" }}>
+                  R$ {uniPrice.toFixed(2)}
+                </Typography>
+              </>
+            ) : (
+              <Typography
+                variant="h4"
+                sx={{ textAlign: "center", color: "red" }}
+              >
+                Preencha os Campos Corretamente!!
+              </Typography>
+            )}
           </>
         )}
       </Box>

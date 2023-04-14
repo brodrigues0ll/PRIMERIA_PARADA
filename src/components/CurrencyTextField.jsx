@@ -19,6 +19,7 @@ const CurrencyTextField = ({ value, onChange }) => {
       fixedDecimalScale
       allowLeadingZeros
       value={value}
+      required
       sx={{
         width: "40%",
       }}
