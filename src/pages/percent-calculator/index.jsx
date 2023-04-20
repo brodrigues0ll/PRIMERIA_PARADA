@@ -38,6 +38,7 @@ export default function Home() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "96vh",
+        bgcolor: "#fff",
       }}
     >
       <Box

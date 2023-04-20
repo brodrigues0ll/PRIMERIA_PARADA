@@ -1,15 +1,7 @@
-import { Box } from "@mui/material";
+import "../../public/assets/fonts/MilkyMatcha.css";
+import "../../public/assets/fonts/Itim.css";
+import "../styles/main.css";
 
 export default function App({ Component, pageProps }) {
-  return (
-    <Box
-      sx={{
-        maxWidth: "400px",
-        margin: "0 auto",
-        border: "1px solid #ccc",
-      }}
-    >
-      <Component {...pageProps} />
-    </Box>
-  );
+  return <Component {...pageProps} />;
 }

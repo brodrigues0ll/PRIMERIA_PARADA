@@ -9,6 +9,7 @@ import {
   TableRow,
   TextField,
   Paper,
+  Box,
 } from "@mui/material";
 
 const Index = () => {
@@ -29,7 +30,7 @@ const Index = () => {
   }, {});
 
   return (
-    <div>
+    <Box>
       <h1 style={{ fontFamily: "sans-serif" }}>Cardápio</h1>
       <TextField
         label="Pesquisar"
@@ -66,7 +67,7 @@ const Index = () => {
           </TableBody>
         </Table>
       </TableContainer>
-    </div>
+    </Box>
   );
 };
 
