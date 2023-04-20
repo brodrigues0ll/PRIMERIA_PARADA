@@ -70,7 +70,12 @@ const index = () => {
             route="/clients"
           />
 
-          <HomePages src="/assets/icons/menu.svg" alt="menu" title="Cardápio" />
+          <HomePages
+            src="/assets/icons/menu.svg"
+            alt="menu"
+            title="Cardápio"
+            route="/price-table"
+          />
 
           <HomePages
             src="/assets/icons/order.svg"
