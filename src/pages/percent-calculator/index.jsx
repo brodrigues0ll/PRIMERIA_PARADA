@@ -25,9 +25,9 @@ export default function Home() {
 
   function colorSelect() {
     if (isTableVisible === true) {
-      return "green";
+      return "#808080";
     }
-    return "#1976d2";
+    return "red";
   }
 
   return (
@@ -38,7 +38,7 @@ export default function Home() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "96vh",
-        bgcolor: "#fff",
+        bgcolor: "#181818",
       }}
     >
       <Box
@@ -53,8 +53,8 @@ export default function Home() {
         <Image
           src="/assets/images/LOGO-2.png"
           alt="Logo"
-          width={200}
-          height={200}
+          width={300}
+          height={300}
           style={{
             margin: "1rem auto",
           }}
@@ -85,6 +85,29 @@ export default function Home() {
             onChange={(e) => setQuantity(e.target.value)}
             sx={{
               width: "40%",
+              "& label.Mui-focused": {
+                color: "white",
+              },
+              "& label": {
+                color: "white",
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "red",
+                },
+
+                "&:hover fieldset": {
+                  borderColor: "silver",
+                },
+              },
+
+              "& .MuiInputBase-input": {
+                color: "white",
+              },
+
+              ".MuiTypography-root": {
+                color: "white",
+              },
             }}
           />
 
@@ -92,6 +115,32 @@ export default function Home() {
             placeholder="0,00"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
+            sx={{
+              width: "40%",
+              "& label.Mui-focused": {
+                color: "white",
+              },
+              "& label": {
+                color: "white",
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "red",
+                },
+
+                "&:hover fieldset": {
+                  borderColor: "silver",
+                },
+              },
+
+              "& .MuiInputBase-input": {
+                color: "white",
+              },
+
+              ".MuiTypography-root": {
+                color: "white",
+              },
+            }}
           />
         </Box>
 
@@ -110,6 +159,13 @@ export default function Home() {
             fontSize: "1.3rem",
             fontWeight: "bold",
             boxShadow: "2px 2px 10px #7a7a7a",
+            bgcolor: "red",
+            border: "2px solid black",
+            boxShadow: "none",
+
+            "&:hover": {
+              bgcolor: "#8c0000",
+            },
           }}
         >
           Calcular
@@ -169,6 +225,8 @@ export default function Home() {
               boxShadow: "2px 2px 10px #7a7a7a",
               backgroundColor: colorSelect(),
               cursor: "pointer",
+              border: "2px solid black",
+              boxShadow: "none",
             }}
           >
             TABELA DE PORCENTAGEM

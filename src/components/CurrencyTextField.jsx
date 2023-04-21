@@ -2,7 +2,7 @@ import React from "react";
 import { InputAdornment, TextField } from "@mui/material";
 import { NumericFormat } from "react-number-format";
 
-const CurrencyTextField = ({ value, onChange, placeholder }) => {
+const CurrencyTextField = ({ value, onChange, placeholder, sx }) => {
   return (
     <NumericFormat
       InputProps={{
@@ -21,9 +21,7 @@ const CurrencyTextField = ({ value, onChange, placeholder }) => {
       value={value}
       required
       placeholder={placeholder}
-      sx={{
-        width: "40%",
-      }}
+      sx={sx}
     />
   );
 };

@@ -1,5 +1,6 @@
 import { Box, Button, Typography } from "@mui/material";
 import Image from "next/image";
+import Link from "next/link";
 import React from "react";
 
 const index = () => {
@@ -19,7 +20,12 @@ const index = () => {
             alignItems: "center",
           }}
         >
-          <Image src="/assets/icons/backward.svg" width={40} height={40} />
+          <Link href="/">
+            <Button>
+              <Image src="/assets/icons/backward.svg" width={40} height={40} />
+            </Button>
+          </Link>
+
           <Typography
             variant="h5"
             sx={{
