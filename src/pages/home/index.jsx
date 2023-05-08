@@ -95,7 +95,7 @@ const index = () => {
             route="orders"
           />
         </Box>
-        {/* <Button onClick={logOut}>LOGOUT</Button> */}
+        <Button onClick={logOut}>LOGOUT</Button>
       </Box>
     </>
   );
