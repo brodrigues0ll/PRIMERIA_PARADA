@@ -1,91 +1,114 @@
-import Header from "@/components/Header";
-import HomePages from "@/components/HomePages";
-import { Box } from "@mui/material";
-import React from "react";
-
+import { Box, Button, TextField, Typography } from "@mui/material";
+import React, { use, useEffect, useState } from "react";
+import LoginInput from "@/components/LoginInput";
+import { database } from "@/services/firebase";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { useRouter } from "next/router";
 const index = () => {
+  const [email, setEmail] = useState("usertest1@pp.com");
+  const [password, setPassword] = useState("usertest1**");
+  const [passVisible, setPassVisible] = useState(false);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log(user);
+        router.push("/home");
+      } else {
+        console.log("Usuário não logado");
+      }
+    });
+  }, []);
+
+  function auth() {
+    const auth = getAuth();
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Signed in
+        const user = userCredential.user;
+        localStorage.setItem("user", JSON.stringify(user));
+        router.push("/home");
+        console.log(user);
+        // ...
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log(error);
+      });
+  }
+
   return (
-    <>
-      <Header />
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100vw",
+        height: "100vh",
+      }}
+    >
       <Box
         sx={{
-          padding: "0 20px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "90vh",
-          flexWrap: "wrap",
+          width: "84vw",
+          height: "50vh",
+          boxShadow: "0px 0px 10px 0px rgba(0,0,0,0.75)",
         }}
       >
+        <Typography
+          variant="h4"
+          sx={{
+            color: "#fff",
+            textAlign: "center",
+          }}
+        >
+          Login
+        </Typography>
+
         <Box
           sx={{
             display: "flex",
-            flexWrap: "wrap",
-            bgcolor: "#0e0e0e",
-            padding: "1rem 0.5rem",
-            borderRadius: "2rem",
+            flexDirection: "column",
+          }}
+        >
+          <LoginInput
+            id="email"
+            label="Email"
+            variant="outlined"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
+          />
+
+          <LoginInput
+            id="senha"
+            label="Senha"
+            type={passVisible ? "text" : "password"}
+            variant="outlined"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+            }}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
             justifyContent: "center",
           }}
         >
-          <HomePages
-            src="/assets/icons/calculator.svg"
-            alt="calculator"
-            title="Calculadora de Taxas"
-            route="/taxes"
-          />
-
-          <HomePages
-            src="/assets/icons/percent.svg"
-            alt="percent"
-            title="Calculadora de Ganhos"
-            route="/percent-calculator"
-          />
-
-          <HomePages
-            src="/assets/icons/cash-register.svg"
-            alt="cash-register"
-            title="Caixa"
-            route="/cash-register"
-          />
-
-          <HomePages
-            src="/assets/icons/inventory.svg"
-            alt="inventory"
-            title="Estoque"
-            route="/inventory"
-          />
-
-          <HomePages
-            src="/assets/icons/suppliers.svg"
-            alt="suppliers"
-            title="Fornecedores"
-            route="/suppliers"
-          />
-
-          <HomePages
-            src="/assets/icons/user.svg"
-            alt="clients"
-            title="Clientes"
-            route="/clients"
-          />
-
-          <HomePages
-            src="/assets/icons/menu.svg"
-            alt="menu"
-            title="Cardápio"
-            route="/price-table"
-          />
-
-          <HomePages
-            src="/assets/icons/order.svg"
-            alt="order"
-            title="Comandas"
-            route="/orders"
-          />
+          <Button onClick={auth} variant="outlined">
+            Entrar
+          </Button>
         </Box>
       </Box>
-    </>
+    </Box>
   );
 };
 
