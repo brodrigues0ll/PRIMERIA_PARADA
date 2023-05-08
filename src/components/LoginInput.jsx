@@ -22,7 +22,6 @@ export default function LoginInput({
       type={type ? type : "text"}
       sx={{
         margin: "0 auto",
-        width: "70%",
         marginBottom: "1rem",
         "& .MuiOutlinedInput-root": {
           "& fieldset": {

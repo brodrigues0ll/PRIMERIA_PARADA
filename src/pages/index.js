@@ -1,4 +1,4 @@
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Box, Button, Checkbox, TextField, Typography } from "@mui/material";
 import React, { use, useEffect, useState } from "react";
 import LoginInput from "@/components/LoginInput";
 import { database } from "@/services/firebase";
@@ -45,18 +45,22 @@ const index = () => {
   return (
     <Box
       sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
         width: "100vw",
         height: "100vh",
+        display: "flex",
+        alignItems: "center",
       }}
     >
       <Box
         sx={{
-          width: "84vw",
-          height: "50vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          width: "80vw",
           boxShadow: "0px 0px 10px 0px rgba(0,0,0,0.75)",
+          padding: "3rem 3rem",
+          gap: "3rem",
+          margin: "0 auto",
         }}
       >
         <Typography
@@ -64,6 +68,7 @@ const index = () => {
           sx={{
             color: "#fff",
             textAlign: "center",
+            fontFamily: "MilkyMatcha",
           }}
         >
           Login
@@ -73,6 +78,7 @@ const index = () => {
           sx={{
             display: "flex",
             flexDirection: "column",
+            gap: "3rem",
           }}
         >
           <LoginInput
@@ -85,16 +91,38 @@ const index = () => {
             }}
           />
 
-          <LoginInput
-            id="senha"
-            label="Senha"
-            type={passVisible ? "text" : "password"}
-            variant="outlined"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-            }}
-          />
+          <Box>
+            <LoginInput
+              id="senha"
+              label="Senha"
+              type={passVisible ? "text" : "password"}
+              variant="outlined"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+              }}
+            />
+            <Box
+              sx={{
+                display: "flex",
+                color: "white",
+                alignItems: "center",
+              }}
+            >
+              <Checkbox
+                onChange={() => setPassVisible(!passVisible)}
+                checked={passVisible}
+                sx={{
+                  color: "#fff",
+                  // bgcolor: "#fff",
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "0px",
+                }}
+              />
+              <Typography>Mostrar Senha</Typography>
+            </Box>
+          </Box>
         </Box>
 
         <Box
@@ -103,7 +131,23 @@ const index = () => {
             justifyContent: "center",
           }}
         >
-          <Button onClick={auth} variant="outlined">
+          <Button
+            onClick={auth}
+            variant="outlined"
+            sx={{
+              fontFamily: "MilkyMatcha",
+              color: "#fff",
+              borderColor: "red",
+              borderWidth: "2px",
+              height: "100%",
+              width: "80%",
+              boxShadow: "0px 0px 10px 0px rgba(0,0,0,0.75)",
+              ":hover": {
+                borderColor: "#fff",
+                borderWidth: "2px",
+              },
+            }}
+          >
             Entrar
           </Button>
         </Box>
