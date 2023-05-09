@@ -17,11 +17,13 @@ const CurrencyTextField = ({ value, onChange, placeholder, sx, label }) => {
       decimalSeparator=","
       decimalScale={2}
       fixedDecimalScale
-      allowLeadingZeros
       value={value}
       required
       placeholder={placeholder}
       sx={sx}
+      allowNegative={false}
+      allowEmptyFormatting={true}
+      allowLeadingZeros={true}
     />
   );
 };
