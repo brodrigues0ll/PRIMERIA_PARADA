@@ -64,7 +64,6 @@ const index = () => {
               setName(item.nome);
               setPrice(item.preco);
               setId(item.id);
-              console.log("aoba");
             }}
             key={item.id}
             sx={{

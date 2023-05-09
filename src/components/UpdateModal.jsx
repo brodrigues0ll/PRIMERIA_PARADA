@@ -127,7 +127,6 @@ const UpdateModal = ({ props }) => {
             value={props.price}
             onChange={(e) => {
               props.setPrice(e.target.value);
-              console.log(e.target.value);
             }}
           />
           <Button
