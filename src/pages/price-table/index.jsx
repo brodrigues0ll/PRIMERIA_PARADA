@@ -17,12 +17,14 @@ const index = () => {
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [barcode, setBarcode] = useState("");
 
   const handleUpdate = async () => {
     const docRef = doc(database, "cardapio", id);
     await updateDoc(docRef, {
       nome: name,
       preco: parseFloat(price.replace(",", ".")),
+      codigo: barcode,
     });
     setOpen(false);
   };
@@ -63,6 +65,7 @@ const index = () => {
               setOpen(true);
               setName(item.nome);
               setPrice(item.preco);
+              setBarcode(item.codigo);
               setId(item.id);
             }}
             key={item.id}
@@ -120,6 +123,8 @@ const index = () => {
             price,
             setPrice,
             handleUpdate,
+            barcode,
+            setBarcode,
           }}
         />
 

@@ -35,6 +35,48 @@ const UpdateModal = ({ props }) => {
         >
           <TextField
             id="outlined-basic"
+            label="Código de barras"
+            variant="outlined"
+            sx={{
+              margin: "0 auto",
+              marginBottom: "1rem",
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "#fff",
+                  borderWidth: "2px",
+                },
+              },
+              "& .MuiOutlinedInput-root:hover": {
+                "& fieldset": {
+                  borderColor: "red",
+                },
+              },
+              "& .MuiOutlinedInput-root.Mui-focused": {
+                "& fieldset": {
+                  borderColor: "red",
+                },
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "red",
+              },
+              "& .MuiOutlinedInput-input": {
+                color: "#fff",
+              },
+              "& .MuiOutlinedInput-input:hover": {
+                color: "#fff",
+              },
+              "& .MuiInputLabel-outlined": {
+                color: "white",
+              },
+              "& .MuiInputLabel-outlined.Mui-focused": {
+                color: "white",
+              },
+            }}
+            value={props.barcode}
+            onChange={(e) => props.setBarcode(e.target.value)}
+          />
+          <TextField
+            id="outlined-basic"
             label="Nome"
             variant="outlined"
             sx={{
