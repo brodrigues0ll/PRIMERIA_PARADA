@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getAuth } from "firebase/auth";
 import { database } from "@/services/firebase";
+import Loading from "@/components/Loading";
 
 function AuthRoute({ children }) {
   const router = useRouter();
@@ -23,7 +24,7 @@ function AuthRoute({ children }) {
   }, []);
 
   if (isLoading) {
-    return <h1 style={{ color: "white" }}>LOADING...</h1>;
+    return <Loading />;
   }
 
   return children;
