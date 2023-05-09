@@ -8,6 +8,7 @@ import {
   updateDoc,
   deleteDoc,
   deleteField,
+  onSnapshot,
   addDoc,
   doc,
 } from "firebase/firestore";
@@ -76,7 +77,7 @@ const index = () => {
       setCardapio(data);
     };
     fetchData();
-  }, []);
+  }, [cardapio]);
 
   return (
     <>
