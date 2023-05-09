@@ -3,6 +3,8 @@ import { Button, TextField, Modal, Backdrop, Fade } from "@mui/material";
 import CurrencyTextField from "./CurrencyTextField";
 import { collection, addDoc } from "firebase/firestore";
 
+import {} from "barcode-reader";
+
 const AddModal = ({ props }) => {
   return (
     <Modal
