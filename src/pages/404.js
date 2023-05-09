@@ -21,7 +21,7 @@ const page404 = () => {
         <Typography variant="body2">
           A página ainda não foi desenvolvida
         </Typography>
-        <Link href="/">
+        <Link href="/home">
           <Button variant="contained">
             <Typography variant="h6">Voltar</Typography>
           </Button>

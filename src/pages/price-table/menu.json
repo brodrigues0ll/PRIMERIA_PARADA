@@ -1,136 +1,118 @@
-{
-  "Petiscos": [
-    {
-      "nome": "Frango a Passarinho e Fritas",
-      "preco": 20.0
-    },
-    {
-      "nome": "Carne seca c/ Aipim",
-      "preco": 35.0
-    },
-    {
-      "nome": "Calabresa acebolada e Fritas",
-      "preco": 20.0
-    },
-    {
-      "nome": "Isca de Peixe Empanado e Fritas",
-      "preco": 24.5
-    },
-    {
-      "nome": "Filé e Fritas",
-      "preco": 40.0
-    },
-    {
-      "nome": "Batata Frita (porção) ",
-      "preco": 20.0
-    },
-    {
-      "nome": "Batata Frita da Casa",
-      "preco": 30.0
-    }
-  ],
-  "Long Neck": [
-    {
-      "nome": "Heineken",
-      "preco": 8.0
-    },
-    {
-      "nome": "Budweiser",
-      "preco": 7.0
-    },
-    {
-      "nome": "Corona",
-      "preco": 9.0
-    },
-    {
-      "nome": "Império Gold",
-      "preco": 5.0
-    }
-  ],
-  "Latão 473ml": [
-    {
-      "nome": "Antártica",
-      "preco": 6.0
-    },
-    {
-      "nome": "Brahma",
-      "preco": 6.0
-    }
-  ],
-  "Latão 550ml": [
-    {
-      "nome": "Brahma",
-      "preco": 6.5
-    }
-  ],
-  "Garrafa 600ml": [
-    {
-      "nome": "Antártica",
-      "preco": 9.0
-    },
-    {
-      "nome": "Brahma",
-      "preco": 9.0
-    }
-  ],
-  "Refrigerante Lata": [
-    {
-      "nome": "Coca-Cola",
-      "preco": 5.0
-    },
-    {
-      "nome": "Fanta Uva",
-      "preco": 4.5
-    },
-    {
-      "nome": "Fanta Laranja",
-      "preco": 4.5
-    },
-    {
-      "nome": "Sukita Uva",
-      "preco": 4.5
-    },
-    {
-      "nome": "Sukita Laranja",
-      "preco": 4.5
-    },
-    {
-      "nome": "Guaraná Antártica",
-      "preco": 4.5
-    }
-  ],
-  "Refrescos": [
-    {
-      "nome": "Guaraviton",
-      "preco": 4.0
-    },
-    {
-      "nome": "Guaravita",
-      "preco": 2.0
-    }
-  ],
-  "Aguas": [
-    {
-      "nome": "Agua com Gás",
-      "preco": 3.0
-    },
-    {
-      "nome": "Agua sem Gás",
-      "preco": 2.0
-    }
-  ],
-  "Refrigerantes 2 litros": [
-    {
-      "nome": "Coca-Cola",
-      "preco": 10.0
-    },
-    {
-      "nome": "Fanta",
-      "preco": 8.0
-    },
-    {
-      "nome": "Kuat",
-      "preco": 6.0
-    }
-  ]
-}
+[
+  {
+    "nome": "Frango a Passarinho e Fritas",
+    "preco": 20.0
+  },
+  {
+    "nome": "Carne seca c/ Aipim",
+    "preco": 35.0
+  },
+  {
+    "nome": "Calabresa acebolada e Fritas",
+    "preco": 20.0
+  },
+  {
+    "nome": "Isca de Peixe Empanado e Fritas",
+    "preco": 24.5
+  },
+  {
+    "nome": "Filé e Fritas",
+    "preco": 40.0
+  },
+  {
+    "nome": "Batata Frita (porção) ",
+    "preco": 20.0
+  },
+  {
+    "nome": "Batata Frita da Casa",
+    "preco": 30.0
+  },
+  {
+    "nome": "Heineken",
+    "preco": 8.0
+  },
+  {
+    "nome": "Budweiser",
+    "preco": 7.0
+  },
+  {
+    "nome": "Corona",
+    "preco": 9.0
+  },
+  {
+    "nome": "Império Gold",
+    "preco": 5.0
+  },
+  {
+    "nome": "Antártica",
+    "preco": 6.0
+  },
+  {
+    "nome": "Brahma",
+    "preco": 6.0
+  },
+  {
+    "nome": "Brahma",
+    "preco": 6.5
+  },
+  {
+    "nome": "Antártica",
+    "preco": 9.0
+  },
+  {
+    "nome": "Brahma",
+    "preco": 9.0
+  },
+  {
+    "nome": "Coca-Cola",
+    "preco": 5.0
+  },
+  {
+    "nome": "Fanta Uva",
+    "preco": 4.5
+  },
+  {
+    "nome": "Fanta Laranja",
+    "preco": 4.5
+  },
+  {
+    "nome": "Sukita Uva",
+    "preco": 4.5
+  },
+  {
+    "nome": "Sukita Laranja",
+    "preco": 4.5
+  },
+  {
+    "nome": "Guaraná Antártica",
+    "preco": 4.5
+  },
+  {
+    "nome": "Guaraviton",
+    "preco": 4.0
+  },
+  {
+    "nome": "Guaravita",
+    "preco": 2.0
+  },
+  {
+    "nome": "Agua com Gás",
+    "preco": 3.0
+  },
+  {
+    "nome": "Agua sem Gás",
+    "preco": 2.0
+  },
+  {
+    "nome": "Coca-Cola",
+    "preco": 10.0
+  },
+  {
+    "nome": "Fanta",
+    "preco": 8.0
+  },
+  {
+    "nome": "Kuat",
+    "preco": 6.0
+  }
+]

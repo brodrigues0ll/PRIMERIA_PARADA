@@ -7,6 +7,8 @@ const Header = () => {
     <Box
       sx={{
         bgcolor: "#101010",
+        borderBottom: "1px solid #fff",
+        padding: "40px 0 ",
         display: "flex",
         justifyContent: "space-around",
         alignItems: "center",

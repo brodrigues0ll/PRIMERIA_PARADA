@@ -5,24 +5,11 @@ import { database } from "@/services/firebase";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/router";
 const index = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("usertest1@pp.com");
+  const [password, setPassword] = useState("usertest1**");
   const [passVisible, setPassVisible] = useState(false);
 
   const router = useRouter();
-
-  useEffect(() => {
-    const auth = getAuth();
-
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log(user);
-        router.push("/home");
-      } else {
-        console.log("Usuário não logado");
-      }
-    });
-  }, []);
 
   function auth() {
     const auth = getAuth();
@@ -91,7 +78,12 @@ const index = () => {
             }}
           />
 
-          <Box>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             <LoginInput
               id="senha"
               label="Senha"
@@ -107,6 +99,7 @@ const index = () => {
                 display: "flex",
                 color: "white",
                 alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <Checkbox
@@ -115,9 +108,6 @@ const index = () => {
                 sx={{
                   color: "#fff",
                   // bgcolor: "#fff",
-                  width: "30px",
-                  height: "30px",
-                  borderRadius: "0px",
                 }}
               />
               <Typography>Mostrar Senha</Typography>

@@ -113,6 +113,7 @@ export default function Home() {
 
           <CurrencyTextField
             placeholder="0,00"
+            label="Preço Pago"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             sx={{
