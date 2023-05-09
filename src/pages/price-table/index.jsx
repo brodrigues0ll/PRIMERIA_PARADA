@@ -6,10 +6,14 @@ import {
   getFirestore,
   getDocs,
   updateDoc,
+  deleteDoc,
+  deleteField,
+  addDoc,
   doc,
 } from "firebase/firestore";
 import { database } from "@/services/firebase";
 import UpdateModal from "@/components/UpdateModal";
+import AddModal from "@/components/AddModal";
 
 const index = () => {
   const [cardapio, setCardapio] = useState([]);
@@ -18,15 +22,48 @@ const index = () => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [barcode, setBarcode] = useState("");
+  const [modalType, setModalType] = useState("");
+
+  const handleAdd = async () => {
+    try {
+      const docRef = await addDoc(collection(database, "cardapio"), {
+        nome: name,
+        preco: parseFloat(price.replace(",", ".")),
+        codigo: barcode,
+      });
+      setOpen(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const handleUpdate = async () => {
-    const docRef = doc(database, "cardapio", id);
-    await updateDoc(docRef, {
-      nome: name,
-      preco: parseFloat(price.replace(",", ".")),
-      codigo: barcode,
-    });
-    setOpen(false);
+    try {
+      const docRef = doc(database, "cardapio", id);
+      await updateDoc(docRef, {
+        nome: name,
+        preco: parseFloat(price.replace(",", ".")),
+        codigo: barcode,
+      });
+      setOpen(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const docRef = doc(database, "cardapio", id);
+      await deleteDoc(docRef);
+      setOpen(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleModalOpen = (type) => {
+    setModalType(type);
+    setOpen(true);
   };
 
   useEffect(() => {
@@ -67,6 +104,7 @@ const index = () => {
               setPrice(item.preco);
               setBarcode(item.codigo);
               setId(item.id);
+              handleModalOpen("update");
             }}
             key={item.id}
             sx={{
@@ -114,19 +152,38 @@ const index = () => {
           </Button>
         ))}
 
-        <UpdateModal
-          props={{
-            open,
-            handleClose: () => setOpen(false),
-            name,
-            setName,
-            price,
-            setPrice,
-            handleUpdate,
-            barcode,
-            setBarcode,
-          }}
-        />
+        {modalType === "update" && (
+          <UpdateModal
+            props={{
+              open,
+              handleClose: () => setOpen(false),
+              name,
+              setName,
+              price,
+              setPrice,
+              handleUpdate,
+              barcode,
+              setBarcode,
+              handleDelete,
+            }}
+          />
+        )}
+
+        {modalType === "add" && (
+          <AddModal
+            props={{
+              open,
+              handleClose: () => setOpen(false),
+              name,
+              setName,
+              price,
+              setPrice,
+              handleAdd,
+              barcode,
+              setBarcode,
+            }}
+          />
+        )}
 
         <Button
           sx={{
@@ -142,6 +199,7 @@ const index = () => {
             fontSize: "3rem",
             fontWeight: "bold",
           }}
+          onClick={() => handleModalOpen("add")}
         >
           +
         </Button>

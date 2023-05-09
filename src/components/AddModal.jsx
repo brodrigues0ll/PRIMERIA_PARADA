@@ -1,8 +1,9 @@
 import React from "react";
 import { Button, TextField, Modal, Backdrop, Fade } from "@mui/material";
 import CurrencyTextField from "./CurrencyTextField";
+import { collection, addDoc } from "firebase/firestore";
 
-const UpdateModal = ({ props }) => {
+const AddModal = ({ props }) => {
   return (
     <Modal
       aria-labelledby="transition-modal-title"
@@ -100,18 +101,15 @@ const UpdateModal = ({ props }) => {
                   borderColor: "red",
                 },
               },
-
               "& .MuiOutlinedInput-notchedOutline": {
                 borderColor: "red",
               },
-
               "& .MuiOutlinedInput-input": {
                 color: "#fff",
               },
               "& .MuiOutlinedInput-input:hover": {
                 color: "#fff",
               },
-
               "& .MuiInputLabel-outlined": {
                 color: "white",
               },
@@ -186,30 +184,9 @@ const UpdateModal = ({ props }) => {
                 bgcolor: "#202020",
               },
             }}
-            onClick={props.handleUpdate}
+            onClick={props.handleAdd}
           >
-            Salvar
-          </Button>
-
-          <Button
-            variant="outlined"
-            sx={{
-              margin: "2rem 0",
-              fontFamily: "MilkyMatcha",
-              color: "#fff",
-              borderColor: "red",
-              borderWidth: "2px",
-              width: "60%",
-              boxShadow: "0px 0px 10px 0px rgba(0,0,0,0.75)",
-              ":hover": {
-                borderColor: "#fff",
-                borderWidth: "2px",
-                bgcolor: "#202020",
-              },
-            }}
-            onClick={props.handleDelete}
-          >
-            Deletar
+            Adicionar
           </Button>
         </div>
       </Fade>
@@ -217,4 +194,4 @@ const UpdateModal = ({ props }) => {
   );
 };
 
-export default UpdateModal;
+export default AddModal;
