@@ -33,6 +33,9 @@ const index = () => {
         codigo: barcode,
       });
       setOpen(false);
+      setBarcode("");
+      setName("");
+      setPrice("");
     } catch (error) {
       console.log(error);
     }
