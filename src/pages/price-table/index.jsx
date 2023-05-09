@@ -80,7 +80,7 @@ const index = () => {
       setCardapio(data);
     };
     fetchData();
-  }, [cardapio]);
+  }, []);
 
   return (
     <>
