@@ -24,7 +24,7 @@ const CurrencyTextField = ({ value, onChange, placeholder, sx, label }) => {
       allowNegative={false}
       allowEmptyFormatting={true}
       allowLeadingZeros={true}
-      type="number"
+      type="tel"
     />
   );
 };
