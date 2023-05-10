@@ -3,13 +3,10 @@ import { Box, Button, Grid, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import {
   collection,
-  getFirestore,
-  getDocs,
   updateDoc,
   deleteDoc,
-  deleteField,
-  onSnapshot,
   addDoc,
+  onSnapshot,
   doc,
 } from "firebase/firestore";
 import { database } from "@/services/firebase";
@@ -17,13 +14,13 @@ import UpdateModal from "@/components/UpdateModal";
 import AddModal from "@/components/AddModal";
 
 const index = () => {
-  const [cardapio, setCardapio] = useState([]);
   const [open, setOpen] = useState(false);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [barcode, setBarcode] = useState("");
   const [modalType, setModalType] = useState("");
+  const [cardapio, setCardapio] = useState([]);
 
   const handleAdd = async () => {
     try {
@@ -71,15 +68,14 @@ const index = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      const querySnapshot = await getDocs(collection(database, "cardapio"));
-      const data = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCardapio(data);
-    };
-    fetchData();
+    const unsubscribe = onSnapshot(collection(database, "cardapio"), (doc) => {
+      const docs = [];
+      doc.forEach((item) => {
+        docs.push({ ...item.data(), id: item.id });
+      });
+      setCardapio(docs);
+    });
+    return () => unsubscribe();
   }, []);
 
   return (
