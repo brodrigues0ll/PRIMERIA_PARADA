@@ -39,6 +39,7 @@ function MyTextField({ value, onChange, sx, variant, label }) {
 
   return (
     <TextField
+      id="CurrencyTextMask"
       label={label}
       value={valor}
       onChange={handleChange}

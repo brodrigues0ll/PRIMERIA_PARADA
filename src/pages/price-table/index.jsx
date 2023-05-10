@@ -26,7 +26,7 @@ const index = () => {
     try {
       const docRef = await addDoc(collection(database, "cardapio"), {
         nome: name,
-        preco: parseFloat(price.replace(",", ".")),
+        preco: price,
         codigo: barcode,
       });
       setOpen(false);
@@ -43,7 +43,7 @@ const index = () => {
       const docRef = doc(database, "cardapio", id);
       await updateDoc(docRef, {
         nome: name,
-        preco: parseFloat(price.replace(",", ".")),
+        preco: price,
         codigo: barcode,
       });
       setOpen(false);
@@ -101,7 +101,6 @@ const index = () => {
             onClick={() => {
               setOpen(true);
               setName(item.nome);
-              setPrice(item.preco);
               setBarcode(item.codigo);
               setId(item.id);
               handleModalOpen("update");
@@ -140,12 +139,13 @@ const index = () => {
                     alignItems: "center",
                   }}
                 >
-                  {`${Number(item.preco)
-                    .toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
+                  {`R$ ${item.preco
+                    .toLocaleString("pt-br", {
+                      minimumFractionDigits: 2,
                     })
-                    .replace(".", ",")}`}
+                    .replace(".", ",")}
+
+                  `}
                 </Typography>
               </Grid>
             </Grid>
@@ -156,7 +156,12 @@ const index = () => {
           <UpdateModal
             props={{
               open,
-              handleClose: () => setOpen(false),
+              handleClose: () => {
+                setOpen(false);
+                setName("");
+                setPrice("");
+                setBarcode("");
+              },
               name,
               setName,
               price,
