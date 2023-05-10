@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TextField, InputAdornment } from "@mui/material";
 
-function MyTextField() {
+function MyTextField({ value, onChange, sx, variant, label }) {
   const [valor, setValor] = useState("");
 
   const formatCurrency = (rawValue) => {
@@ -24,7 +24,8 @@ function MyTextField() {
     }
 
     setValor(formattedValue);
-    console.log(formattedValue.replace(",", ".").replace(".", ""));
+
+    onChange(formattedValue);
   };
 
   const handleChange = (event) => {
@@ -38,12 +39,14 @@ function MyTextField() {
 
   return (
     <TextField
-      label="Valor"
+      label={label}
       value={valor}
       onChange={handleChange}
       InputProps={{
         startAdornment: <InputAdornment position="start">R$</InputAdornment>,
       }}
+      sx={sx}
+      variant={variant}
     />
   );
 }

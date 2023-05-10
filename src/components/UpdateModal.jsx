@@ -1,6 +1,7 @@
 import React from "react";
 import { Button, TextField, Modal, Backdrop, Fade } from "@mui/material";
 import CurrencyTextField from "./CurrencyTextField";
+import MyTextField from "@/components/ComponentTest";
 
 const UpdateModal = ({ props }) => {
   return (
@@ -122,7 +123,7 @@ const UpdateModal = ({ props }) => {
             value={props.name}
             onChange={(e) => props.setName(e.target.value)}
           />
-          <CurrencyTextField
+          <MyTextField
             id="outlined-basic"
             label="Preço"
             variant="outlined"
@@ -167,8 +168,8 @@ const UpdateModal = ({ props }) => {
               },
             }}
             value={props.price}
-            onChange={(e) => {
-              props.setPrice(e.target.value);
+            onChange={(value) => {
+              props.setPrice(value);
             }}
           />
           <Button

@@ -1,7 +1,7 @@
 import React from "react";
 import { Button, TextField, Modal, Backdrop, Fade } from "@mui/material";
 import CurrencyTextField from "./CurrencyTextField";
-import { collection, addDoc } from "firebase/firestore";
+import MyTextField from "@/components/ComponentTest";
 
 const AddModal = ({ props }) => {
   return (
@@ -120,7 +120,7 @@ const AddModal = ({ props }) => {
             value={props.name}
             onChange={(e) => props.setName(e.target.value)}
           />
-          <CurrencyTextField
+          <MyTextField
             id="outlined-basic"
             label="Preço"
             variant="outlined"
@@ -165,8 +165,8 @@ const AddModal = ({ props }) => {
               },
             }}
             value={props.price}
-            onChange={(e) => {
-              props.setPrice(e.target.value);
+            onChange={(value) => {
+              props.setPrice(value);
             }}
           />
           <Button
