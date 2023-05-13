@@ -1,8 +1,8 @@
-import { useRouter } from "next/router";
+import React, { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { Box, Button, Grid, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
-// import pedidos from "./menu.json";
+import { useRouter } from "next/router";
+import AddProductsModal from "@/components/AddProductsModal";
 
 import {
   collection,
@@ -14,8 +14,9 @@ import {
 } from "firebase/firestore";
 import { database } from "@/services/firebase";
 
-const DetalhesComanda = () => {
+const OrderDetails = () => {
   const [pedidos, setPedidos] = useState([]);
+  const [open, setOpen] = useState(true);
 
   const router = useRouter();
   const { id } = router.query;
@@ -23,23 +24,42 @@ const DetalhesComanda = () => {
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(database, "comandas", id, "pedidos"),
-      (snapshot) => {
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPedidos(data);
-      }
+      (snapshot) =>
+        setPedidos(snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })))
     );
-
     return () => {
       unsubscribe();
     };
   }, []);
 
+  async function handleIncrement(pedidoId) {
+    const pedidoRef = doc(database, "comandas", id, "pedidos", pedidoId);
+
+    const currentPedido = pedidos.find((pedido) => pedido.id === pedidoId);
+
+    const updatedQuantity = Number(currentPedido.quantidade) + 1;
+
+    await updateDoc(pedidoRef, { quantidade: updatedQuantity });
+  }
+
+  async function handleDecrement(pedidoId) {
+    const pedidoRef = doc(database, "comandas", id, "pedidos", pedidoId);
+
+    const currentPedido = pedidos.find((pedido) => pedido.id === pedidoId);
+
+    const updatedQuantity = Number(currentPedido.quantidade) - 1;
+
+    if (updatedQuantity === 0) {
+      await deleteDoc(pedidoRef);
+    } else {
+      await updateDoc(pedidoRef, { quantidade: updatedQuantity });
+    }
+  }
+
   return (
     <>
       <Header />
+
       <Box>
         <Typography
           variant="h5"
@@ -58,150 +78,109 @@ const DetalhesComanda = () => {
 
         {pedidos.map((pedido) => (
           <Box
-            key={pedido.nome}
+            key={pedido.id}
             sx={{
               width: "90%",
               display: "flex",
               flexDirection: "column",
               flexWrap: "wrap",
-              textAlign: "start",
-              alignItems: "start",
               bgcolor: "#2a2a2a",
               borderRadius: "10px",
               color: "white",
               margin: "1rem auto",
-              padding: "1.1rem",
+              padding: "1.5rem",
             }}
           >
             <Grid container spacing={2}>
-              <Grid item xs={5}>
-                <Typography
-                  sx={{
-                    paddingRight: "5px",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {pedido.nome}
-                </Typography>
+              <Grid
+                item
+                xs={5}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Typography>{pedido.nome}</Typography>
               </Grid>
-
-              <Grid item xs={6}>
+              <Grid item xs={7}>
                 <Box
                   sx={{
                     display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
+                    justifyContent: "space-between",
                     width: "100%",
+                    height: "100%",
+                    alignItems: "center",
                   }}
                 >
-                  <button
-                    style={{
-                      backgroundColor: "#A01F1F",
-                      borderRadius: "100%",
-                      width: "3rem",
-                      height: "3rem",
-                      color: "white",
-                      fontSize: "1rem",
-                      fontWeight: "bold",
-                      marginRight: "1rem",
+                  <Button
+                    variant="contained"
+                    color="error"
+                    sx={{
+                      borderRadius: "999px",
+                      height: "64px",
                     }}
-                    onClick={async () => {
-                      const docRef = doc(
-                        database,
-                        "comandas",
-                        id,
-                        "pedidos",
-                        pedido.id
-                      );
-                      await updateDoc(docRef, {
-                        quantidade: Number(pedido.quantidade) - 1,
-                      });
-                    }}
+                    onClick={() => handleDecrement(pedido.id)}
                   >
-                    -
-                  </button>
+                    <Typography variant="h4">-</Typography>
+                  </Button>
 
                   <Typography
                     sx={{
                       height: "100%",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      padding: "0",
                     }}
                   >
                     {pedido.quantidade}
                   </Typography>
 
-                  <button
-                    style={{
-                      backgroundColor: "green",
-                      borderRadius: "100%",
-                      width: "3rem",
-                      height: "3rem",
-                      color: "white",
-                      fontSize: "1rem",
-                      fontWeight: "bold",
-                      marginLeft: "1rem",
+                  <Button
+                    variant="contained"
+                    color="success"
+                    sx={{
+                      borderRadius: "999px",
+                      height: "64px",
                     }}
-                    onClick={async () => {
-                      const docRef = doc(
-                        database,
-                        "comandas",
-                        id,
-                        "pedidos",
-                        pedido.id
-                      );
-                      await updateDoc(docRef, {
-                        quantidade: Number(pedido.quantidade) + 1,
-                      });
-                    }}
+                    onClick={() => handleIncrement(pedido.id)}
                   >
-                    +
-                  </button>
+                    <Typography variant="h4">+</Typography>
+                  </Button>
                 </Box>
               </Grid>
             </Grid>
           </Box>
         ))}
 
+        {/* Total e ADD Button */}
+
         <Box
           sx={{
             position: "fixed",
-            bottom: "10px",
+            bottom: "20px",
             right: "20px",
             display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
           }}
         >
           <Typography
             sx={{
-              display: "flex",
-              bgcolor: "#2a2a2a",
-              borderRadius: "10px",
               color: "white",
-              height: "1px",
-              fontSize: "1.5rem",
+              fontSize: "1.8rem",
               fontWeight: "bold",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "1.7rem 3rem",
-              marginRight: "-2rem",
+              bgcolor: "#1f1f1f",
+              padding: "0.3rem 1.7rem",
+              marginRight: "-0.7rem",
             }}
           >
-            {`Total: R$ `}
+            {`Total: R$`}
             {pedidos
-              .reduce(
-                (acc, pedido) => acc + pedido.quantidade * pedido.preco,
-                0
-              )
+              .reduce((acc, item) => {
+                return acc + item.preco.replace(",", ".") * item.quantidade;
+              }, 0)
               .toFixed(2)
               .replace(".", ",")}
           </Typography>
-
           <Button
             sx={{
               display: "flex",
@@ -213,19 +192,28 @@ const DetalhesComanda = () => {
               fontSize: "3rem",
               fontWeight: "bold",
             }}
+            onClick={() => setOpen(true)}
           >
             +
           </Button>
         </Box>
       </Box>
-
       <Box
         sx={{
           marginTop: "10rem",
+        }}
+      />
+
+      <AddProductsModal
+        props={{
+          open,
+          setOpen,
+          id,
+          handleClose: () => setOpen(false),
         }}
       />
     </>
   );
 };
 
-export default DetalhesComanda;
+export default OrderDetails;
