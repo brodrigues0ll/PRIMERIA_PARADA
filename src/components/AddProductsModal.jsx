@@ -166,8 +166,8 @@ const AddProductsModal = ({ props }) => {
                     variant="contained"
                     color="success"
                     onClick={() => {
-                      setSelectedProduct(item);
                       handleAddProduct(item.id);
+                      setSelectedProduct(item);
                     }}
                   >
                     ADD

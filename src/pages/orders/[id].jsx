@@ -16,7 +16,7 @@ import { database } from "@/services/firebase";
 
 const OrderDetails = () => {
   const [pedidos, setPedidos] = useState([]);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const router = useRouter();
   const { id } = router.query;
