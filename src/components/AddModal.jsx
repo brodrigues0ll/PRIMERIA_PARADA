@@ -1,6 +1,5 @@
 import React from "react";
 import { Button, TextField, Modal, Backdrop, Fade } from "@mui/material";
-import CurrencyTextField from "./CurrencyTextField";
 import MyTextField from "@/components/ComponentTest";
 
 const AddModal = ({ props }) => {
