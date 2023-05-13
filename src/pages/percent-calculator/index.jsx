@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import CurrencyTextField from "../../components/CurrencyTextField";
 import {
   Box,
   Button,
@@ -9,6 +8,7 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import { useState } from "react";
+import ComponentTest from "../../components/ComponentTest";
 
 export default function Home() {
   const [quantity, setQuantity] = useState("");
@@ -111,7 +111,7 @@ export default function Home() {
             }}
           />
 
-          <CurrencyTextField
+          <ComponentTest
             placeholder="0,00"
             label="Preço Pago"
             value={price}
