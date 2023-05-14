@@ -123,6 +123,7 @@ const AddModal = ({ props }) => {
             id="outlined-basic"
             label="Preço"
             variant="outlined"
+            symbolColor="#fff"
             sx={{
               margin: "0 auto",
               marginBottom: "1rem",

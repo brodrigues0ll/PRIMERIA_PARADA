@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TextField, InputAdornment } from "@mui/material";
 
-function MyTextField({ value, onChange, sx, variant, label }) {
+function MyTextField({ value, onChange, sx, variant, label, symbolColor }) {
   const [valor, setValor] = useState("");
 
   const formatCurrency = (rawValue) => {
@@ -44,7 +44,18 @@ function MyTextField({ value, onChange, sx, variant, label }) {
       value={valor}
       onChange={handleChange}
       InputProps={{
-        startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+        startAdornment: (
+          <InputAdornment
+            position="start"
+            sx={{
+              "& .css-1pnmrwp-MuiTypography-root": {
+                color: symbolColor,
+              },
+            }}
+          >
+            R$
+          </InputAdornment>
+        ),
       }}
       sx={sx}
       variant={variant}
