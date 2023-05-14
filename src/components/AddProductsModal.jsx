@@ -14,8 +14,6 @@ import {
   updateDoc,
   getDoc,
   setDoc,
-  deleteDoc,
-  addDoc,
   onSnapshot,
   doc,
 } from "firebase/firestore";
@@ -50,6 +48,7 @@ const AddProductsModal = ({ props }) => {
         // Por exemplo, incrementar a quantidade em 1
         const quantidade = pedidoDoc.data().quantidade || 0;
         await updateDoc(pedidoRef, { quantidade: Number(quantidade) + 1 });
+        setSelectedProduct(null); // Limpar o estado apenas se o pedido existir
       } else {
         // O pedido não existe, crie um novo documento com os campos iniciais
         await setDoc(pedidoRef, {
@@ -63,6 +62,28 @@ const AddProductsModal = ({ props }) => {
       console.error("Erro ao adicionar produto:", error);
     }
   }
+
+  const handleClickAddProduct = async (item) => {
+    try {
+      const pedidoRef = doc(database, "comandas", id, "pedidos", item.id);
+      const pedidoDoc = await getDoc(pedidoRef);
+
+      if (pedidoDoc.exists()) {
+        const quantidade = pedidoDoc.data().quantidade || 0;
+        await updateDoc(pedidoRef, { quantidade: Number(quantidade) + 1 });
+      } else {
+        await setDoc(pedidoRef, {
+          nome: item.nome,
+          preco: `${item.preco}`,
+          quantidade: "1",
+        });
+      }
+
+      setSelectedProduct(null);
+    } catch (error) {
+      console.error("Erro ao adicionar produto:", error);
+    }
+  };
 
   return (
     <Modal
@@ -165,10 +186,7 @@ const AddProductsModal = ({ props }) => {
                   <Button
                     variant="contained"
                     color="success"
-                    onClick={() => {
-                      handleAddProduct(item.id);
-                      setSelectedProduct(item);
-                    }}
+                    onClick={() => handleClickAddProduct(item)}
                   >
                     ADD
                   </Button>

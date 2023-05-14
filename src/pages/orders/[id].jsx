@@ -17,6 +17,7 @@ import { database } from "@/services/firebase";
 const OrderDetails = () => {
   const [pedidos, setPedidos] = useState([]);
   const [open, setOpen] = useState(false);
+  const [cliente, setCliente] = useState([]);
 
   const router = useRouter();
   const { id } = router.query;
@@ -27,8 +28,15 @@ const OrderDetails = () => {
       (snapshot) =>
         setPedidos(snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })))
     );
+
+    const unsubscribeClienteId = onSnapshot(
+      doc(database, "comandas", id),
+      (snapshot) => setCliente(snapshot.data())
+    );
+
     return () => {
       unsubscribe();
+      unsubscribeClienteId();
     };
   }, []);
 
@@ -73,7 +81,7 @@ const OrderDetails = () => {
             fontWeight: "bold",
           }}
         >
-          {id}
+          {cliente.nome}
         </Typography>
 
         {pedidos.map((pedido) => (

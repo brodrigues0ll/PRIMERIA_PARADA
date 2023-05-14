@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import { Box, Button, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import AddOrderModal from "@/components/AddOrderModal";
 
 import {
   collection,
@@ -15,6 +16,7 @@ import { database } from "@/services/firebase";
 
 const Index = () => {
   const [comandas, setComandas] = useState([]);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(database, "comandas"), (doc) => {
@@ -22,12 +24,15 @@ const Index = () => {
       doc.forEach((comanda) => {
         docs.push({ ...comanda.data(), id: comanda.id });
       });
-      setComandas(docs);
+      const comadasAbertas = docs.filter(
+        (comanda) => comanda.status === "aberta"
+      );
+      setComandas(comadasAbertas);
     });
     return () => unsubscribe();
   }, []);
 
-  // Função para redirecionar a página para a rota do respectivo ID
+  console.log(comandas);
 
   return (
     <>
@@ -48,7 +53,11 @@ const Index = () => {
         </Typography>
 
         {comandas.map((comanda) => (
-          <Link href={`/orders/${comanda.id}`} key={comanda.id}>
+          <Link
+            style={{ textDecoration: "none" }}
+            href={`/orders/${comanda.id}`}
+            key={comanda.id}
+          >
             <Button
               sx={{
                 width: "90%",
@@ -69,14 +78,40 @@ const Index = () => {
                   paddingRight: "5px",
                 }}
               >
-                {comanda.id}
+                {comanda.nome}
               </Typography>
 
               <Box></Box>
             </Button>
           </Link>
         ))}
+
+        <Button
+          sx={{
+            display: "flex",
+            bgcolor: "#A01F1F",
+            borderRadius: "100%",
+            position: "fixed",
+            bottom: "50px",
+            right: "20px",
+            width: "80px",
+            height: "80px",
+            color: "white",
+            fontSize: "3rem",
+            fontWeight: "bold",
+          }}
+          onClick={() => setOpen(true)}
+        >
+          +
+        </Button>
       </Box>
+
+      <AddOrderModal
+        props={{
+          open,
+          handleClose: () => setOpen(false),
+        }}
+      />
     </>
   );
 };
