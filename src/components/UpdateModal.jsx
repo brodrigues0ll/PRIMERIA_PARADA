@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, TextField, Modal, Backdrop, Fade } from "@mui/material";
-import MyTextField from "@/components/ComponentTest";
+import CurrencyInputMask from "@/components/ComponentTest";
 
 const UpdateModal = ({ props }) => {
   return (
@@ -121,7 +121,7 @@ const UpdateModal = ({ props }) => {
             value={props.name}
             onChange={(e) => props.setName(e.target.value)}
           />
-          <MyTextField
+          <CurrencyInputMask
             id="outlined-basic"
             label="Preço"
             variant="outlined"

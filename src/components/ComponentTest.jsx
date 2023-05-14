@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { TextField, InputAdornment } from "@mui/material";
 
-function MyTextField({ value, onChange, sx, variant, label, symbolColor }) {
+function CurrencyInputMask({
+  value,
+  onChange,
+  sx,
+  variant,
+  label,
+  symbolColor,
+}) {
   const [valor, setValor] = useState("");
 
   const formatCurrency = (rawValue) => {
@@ -64,4 +71,4 @@ function MyTextField({ value, onChange, sx, variant, label, symbolColor }) {
   );
 }
 
-export default MyTextField;
+export default CurrencyInputMask;

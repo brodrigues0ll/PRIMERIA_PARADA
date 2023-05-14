@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import React, { useState } from "react";
-import MyTextField from "@/components/ComponentTest";
+import CurrencyInputMask from "@/components/ComponentTest";
 
 const test = () => {
   const [currencyTextField, setCurrencyTextField] = useState("");
@@ -19,7 +19,7 @@ const test = () => {
     >
       <Typography variant="h3">Página de Teste</Typography>
 
-      <MyTextField
+      <CurrencyInputMask
         value={currencyTextField}
         onChange={(value) => {
           setCurrencyTextField(value);
