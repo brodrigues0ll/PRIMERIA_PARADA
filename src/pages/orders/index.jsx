@@ -32,8 +32,6 @@ const Index = () => {
     return () => unsubscribe();
   }, []);
 
-  console.log(comandas);
-
   return (
     <>
       <Header />

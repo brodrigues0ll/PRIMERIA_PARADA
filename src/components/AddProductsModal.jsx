@@ -23,6 +23,7 @@ import { useRouter } from "next/router";
 const AddProductsModal = ({ props }) => {
   const [produtos, setProdutos] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [searchValue, setSearchValue] = useState("");
 
   const router = useRouter();
   const { id } = router.query;
@@ -85,12 +86,21 @@ const AddProductsModal = ({ props }) => {
     }
   };
 
+  const filteredProdutos = produtos.filter((item) => {
+    return item.nome.toLowerCase().includes(searchValue.toLowerCase());
+  });
+
+  const handleCloseModal = () => {
+    setSearchValue("");
+    props.handleClose();
+  };
+
   return (
     <Modal
       aria-labelledby="transition-modal-title"
       aria-describedby="transition-modal-description"
       open={props.open}
-      onClose={props.handleClose}
+      onClose={handleCloseModal}
       closeAfterTransition
       BackdropComponent={Backdrop}
       BackdropProps={{
@@ -153,6 +163,7 @@ const AddProductsModal = ({ props }) => {
                 color: "white",
               },
             }}
+            onChange={(e) => setSearchValue(e.target.value)}
           />
 
           <Box
@@ -162,7 +173,7 @@ const AddProductsModal = ({ props }) => {
               overflowY: "scroll",
             }}
           >
-            {produtos.map((item) => {
+            {filteredProdutos.map((item) => {
               return (
                 <Box
                   key={item.id}
