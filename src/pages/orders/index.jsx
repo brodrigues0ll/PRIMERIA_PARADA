@@ -6,6 +6,7 @@ import AddOrderModal from "@/components/AddOrderModal";
 
 import { collection, onSnapshot } from "firebase/firestore";
 import { database } from "@/services/firebase";
+import Head from "next/head";
 
 const Index = () => {
   const [comandas, setComandas] = useState([]);
@@ -27,6 +28,10 @@ const Index = () => {
 
   return (
     <>
+      <Head>
+        <title>Primeira Parada</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
       <Header />
       <Box>
         <Typography
