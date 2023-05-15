@@ -5,8 +5,8 @@ import { database } from "@/services/firebase";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/router";
 const index = () => {
-  const [email, setEmail] = useState("usertest1@pp.com");
-  const [password, setPassword] = useState("usertest1**");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [passVisible, setPassVisible] = useState(false);
 
   const router = useRouter();

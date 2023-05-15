@@ -64,6 +64,16 @@ const OrderDetails = () => {
     }
   }
 
+  const setStatus = () => {
+    try {
+      const pedidoRef = doc(database, "comandas", id);
+      updateDoc(pedidoRef, { status: "Fechada" });
+      router.push("/orders");
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <>
       <Header />
@@ -189,6 +199,7 @@ const OrderDetails = () => {
               .toFixed(2)
               .replace(".", ",")}
           </Typography>
+
           <Button
             sx={{
               display: "flex",
@@ -203,6 +214,23 @@ const OrderDetails = () => {
             onClick={() => setOpen(true)}
           >
             +
+          </Button>
+
+          <Button
+            sx={{
+              display: "flex",
+              bgcolor: "#2e7d32",
+              borderRadius: "100%",
+              width: "60px",
+              height: "60px",
+              color: "white",
+              fontSize: "3rem",
+              fontWeight: "bold",
+              margin: "-15rem -0.4rem -6rem -2rem",
+            }}
+            onClick={() => setStatus()}
+          >
+            ✔
           </Button>
         </Box>
       </Box>
