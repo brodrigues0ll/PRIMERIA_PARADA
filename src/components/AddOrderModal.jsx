@@ -2,9 +2,12 @@ import React from "react";
 import { Button, TextField, Modal, Backdrop, Fade } from "@mui/material";
 import { collection, addDoc } from "firebase/firestore";
 import { database } from "@/services/firebase";
+import { useRouter } from "next/router";
 
 const AddOrderModal = ({ props }) => {
   const [cliente, setCliente] = React.useState("");
+
+  const router = useRouter();
 
   const handleChange = (event) => {
     setCliente(event.target.value);
@@ -16,8 +19,8 @@ const AddOrderModal = ({ props }) => {
       nome: cliente,
       status: "aberta",
     });
-    console.log("Document written with ID: ", docRef.id);
     setCliente("");
+    router.push(`/orders/${docRef.id}`);
   };
 
   return (

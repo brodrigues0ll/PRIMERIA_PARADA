@@ -8,7 +8,6 @@ import {
   collection,
   updateDoc,
   deleteDoc,
-  addDoc,
   onSnapshot,
   doc,
 } from "firebase/firestore";
@@ -64,7 +63,7 @@ const OrderDetails = () => {
     }
   }
 
-  const setStatus = () => {
+  const handleSetStatus = () => {
     try {
       const pedidoRef = doc(database, "comandas", id);
       updateDoc(pedidoRef, { status: "Fechada" });
@@ -228,7 +227,7 @@ const OrderDetails = () => {
               fontWeight: "bold",
               margin: "-15rem -0.4rem -6rem -2rem",
             }}
-            onClick={() => setStatus()}
+            onClick={() => handleSetStatus()}
           >
             ✔
           </Button>

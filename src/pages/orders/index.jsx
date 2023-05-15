@@ -4,14 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import AddOrderModal from "@/components/AddOrderModal";
 
-import {
-  collection,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-  onSnapshot,
-  doc,
-} from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { database } from "@/services/firebase";
 
 const Index = () => {
