@@ -12,15 +12,18 @@ import {
 import { database } from "@/services/firebase";
 import UpdateModal from "@/components/UpdateModal";
 import AddModal from "@/components/AddModal";
-import { check } from "prettier";
 
 const getCacheData = () => {
   const cacheData = localStorage.getItem("cardapioCache");
-  return cacheData ? JSON.parse(cacheData) : [];
+  return JSON.parse(cacheData);
 };
 
-const setCacheData = (data) => {
-  localStorage.setItem("cardapioCache", JSON.stringify(data));
+const setStorage = (data) => {
+  if (window.navigator.onLine === true) {
+    localStorage.setItem("cardapioCache", JSON.stringify(data));
+  } else {
+    console.log("off");
+  }
 };
 
 const checkConnection = () => {
@@ -94,7 +97,7 @@ const index = () => {
         docs.push({ ...item.data(), id: item.id });
       });
       setCardapio(docs);
-      setCacheData(docs);
+      setStorage(docs);
     });
     return () => unsubscribe();
   }, []);
