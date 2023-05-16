@@ -9,7 +9,7 @@ export default function App({ Component, pageProps }) {
     <AuthRoute>
       <Head>
         <title>Primeira Parada</title>
-        <link rel="icon" href="/assets/images/LOGO-2.png" />
+        <link rel="icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.json" />
       </Head>
       <Component {...pageProps} />
