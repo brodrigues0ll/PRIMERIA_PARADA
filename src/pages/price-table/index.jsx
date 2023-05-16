@@ -1,38 +1,18 @@
 import Header from "@/components/Header";
 import { Box, Button, Grid, Typography } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import {
   collection,
   updateDoc,
   deleteDoc,
   addDoc,
   onSnapshot,
+  getDocs,
   doc,
 } from "firebase/firestore";
 import { database } from "@/services/firebase";
 import UpdateModal from "@/components/UpdateModal";
 import AddModal from "@/components/AddModal";
-
-const getCacheData = () => {
-  const cacheData = localStorage.getItem("cardapioCache");
-  return JSON.parse(cacheData);
-};
-
-const setStorage = (data) => {
-  if (window.navigator.onLine === true) {
-    localStorage.setItem("cardapioCache", JSON.stringify(data));
-  } else {
-    console.log("off");
-  }
-};
-
-const checkConnection = () => {
-  if (window.navigator.onLine) {
-    return true;
-  } else {
-    return false;
-  }
-};
 
 const index = () => {
   const [open, setOpen] = useState(false);
@@ -42,8 +22,8 @@ const index = () => {
   const [barcode, setBarcode] = useState("");
   const [modalType, setModalType] = useState("");
   const [cardapio, setCardapio] = useState([]);
-  const [cacheData, setCacheDataa] = useState(getCacheData());
-  const [isOnline, setIsOnline] = useState(checkConnection());
+  const [cardapioCache, setCardapioCache] = useState([]);
+  const { isOnline, setIsOnline } = useState(false);
 
   const handleAdd = async () => {
     try {
@@ -97,17 +77,9 @@ const index = () => {
         docs.push({ ...item.data(), id: item.id });
       });
       setCardapio(docs);
-      setStorage(docs);
     });
     return () => unsubscribe();
   }, []);
-
-  const storageOrDatabase = () => {
-    if (isOnline) {
-      return cardapio;
-    }
-    return cacheData;
-  };
 
   return (
     <>
@@ -127,7 +99,7 @@ const index = () => {
           Cardápio
         </Typography>
 
-        {storageOrDatabase().map((item) => (
+        {cardapio.map((item) => (
           <Button
             onClick={() => {
               setOpen(true);
