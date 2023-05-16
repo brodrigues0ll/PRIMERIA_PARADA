@@ -13,6 +13,15 @@ import { database } from "@/services/firebase";
 import UpdateModal from "@/components/UpdateModal";
 import AddModal from "@/components/AddModal";
 
+const getCacheData = () => {
+  const cacheData = localStorage.getItem("cardapioCache");
+  return cacheData ? JSON.parse(cacheData) : [];
+};
+
+const setCacheData = (data) => {
+  localStorage.setItem("cardapioCache", JSON.stringify(data));
+};
+
 const index = () => {
   const [open, setOpen] = useState(false);
   const [id, setId] = useState("");
@@ -20,63 +29,216 @@ const index = () => {
   const [price, setPrice] = useState("");
   const [barcode, setBarcode] = useState("");
   const [modalType, setModalType] = useState("");
-  const [cardapio, setCardapio] = useState([]);
+  const [cardapio, setCardapio] = useState(getCacheData());
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineEdits, setOfflineEdits] = useState([]);
 
   const handleAdd = async () => {
-    try {
-      const docRef = await addDoc(collection(database, "cardapio"), {
-        nome: name,
-        preco: price,
-        codigo: barcode,
-      });
-      setOpen(false);
-      setBarcode("");
+    if (isOnline) {
+      try {
+        const docRef = await addDoc(collection(database, "cardapio"), {
+          nome: name,
+          preco: price,
+          codigo: barcode,
+        });
+
+        setCardapio((prevCardapio) => [
+          ...prevCardapio,
+          { id: docRef.id, nome: name, preco: price, codigo: barcode },
+        ]);
+
+        setName("");
+        setPrice("");
+        setBarcode("");
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      const newEdit = {
+        type: "add",
+        name: name,
+        price: price,
+        barcode: barcode,
+      };
+
+      setOfflineEdits((prevEdits) => [...prevEdits, newEdit]);
+
       setName("");
       setPrice("");
-    } catch (error) {
-      console.log(error);
+      setBarcode("");
     }
   };
 
   const handleUpdate = async () => {
-    try {
-      const docRef = doc(database, "cardapio", id);
-      await updateDoc(docRef, {
-        nome: name,
-        preco: price,
-        codigo: barcode,
-      });
+    if (isOnline) {
+      try {
+        const docRef = doc(database, "cardapio", id);
+        await updateDoc(docRef, {
+          nome: name,
+          preco: price,
+          codigo: barcode,
+        });
+
+        setCardapio((prevCardapio) =>
+          prevCardapio.map((item) =>
+            item.id === id
+              ? { ...item, nome: name, preco: price, codigo: barcode }
+              : item
+          )
+        );
+
+        setOpen(false);
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      const newEdit = {
+        type: "update",
+        id: id,
+        name: name,
+        price: price,
+        barcode: barcode,
+      };
+
+      setOfflineEdits((prevEdits) => [...prevEdits, newEdit]);
+
       setOpen(false);
-    } catch (error) {
-      console.log(error);
+      setName("");
+      setPrice("");
+      setBarcode("");
     }
   };
 
   const handleDelete = async () => {
-    try {
-      const docRef = doc(database, "cardapio", id);
-      await deleteDoc(docRef);
+    if (isOnline) {
+      try {
+        const docRef = doc(database, "cardapio", id);
+        await deleteDoc(docRef);
+
+        setCardapio((prevCardapio) =>
+          prevCardapio.filter((item) => item.id !== id)
+        );
+
+        setOpen(false);
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      const newEdit = {
+        type: "delete",
+        id: id,
+      };
+
+      setOfflineEdits((prevEdits) => [...prevEdits, newEdit]);
+
       setOpen(false);
-    } catch (error) {
-      console.log(error);
+
+      setName("");
+      setPrice("");
+      setBarcode("");
     }
   };
+
+  const sendOfflineEdits = async () => {
+    for (const edit of offlineEdits) {
+      try {
+        if (edit.type === "add") {
+          const docRef = await addDoc(collection(database, "cardapio"), {
+            nome: edit.name,
+            preco: edit.price,
+            codigo: edit.barcode,
+          });
+          setCardapio((prevCardapio) => [
+            ...prevCardapio,
+            {
+              id: docRef.id,
+              nome: edit.name,
+              preco: edit.price,
+              codigo: edit.barcode,
+            },
+          ]);
+        } else if (edit.type === "update") {
+          const docRef = doc(database, "cardapio", edit.id);
+          await updateDoc(docRef, {
+            nome: edit.name,
+            preco: edit.price,
+            codigo: edit.barcode,
+          });
+
+          setCardapio((prevCardapio) =>
+            prevCardapio.map((item) =>
+              item.id === edit.id
+                ? {
+                    ...item,
+                    nome: edit.name,
+                    preco: edit.price,
+                    codigo: edit.barcode,
+                  }
+                : item
+            )
+          );
+        } else if (edit.type === "delete") {
+          const docRef = doc(database, "cardapio", edit.id);
+          await deleteDoc(docRef);
+
+          setCardapio((prevCardapio) =>
+            prevCardapio.filter((item) => item.id !== edit.id)
+          );
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    setOfflineEdits([]);
+  };
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOnline) {
+      const cachedData = getCacheData();
+      setCardapio(cachedData);
+    } else if (isOnline && offlineEdits.length > 0) {
+      sendOfflineEdits();
+    }
+  }, [isOnline]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(database, "cardapio"),
+      (snapshot) => {
+        const docs = [];
+        snapshot.forEach((item) => {
+          docs.push({ ...item.data(), id: item.id });
+        });
+        setCardapio(docs);
+        setCacheData(docs);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
 
   const handleModalOpen = (type) => {
     setModalType(type);
     setOpen(true);
   };
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(database, "cardapio"), (doc) => {
-      const docs = [];
-      doc.forEach((item) => {
-        docs.push({ ...item.data(), id: item.id });
-      });
-      setCardapio(docs);
-    });
-    return () => unsubscribe();
-  }, []);
 
   return (
     <>
