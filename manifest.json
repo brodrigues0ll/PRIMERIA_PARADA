@@ -1,0 +1,13 @@
+{
+  "name": "Primeira Parada",
+  "short_name": "Primeira Parada",
+  "start_url": "/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "./assets/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
