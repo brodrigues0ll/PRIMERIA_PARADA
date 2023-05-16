@@ -39,7 +39,7 @@ const index = () => {
   const [barcode, setBarcode] = useState("");
   const [modalType, setModalType] = useState("");
   const [cardapio, setCardapio] = useState([]);
-  const [cacheData, setCacheData] = useState(getCacheData());
+  const [cacheData, setCacheDataa] = useState(getCacheData());
   const [isOnline, setIsOnline] = useState(checkConnection());
 
   const handleAdd = async () => {
@@ -99,7 +99,7 @@ const index = () => {
     return () => unsubscribe();
   }, []);
 
-  const chooseCardapio = () => {
+  const storageOrDatabase = () => {
     if (isOnline) {
       return cardapio;
     }
@@ -124,7 +124,7 @@ const index = () => {
           Cardápio
         </Typography>
 
-        {chooseCardapio().map((item) => (
+        {storageOrDatabase().map((item) => (
           <Button
             onClick={() => {
               setOpen(true);
