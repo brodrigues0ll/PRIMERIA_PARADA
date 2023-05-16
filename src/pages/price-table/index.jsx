@@ -12,6 +12,24 @@ import {
 import { database } from "@/services/firebase";
 import UpdateModal from "@/components/UpdateModal";
 import AddModal from "@/components/AddModal";
+import { check } from "prettier";
+
+const getCacheData = () => {
+  const cacheData = localStorage.getItem("cardapioCache");
+  return cacheData ? JSON.parse(cacheData) : [];
+};
+
+const setCacheData = (data) => {
+  localStorage.setItem("cardapioCache", JSON.stringify(data));
+};
+
+const checkConnection = () => {
+  if (window.navigator.onLine) {
+    return true;
+  } else {
+    return false;
+  }
+};
 
 const index = () => {
   const [open, setOpen] = useState(false);
@@ -21,6 +39,8 @@ const index = () => {
   const [barcode, setBarcode] = useState("");
   const [modalType, setModalType] = useState("");
   const [cardapio, setCardapio] = useState([]);
+  const [cacheData, setCacheData] = useState(getCacheData());
+  const [isOnline, setIsOnline] = useState(checkConnection());
 
   const handleAdd = async () => {
     try {
@@ -74,9 +94,17 @@ const index = () => {
         docs.push({ ...item.data(), id: item.id });
       });
       setCardapio(docs);
+      setCacheData(docs);
     });
     return () => unsubscribe();
   }, []);
+
+  const chooseCardapio = () => {
+    if (isOnline) {
+      return cardapio;
+    }
+    return cacheData;
+  };
 
   return (
     <>
@@ -96,7 +124,7 @@ const index = () => {
           Cardápio
         </Typography>
 
-        {cardapio.map((item) => (
+        {chooseCardapio().map((item) => (
           <Button
             onClick={() => {
               setOpen(true);
