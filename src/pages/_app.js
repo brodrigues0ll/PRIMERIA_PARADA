@@ -10,6 +10,7 @@ export default function App({ Component, pageProps }) {
       <Head>
         <title>Primeira Parada</title>
         <link rel="icon" href="/favicon.ico" />
+        <link rel="manifest" href="/manifest.json" />
       </Head>
       <Component {...pageProps} />
     </AuthRoute>
