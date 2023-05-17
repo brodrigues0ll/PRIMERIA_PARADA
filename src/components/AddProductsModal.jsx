@@ -20,10 +20,25 @@ import {
 import { database } from "@/services/firebase";
 import { useRouter } from "next/router";
 
+const getCacheData = () => {
+  const cacheData = localStorage.getItem("cardapioCache");
+  return JSON.parse(cacheData);
+};
+
+const checkConnection = () => {
+  if (window.navigator.onLine) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
 const AddProductsModal = ({ props }) => {
   const [produtos, setProdutos] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchValue, setSearchValue] = useState("");
+  const [cacheData, setCacheDataa] = useState(getCacheData());
+  const [isOnline, setIsOnline] = useState(checkConnection());
 
   const router = useRouter();
   const { id } = router.query;
@@ -86,7 +101,14 @@ const AddProductsModal = ({ props }) => {
     }
   };
 
-  const filteredProdutos = produtos.filter((item) => {
+  const storageOrDatabase = () => {
+    if (isOnline) {
+      return produtos;
+    }
+    return cacheData;
+  };
+
+  const filteredProdutos = storageOrDatabase().filter((item) => {
     return item.nome.toLowerCase().includes(searchValue.toLowerCase());
   });
 
