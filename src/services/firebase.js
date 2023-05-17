@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import firebase from "firebase/app";
 
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableNetwork } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,5 +14,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);
+enableNetwork(database);
 
 export { app, database };
