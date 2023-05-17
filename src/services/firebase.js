@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import firebase from "firebase/app";
 
-import { getFirestore, enableNetwork } from "firebase/firestore";
+import { getFirestore, disableNetwork } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,6 +14,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);
-enableNetwork(database);
 
-export { app, database };
+const offlineOrOnline = (database) => {
+  if (typeof window !== "undefined") {
+    if (window.navigator.onLine) {
+      console.log("online");
+      firebase.firestore().enableNetwork();
+    } else {
+      console.log("offline");
+      firebase.firestore().disableNetwork();
+    }
+  }
+};
+
+export { app, database, offlineOrOnline };
