@@ -4,7 +4,7 @@ import firebase from "firebase/app";
 import {
   getFirestore,
   persistentLocalCache,
-  enableIndexedDbPersistence,
+  persist,
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -19,7 +19,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);
 
-// enableIndexedDbPersistence(true);
-persistentLocalCache(true);
+const persistCache = () => {
+  const cache = persistentLocalCache({
+    synchronizeTabs: true,
+  });
 
-export { app, database };
+  persist(cache, "localCache");
+};
+
+export { firebase, database, persistCache };
