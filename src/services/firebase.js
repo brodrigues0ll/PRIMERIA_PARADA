@@ -1,10 +1,8 @@
 import { initializeApp } from "firebase/app";
-import firebase from "firebase/app";
-
 import {
+  Firestore,
   getFirestore,
   persistentLocalCache,
-  persist,
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -16,15 +14,11 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+persistentLocalCache({
+  synchronizeTabs: true,
+});
+
 const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);
 
-const persistCache = () => {
-  const cache = persistentLocalCache({
-    synchronizeTabs: true,
-  });
-
-  persist(cache, "localCache");
-};
-
-export { firebase, database, persistCache };
+export { database, Firestore };

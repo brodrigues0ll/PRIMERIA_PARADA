@@ -8,6 +8,7 @@ import {
   addDoc,
   onSnapshot,
   doc,
+  disableNetwork,
 } from "firebase/firestore";
 import { database } from "@/services/firebase";
 import UpdateModal from "@/components/UpdateModal";
