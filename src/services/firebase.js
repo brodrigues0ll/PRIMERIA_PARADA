@@ -1,9 +1,5 @@
 import { initializeApp } from "firebase/app";
-import {
-  Firestore,
-  getFirestore,
-  persistentLocalCache,
-} from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,11 +10,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-persistentLocalCache({
-  synchronizeTabs: true,
-});
-
 const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);
 
-export { database, Firestore };
+// Verificar se a persistência já está habilitada
+if (!database._initialized && !database._settings.persistenceEnabled) {
+  enableIndexedDbPersistence(database)
+    .then(() => {
+      console.log("Persistência de cache habilitada com sucesso");
+      // Continuar com a inicialização da aplicação ou outras operações
+    })
+    .catch((error) => {
+      if (error.code === "failed-precondition") {
+        console.log("Persistência de cache já foi ativada em outra aba");
+      } else if (error.code === "unimplemented") {
+        console.log("Persistência de cache não suportada");
+      }
+    });
+}
+
+export { app, database };
