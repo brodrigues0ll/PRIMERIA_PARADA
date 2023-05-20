@@ -1,5 +1,5 @@
 import Header from "@/components/Header";
-import { Box, Button, Grid, Typography } from "@mui/material";
+import { Box, Button, Grid, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import {
   collection,
@@ -22,6 +22,7 @@ const index = () => {
   const [barcode, setBarcode] = useState("");
   const [modalType, setModalType] = useState("");
   const [cardapio, setCardapio] = useState([]);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleAdd = async () => {
     try {
@@ -97,7 +98,61 @@ const index = () => {
           Cardápio
         </Typography>
 
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            marginTop: "1rem",
+          }}
+        >
+          <TextField
+            label="Produto"
+            variant="outlined"
+            sx={{
+              margin: "0 auto",
+              marginBottom: "1rem",
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "#fff",
+                  borderWidth: "2px",
+                },
+              },
+              "& .MuiOutlinedInput-root:hover": {
+                "& fieldset": {
+                  borderColor: "red",
+                },
+              },
+              "& .MuiOutlinedInput-root.Mui-focused": {
+                "& fieldset": {
+                  borderColor: "red",
+                },
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "red",
+              },
+              "& .MuiOutlinedInput-input": {
+                color: "#fff",
+              },
+              "& .MuiOutlinedInput-input:hover": {
+                color: "#fff",
+              },
+              "& .MuiInputLabel-outlined": {
+                color: "white",
+              },
+              "& .MuiInputLabel-outlined.Mui-focused": {
+                color: "white",
+              },
+            }}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+          />
+        </Box>
+
         {cardapio
+          .filter((item) =>
+            item.nome.toLowerCase().includes(searchValue.toLowerCase())
+          )
           .sort((a, b) => a.nome.localeCompare(b.nome))
           .map((item) => (
             <Button
