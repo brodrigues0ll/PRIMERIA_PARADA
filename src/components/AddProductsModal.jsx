@@ -173,37 +173,39 @@ const AddProductsModal = ({ props }) => {
               overflowY: "scroll",
             }}
           >
-            {filteredProdutos.map((item) => {
-              return (
-                <Box
-                  key={item.id}
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    width: "100%",
-                    marginBottom: "1rem",
-                  }}
-                >
-                  <Typography
+            {filteredProdutos
+              .sort((a, b) => a.nome.localeCompare(b.nome))
+              .map((item) => {
+                return (
+                  <Box
+                    key={item.id}
                     sx={{
-                      color: "#fff",
-                      fontSize: "1.2rem",
-                      fontWeight: "bold",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                      marginBottom: "1rem",
                     }}
                   >
-                    {item.nome}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={() => handleClickAddProduct(item)}
-                  >
-                    ADD
-                  </Button>
-                </Box>
-              );
-            })}
+                    <Typography
+                      sx={{
+                        color: "#fff",
+                        fontSize: "1.2rem",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {item.nome}
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={() => handleClickAddProduct(item)}
+                    >
+                      ADD
+                    </Button>
+                  </Box>
+                );
+              })}
           </Box>
         </Box>
       </Fade>
