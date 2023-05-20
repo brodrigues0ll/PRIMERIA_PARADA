@@ -97,61 +97,63 @@ const index = () => {
           Cardápio
         </Typography>
 
-        {cardapio.map((item) => (
-          <Button
-            onClick={() => {
-              setOpen(true);
-              setName(item.nome);
-              setBarcode(item.codigo);
-              setId(item.id);
-              handleModalOpen("update");
-            }}
-            key={item.id}
-            sx={{
-              width: "90%",
-              display: "flex",
-              flexDirection: "column",
-              flexWrap: "wrap",
-              textAlign: "start",
-              alignItems: "start",
-              bgcolor: "#2a2a2a",
-              borderRadius: "10px",
-              color: "white",
-              margin: "1rem auto",
-              padding: "1.5rem",
-            }}
-          >
-            <Grid container spacing={2}>
-              <Grid item xs={8}>
-                <Typography
-                  sx={{
-                    borderRight: "1px solid white",
-                    paddingRight: "5px",
-                  }}
-                >
-                  {item.nome}
-                </Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography
-                  sx={{
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  {`R$ ${item.preco
-                    .toLocaleString("pt-br", {
-                      minimumFractionDigits: 2,
-                    })
-                    .replace(".", ",")}
+        {cardapio
+          .sort((a, b) => a.nome.localeCompare(b.nome))
+          .map((item) => (
+            <Button
+              onClick={() => {
+                setOpen(true);
+                setName(item.nome);
+                setBarcode(item.codigo);
+                setId(item.id);
+                handleModalOpen("update");
+              }}
+              key={item.id}
+              sx={{
+                width: "90%",
+                display: "flex",
+                flexDirection: "column",
+                flexWrap: "wrap",
+                textAlign: "start",
+                alignItems: "start",
+                bgcolor: "#2a2a2a",
+                borderRadius: "10px",
+                color: "white",
+                margin: "1rem auto",
+                padding: "1.5rem",
+              }}
+            >
+              <Grid container spacing={2}>
+                <Grid item xs={8}>
+                  <Typography
+                    sx={{
+                      borderRight: "1px solid white",
+                      paddingRight: "5px",
+                    }}
+                  >
+                    {item.nome}
+                  </Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {`R$ ${item.preco
+                      .toLocaleString("pt-br", {
+                        minimumFractionDigits: 2,
+                      })
+                      .replace(".", ",")}
 
                   `}
-                </Typography>
+                  </Typography>
+                </Grid>
               </Grid>
-            </Grid>
-          </Button>
-        ))}
+            </Button>
+          ))}
 
         {modalType === "update" && (
           <UpdateModal
