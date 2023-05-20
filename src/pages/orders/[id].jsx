@@ -117,7 +117,17 @@ const OrderDetails = () => {
                   alignItems: "center",
                 }}
               >
-                <Typography>{pedido.nome}</Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Typography>{pedido.nome}</Typography>
+                  <Typography sx={{ fontWeight: "bold" }}>
+                    {`R$ ${pedido.preco}`}
+                  </Typography>
+                </Box>
               </Grid>
               <Grid item xs={7}>
                 <Box
