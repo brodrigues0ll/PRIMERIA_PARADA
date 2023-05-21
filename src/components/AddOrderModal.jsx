@@ -18,6 +18,9 @@ const AddOrderModal = ({ props }) => {
     const docRef = await addDoc(collection(database, "comandas"), {
       nome: cliente,
       status: "aberta",
+      abertaEm:
+        new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString(),
+      fechadaEm: "",
     });
     setCliente("");
     router.push(`/orders/${docRef.id}`);

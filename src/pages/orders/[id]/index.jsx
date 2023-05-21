@@ -66,7 +66,13 @@ const OrderDetails = () => {
   const handleSetStatus = () => {
     try {
       const pedidoRef = doc(database, "comandas", id);
-      updateDoc(pedidoRef, { status: "Fechada" });
+      updateDoc(pedidoRef, {
+        status: "Fechada",
+        fechadaEm:
+          new Date().toLocaleDateString() +
+          " " +
+          new Date().toLocaleTimeString(),
+      });
       router.push("/orders");
     } catch (error) {
       console.log(error);
