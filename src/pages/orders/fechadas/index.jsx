@@ -7,6 +7,7 @@ import AddOrderModal from "@/components/AddOrderModal";
 import { collection, onSnapshot } from "firebase/firestore";
 import { database } from "@/services/firebase";
 import Head from "next/head";
+import ActiveLink from "@/components/ActiveLink";
 
 const Index = () => {
   const [comandas, setComandas] = useState([]);
@@ -47,6 +48,19 @@ const Index = () => {
         >
           Comandas
         </Typography>
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-around",
+            color: "white",
+            bgcolor: "#101010",
+            padding: "10px",
+          }}
+        >
+          <ActiveLink href="/orders">Abertas</ActiveLink>
+          <ActiveLink href="/orders/fechadas">Fechadas</ActiveLink>
+        </Box>
 
         {comandas.map((comanda) => (
           <Link
