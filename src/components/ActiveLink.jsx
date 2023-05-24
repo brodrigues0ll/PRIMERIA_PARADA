@@ -19,6 +19,7 @@ const ActiveLink = ({ href, children }) => {
     <Typography
       sx={{
         borderBottom: isActive ? "2px solid #fff" : "none",
+        cursor: "pointer",
       }}
       className={isActive ? "active" : ""}
       onClick={handleClick}
