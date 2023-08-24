@@ -39,7 +39,7 @@ const index = () => {
             justifyContent: "center",
           }}
         >
-          <HomePages
+          {/* <HomePages
             src="/assets/icons/calculator.svg"
             alt="calculator"
             title="Calculadora de Taxas"
@@ -79,7 +79,7 @@ const index = () => {
             alt="clients"
             title="Clientes"
             route="clients"
-          />
+          /> */}
 
           <HomePages
             src="/assets/icons/menu.svg"
