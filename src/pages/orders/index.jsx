@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import { useRouter } from "next/router";
 import { Box, Button, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,9 +10,14 @@ import { database } from "@/services/firebase";
 import Head from "next/head";
 import ActiveLink from "@/components/ActiveLink";
 
+import backwardArrow from "../../../public/assets/icons/backward.svg";
+import Image from "next/image";
+
 const Index = () => {
   const [comandas, setComandas] = useState([]);
   const [open, setOpen] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(database, "comandas"), (doc) => {
@@ -35,8 +41,7 @@ const Index = () => {
       </Head>
       <Header />
       <Box>
-        <Typography
-          variant="h5"
+        <Box
           sx={{
             display: "flex",
             justifyContent: "center",
@@ -44,10 +49,29 @@ const Index = () => {
             bgcolor: "#101010",
             padding: "10px",
             fontFamily: "MilkyMatcha",
+            position: "relative",
           }}
         >
-          Comandas
-        </Typography>
+          <Button
+            style={{
+              position: "absolute",
+              left: "10px",
+              top: "0",
+              height: "50px",
+            }}
+            onClick={() => router.push("/home")}
+          >
+            <Image src={backwardArrow} alt="Voltar" width={50} />
+          </Button>
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: "MilkyMatcha",
+            }}
+          >
+            Comandas
+          </Typography>
+        </Box>
 
         <Box
           sx={{

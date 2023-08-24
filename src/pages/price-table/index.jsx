@@ -13,6 +13,9 @@ import {
 import { database } from "@/services/firebase";
 import UpdateModal from "@/components/UpdateModal";
 import AddModal from "@/components/AddModal";
+import backwardArrow from "../../../public/assets/icons/backward.svg";
+import Image from "next/image";
+import { useRouter } from "next/router";
 
 const index = () => {
   const [open, setOpen] = useState(false);
@@ -23,6 +26,8 @@ const index = () => {
   const [modalType, setModalType] = useState("");
   const [cardapio, setCardapio] = useState([]);
   const [searchValue, setSearchValue] = useState("");
+
+  const router = useRouter();
 
   const handleAdd = async () => {
     try {
@@ -84,8 +89,7 @@ const index = () => {
     <>
       <Header />
       <Box>
-        <Typography
-          variant="h5"
+        <Box
           sx={{
             display: "flex",
             justifyContent: "center",
@@ -93,10 +97,29 @@ const index = () => {
             bgcolor: "#101010",
             padding: "10px",
             fontFamily: "MilkyMatcha",
+            position: "relative",
           }}
         >
-          Cardápio
-        </Typography>
+          <Button
+            style={{
+              position: "absolute",
+              left: "10px",
+              top: "0",
+              height: "50px",
+            }}
+            onClick={() => router.push("/home")}
+          >
+            <Image src={backwardArrow} alt="Voltar" width={50} />
+          </Button>
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: "MilkyMatcha",
+            }}
+          >
+            Cardápio
+          </Typography>
+        </Box>
 
         <Box
           sx={{
