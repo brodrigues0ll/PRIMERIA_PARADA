@@ -19,7 +19,9 @@ const AddOrderModal = ({ props }) => {
       nome: cliente,
       status: "aberta",
       abertaEm:
-        new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString(),
+        new Date().toLocaleDateString() +
+        ", " +
+        new Date().toLocaleTimeString(),
       fechadaEm: "",
     });
     setCliente("");

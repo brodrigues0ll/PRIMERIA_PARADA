@@ -70,7 +70,7 @@ const OrderDetails = () => {
         status: "Fechada",
         fechadaEm:
           new Date().toLocaleDateString() +
-          " " +
+          ", " +
           new Date().toLocaleTimeString(),
       });
       router.push("/orders");
