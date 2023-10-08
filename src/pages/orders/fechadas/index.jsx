@@ -24,11 +24,29 @@ const Index = () => {
       doc.forEach((comanda) => {
         docs.push({ ...comanda.data(), id: comanda.id });
       });
+
       const comandasFechadas = docs.filter(
         (comanda) => comanda.status === "Fechada"
       );
+
+      // Função para analisar a data e hora no formato "DD/MM/AAAA, HH:mm:ss"
+      const parseDate = (dateString) => {
+        const [datePart, timePart] = dateString.split(", ");
+        const [day, month, year] = datePart.split("/");
+        const [hour, minute, second] = timePart.split(":");
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
+
+      // Ordena as comandas com base na data e hora da chave "abertaEm"
+      comandasFechadas.sort((b, a) => {
+        const dateA = parseDate(a.abertaEm);
+        const dateB = parseDate(b.abertaEm);
+        return dateA - dateB;
+      });
+
       setComandas(comandasFechadas);
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -118,7 +136,7 @@ const Index = () => {
                   paddingRight: "5px",
                 }}
               >
-                {comanda.fechadaEm}
+                {comanda.abertaEm}
               </Typography>
 
               <Box></Box>
