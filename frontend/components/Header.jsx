@@ -18,6 +18,10 @@ const PAGE_META = {
   "/estoque/adicionar": { title: "Novo produto", back: "/estoque" },
   "/pdv": { title: "PDV", back: "/home" },
   "/configuracoes": { title: "Configurações", back: "/home" },
+  "/delivery": { title: "Delivery", back: "/home" },
+  "/delivery/novo": { title: "Novo pedido", back: "/delivery" },
+  "/clientes": { title: "Clientes", back: "/home" },
+  "/clientes/novo": { title: "Novo cliente", back: "/clientes" },
 };
 
 function getMeta(pathname) {
@@ -25,6 +29,7 @@ function getMeta(pathname) {
   if (pathname.startsWith("/orders/fechadas/")) return { title: "Comanda", back: "/orders/fechadas" };
   if (pathname.startsWith("/orders/")) return { title: "Comanda", back: "/orders" };
   if (pathname.match(/^\/price-table\/.+\/editar$/)) return { title: "Editar produto", back: "/price-table" };
+  if (pathname.startsWith("/clientes/") && pathname !== "/clientes/novo") return { title: "Cliente", back: "/clientes" };
   return { title: null, back: null };
 }
 

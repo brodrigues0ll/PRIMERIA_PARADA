@@ -5,3 +5,6 @@ export { default as Comanda } from "./Comanda";
 export { default as Produto } from "./Produto";
 export { default as PermissionGroup } from "./PermissionGroup";
 export { default as Empresa } from "./Empresa";
+export { default as Cliente } from "./Cliente";
+export { default as PedidoDelivery } from "./PedidoDelivery";
+export { default as PagamentoCliente } from "./PagamentoCliente";

@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ClipboardList, UtensilsCrossed, ChevronRight, Clock, TrendingUp, Package, AlertTriangle, ScanBarcode, Settings } from "lucide-react";
+import { ClipboardList, UtensilsCrossed, ChevronRight, Clock, TrendingUp, Package, AlertTriangle, ScanBarcode, Settings, Truck, Users } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import connectDB from "@/lib/mongodb";
 import Comanda from "@/lib/models/Comanda";
 import Pedido from "@/lib/models/Pedido";
 import Produto from "@/lib/models/Produto";
+import PedidoDelivery from "@/lib/models/PedidoDelivery";
+import Cliente from "@/lib/models/Cliente";
 import { formatPrice } from "@/lib/utils";
 
 async function getStats() {
@@ -36,15 +38,41 @@ async function getStats() {
     const todayOrders = ids.length;
     const revenue = revenueAgg[0]?.total ?? 0;
 
-    return { abertas, todayOrders, revenue, lowStockCount };
+    const deliveryHoje = await PedidoDelivery.countDocuments({
+      createdAt: { $gte: startOfDay },
+      status: { $ne: "cancelado" },
+    });
+
+    const deliveryAtivos = await PedidoDelivery.countDocuments({
+      createdAt: { $gte: startOfDay },
+      status: { $in: ["recebido", "em_preparo"] },
+    });
+
+    const clientesComSaldo = await Cliente.aggregate([
+      { $lookup: { from: "pedidodeliveries", localField: "_id", foreignField: "cliente", as: "pedidos" } },
+      { $lookup: { from: "pagamentoclientes", localField: "_id", foreignField: "cliente", as: "pagamentos" } },
+      {
+        $project: {
+          totalPedidos: { $sum: "$pedidos.total" },
+          totalPago: { $sum: "$pagamentos.valor" },
+        },
+      },
+      { $addFields: { saldo: { $subtract: ["$totalPedidos", "$totalPago"] } } },
+      { $match: { saldo: { $gt: 0 } } },
+      { $count: "total" },
+    ]);
+
+    const clientesDevedores = clientesComSaldo[0]?.total ?? 0;
+
+    return { abertas, todayOrders, revenue, lowStockCount, deliveryHoje, deliveryAtivos, clientesDevedores };
   } catch {
-    return { abertas: null, todayOrders: null, revenue: null, lowStockCount: 0 };
+    return { abertas: null, todayOrders: null, revenue: null, lowStockCount: 0, deliveryHoje: null, deliveryAtivos: 0, clientesDevedores: null };
   }
 }
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
-  const { abertas, todayOrders, revenue, lowStockCount } = await getStats();
+  const { abertas, todayOrders, revenue, lowStockCount, deliveryHoje, deliveryAtivos, clientesDevedores } = await getStats();
   const isAdmin = session?.user?.role === "admin";
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "Olá";
@@ -129,6 +157,55 @@ export default async function HomePage() {
                 </div>
                 <ChevronRight className="h-5 w-5 text-primary-foreground/60 group-hover:translate-x-1 transition-transform" />
               </div>
+            </div>
+          </Link>
+
+          {/* Delivery */}
+          <Link href="/delivery" className="block group">
+            <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all duration-200 hover:bg-accent active:scale-[0.98] flex items-center justify-between">
+              <div>
+                <div className="mb-3 h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
+                  <Truck className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-bold text-foreground">Delivery</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {deliveryHoje !== null ? (
+                    <p className="text-xs text-muted-foreground">
+                      {deliveryHoje} pedido{deliveryHoje !== 1 ? "s" : ""} hoje
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Pedidos de entrega</p>
+                  )}
+                  {deliveryAtivos > 0 && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                      {deliveryAtivos}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground/40 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Clientes */}
+          <Link href="/clientes" className="block group">
+            <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all duration-200 hover:bg-accent active:scale-[0.98] flex items-center justify-between">
+              <div>
+                <div className="mb-3 h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-bold text-foreground">Clientes</p>
+                {clientesDevedores !== null && clientesDevedores > 0 ? (
+                  <p className="text-xs text-amber-500 font-medium mt-0.5 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {clientesDevedores} com conta em aberto
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-0.5">Cadastro e contas</p>
+                )}
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground/40 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
 
