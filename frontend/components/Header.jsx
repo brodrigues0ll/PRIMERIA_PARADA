@@ -1,8 +1,9 @@
 "use client";
 import { signOut } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import Image from "next/image";
-import { ChevronLeft, LogOut } from "lucide-react";
+import { ChevronLeft, LogOut, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -32,9 +33,14 @@ export default function Header({ session, empresa }) {
   const logoEmpresa = empresa?.logo ?? null;
   const pathname = usePathname();
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
   const { title, back } = getMeta(pathname);
   const isHome = pathname === "/home";
   const isOrders = pathname === "/orders" || pathname === "/orders/fechadas";
+
+  function toggleTheme() {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
@@ -72,16 +78,29 @@ export default function Header({ session, empresa }) {
           )}
         </div>
 
-        {session && (
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            onClick={toggleTheme}
           >
-            <LogOut className="h-3.5 w-3.5" />
+            {resolvedTheme === "dark"
+              ? <Sun className="h-4 w-4" />
+              : <Moon className="h-4 w-4" />}
           </Button>
-        )}
+
+          {session && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {isOrders && (

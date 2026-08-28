@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import { ShoppingCart, Package, Loader2, ImageOff, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, Package, Loader2, ImageOff, CheckCircle2, Upload, X } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 
 function parseDecimal(str) {
   return parseFloat(String(str).replace(",", ".")) || 0;
 }
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export default function NovoProdutoEstoquePage() {
   const router = useRouter();
@@ -26,7 +28,9 @@ export default function NovoProdutoEstoquePage() {
   const [loading, setLoading] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupDone, setLookupDone] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const lookupRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const precoCompraNum = parseDecimal(precoCompra);
   const precoVendaNum = parseDecimal(precoVenda);
@@ -40,7 +44,6 @@ export default function NovoProdutoEstoquePage() {
     const trimmed = code.trim();
     if (!trimmed || !/^\d{8,14}$/.test(trimmed)) return;
 
-    // Cancela lookup anterior se ainda rodando
     if (lookupRef.current) clearTimeout(lookupRef.current);
 
     setLookupLoading(true);
@@ -50,8 +53,7 @@ export default function NovoProdutoEstoquePage() {
       const data = await res.json();
 
       if (res.ok) {
-        if (data.nome && !nome) setNome(data.nome);
-        else if (data.nome) setNome(data.nome);
+        if (data.nome) setNome(data.nome);
         if (data.imagem) setImagem(data.imagem);
         setLookupDone(true);
         toast.success("Produto encontrado na base de dados");
@@ -59,9 +61,40 @@ export default function NovoProdutoEstoquePage() {
         toast.info("Produto não encontrado na base — preencha manualmente");
       }
     } catch {
-      // falhou silenciosamente, usuário preenche manualmente
+      // falhou silenciosamente
     } finally {
       setLookupLoading(false);
+    }
+  }
+
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await fetch(`${API_URL}/api/upload/image`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const d = await res.json();
+        toast.error(d.message || "Erro ao enviar imagem");
+        return;
+      }
+
+      const { data } = await res.json();
+      setImagem(data.url);
+      toast.success("Imagem enviada com sucesso");
+    } catch {
+      toast.error("Erro ao conectar com o servidor de upload");
+    } finally {
+      setUploadLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -136,7 +169,6 @@ export default function NovoProdutoEstoquePage() {
 
         <BarcodeScanner onScan={handleScan} placeholder="Escanear código de barras" />
 
-        {/* Código de barras com feedback de lookup */}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="codigo">Código de barras</Label>
           <div className="relative">
@@ -165,14 +197,18 @@ export default function NovoProdutoEstoquePage() {
           </p>
         </div>
 
-        {/* Preview da imagem encontrada */}
-        {(imagem || lookupLoading) && (
+        {/* Imagem */}
+        <div className="flex flex-col gap-2">
+          <Label>Imagem do produto</Label>
+
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="flex items-center justify-center bg-muted/40 min-h-40 relative">
-              {lookupLoading ? (
+              {lookupLoading || uploadLoading ? (
                 <div className="flex flex-col items-center gap-2 py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Buscando produto...</p>
+                  <p className="text-xs text-muted-foreground">
+                    {uploadLoading ? "Enviando imagem..." : "Buscando produto..."}
+                  </p>
                 </div>
               ) : imagem ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -188,20 +224,38 @@ export default function NovoProdutoEstoquePage() {
                 </div>
               )}
             </div>
-            {imagem && !lookupLoading && (
-              <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
-                <p className="text-xs text-muted-foreground">Imagem obtida automaticamente</p>
+
+            <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadLoading}
+                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {imagem ? "Trocar foto" : "Enviar foto"}
+              </button>
+
+              {imagem && !uploadLoading && (
                 <button
                   type="button"
                   onClick={() => setImagem(null)}
-                  className="text-xs text-destructive/70 hover:text-destructive transition-colors"
+                  className="flex items-center gap-1 text-xs text-destructive/70 hover:text-destructive transition-colors"
                 >
+                  <X className="h-3.5 w-3.5" />
                   Remover
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        )}
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nome">Nome *</Label>

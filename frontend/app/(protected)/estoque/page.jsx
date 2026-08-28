@@ -331,6 +331,12 @@ export default function EstoquePage() {
                   return (
                     <div key={produto._id}>
                       <div className="flex items-center gap-3 px-4 py-3.5">
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                          {produto.imagem
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={produto.imagem} alt={produto.nome} className="h-full w-full object-cover" />
+                            : <Package className="h-5 w-5 text-muted-foreground/40" />}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-medium text-foreground truncate">{produto.nome}</p>

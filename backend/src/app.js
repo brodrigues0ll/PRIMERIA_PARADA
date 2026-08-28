@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 
+const uploadRoutes = require("./routes/upload.routes");
 const errorMiddleware = require("./middlewares/error.middleware");
 
 const app = express();
@@ -13,6 +14,8 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
+app.use("/api/upload", uploadRoutes);
 
 app.use(errorMiddleware);
 
