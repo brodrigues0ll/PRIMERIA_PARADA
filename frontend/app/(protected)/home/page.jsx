@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Wallet,
 } from "lucide-react";
+import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import connectDB from "@/lib/mongodb";
@@ -245,6 +246,17 @@ export default async function HomePage() {
             ) : (
               <p className="text-xs text-muted-foreground mt-0.5">Controle</p>
             )}
+          </div>
+        </Link>
+
+        {/* WhatsApp */}
+        <Link href="/whatsapp" className="group col-span-2 sm:col-span-1">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition-all duration-200 hover:bg-emerald-500/20 active:scale-[0.97] h-full flex flex-col">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3">
+              <WhatsAppIcon className="h-5 w-5 text-emerald-600" />
+            </div>
+            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">WhatsApp</p>
+            <p className="text-xs text-emerald-600/80 dark:text-emerald-500/80 mt-0.5">Conversas</p>
           </div>
         </Link>
 

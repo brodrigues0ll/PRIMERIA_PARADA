@@ -28,6 +28,7 @@ const PAGE_META = {
   "/delivery/novo": { title: "Novo pedido", back: "/delivery" },
   "/clientes": { title: "Clientes", back: "/home" },
   "/clientes/novo": { title: "Novo cliente", back: "/clientes" },
+  "/whatsapp": { title: "WhatsApp", back: "/home" },
   "/estoque/locais": { title: "Locais de Estoque", back: "/estoque" },
   "/configuracoes/estoque": { title: "Configurações", back: "/home" },
   "/financeiro": { title: "Financeiro", back: "/home" },
