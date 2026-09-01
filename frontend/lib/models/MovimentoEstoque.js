@@ -7,11 +7,21 @@ const MovimentoEstoqueSchema = new mongoose.Schema(
       ref: "Produto",
       required: true,
     },
-    tipo: { type: String, enum: ["entrada", "saida", "ajuste"], required: true },
+    tipo: { type: String, enum: ["entrada", "saida", "ajuste", "transferencia"], required: true },
     quantidade: { type: Number, required: true },
     quantidadeAnterior: { type: Number, required: true },
     quantidadeNova: { type: Number, required: true },
     observacao: { type: String, default: "", trim: true },
+    local_origem: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LocalEstoque",
+      default: null,
+    },
+    local_destino: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LocalEstoque",
+      default: null,
+    },
   },
   { timestamps: true }
 );

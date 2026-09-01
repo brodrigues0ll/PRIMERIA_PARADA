@@ -1,16 +1,32 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search, X, Package, AlertTriangle, ArrowUpCircle, ArrowDownCircle,
-  SlidersHorizontal, Plus, Trash2, DollarSign, ShoppingCart,
+  SlidersHorizontal, Plus, Trash2, DollarSign, ShoppingCart, ArrowLeftRight,
+  MapPin,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn, formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
+
+// ---------- helpers ----------
 
 function StockBadge({ quantidade, minimo }) {
   if (minimo > 0 && quantidade <= 0)
@@ -23,14 +39,17 @@ function StockBadge({ quantidade, minimo }) {
 function TipoIcon({ tipo }) {
   if (tipo === "entrada") return <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500" />;
   if (tipo === "saida") return <ArrowDownCircle className="h-3.5 w-3.5 text-rose-500" />;
+  if (tipo === "transferencia") return <ArrowLeftRight className="h-3.5 w-3.5 text-blue-500" />;
   return <SlidersHorizontal className="h-3.5 w-3.5 text-amber-500" />;
 }
 
-const TIPOS = [
+const TIPOS_MOVIMENTO = [
   { key: "entrada", label: "Entrada", icon: ArrowUpCircle, color: "text-emerald-500" },
   { key: "saida", label: "Saída", icon: ArrowDownCircle, color: "text-rose-500" },
   { key: "ajuste", label: "Ajuste", icon: SlidersHorizontal, color: "text-amber-500" },
 ];
+
+// ---------- MovimentoModal (existing) ----------
 
 function MovimentoModal({ open, produto, onClose, onSuccess }) {
   const [tipo, setTipo] = useState("entrada");
@@ -79,7 +98,7 @@ function MovimentoModal({ open, produto, onClose, onSuccess }) {
         </div>
 
         <div className="grid grid-cols-3 gap-1.5 bg-muted rounded-xl p-1">
-          {TIPOS.map(({ key, label, icon: Icon, color }) => (
+          {TIPOS_MOVIMENTO.map(({ key, label, icon: Icon, color }) => (
             <button
               key={key}
               onClick={() => setTipo(key)}
@@ -142,30 +161,201 @@ function MovimentoModal({ open, produto, onClose, onSuccess }) {
   );
 }
 
-export default function EstoquePage() {
+// ---------- TransferModal ----------
+
+function TransferModal({ open, locais, produtoInicial, localOrigemId, onClose, onSuccess }) {
+  const [produtoId, setProdutoId] = useState("");
   const [produtos, setProdutos] = useState([]);
+  const [localDestino, setLocalDestino] = useState("");
+  const [quantidade, setQuantidade] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setLocalDestino("");
+      setQuantidade("");
+      if (produtoInicial) {
+        setProdutoId(produtoInicial._id);
+      } else {
+        setProdutoId("");
+      }
+    }
+  }, [open, produtoInicial]);
+
+  useEffect(() => {
+    async function fetchProdutos() {
+      try {
+        const res = await fetch("/api/produtos");
+        const data = await res.json();
+        if (res.ok) setProdutos(data.data || []);
+      } catch {}
+    }
+    if (open) fetchProdutos();
+  }, [open]);
+
+  const destinosDisponiveis = locais.filter((l) => l._id !== localOrigemId);
+
+  async function handleTransferir(e) {
+    e.preventDefault();
+    const qty = Number(quantidade);
+    if (!produtoId || !localDestino || isNaN(qty) || qty <= 0) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/transferencias-estoque", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          produtoId,
+          localOrigemId,
+          localDestinoId: localDestino,
+          quantidade: qty,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Erro ao transferir"); return; }
+      toast.success("Transferência realizada!");
+      onSuccess?.();
+      onClose();
+    } catch { toast.error("Erro ao transferir"); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Transferir estoque</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleTransferir} className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Produto</label>
+            <Select value={produtoId} onValueChange={setProdutoId} required>
+              <SelectTrigger className="bg-background border-input">
+                <SelectValue placeholder="Selecione o produto" />
+              </SelectTrigger>
+              <SelectContent>
+                {produtos.map((p) => (
+                  <SelectItem key={p._id} value={p._id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Local de destino</label>
+            <Select value={localDestino} onValueChange={setLocalDestino} required>
+              <SelectTrigger className="bg-background border-input">
+                <SelectValue placeholder="Selecione o destino" />
+              </SelectTrigger>
+              <SelectContent>
+                {destinosDisponiveis.map((l) => (
+                  <SelectItem key={l._id} value={l._id}>{l.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Quantidade</label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+              placeholder="0"
+              className="bg-background border-input"
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              className="bg-primary text-primary-foreground"
+              disabled={loading || !produtoId || !localDestino || !quantidade}
+            >
+              {loading ? "Transferindo..." : "Transferir"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------- Main page ----------
+
+export default function EstoquePage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // locais
+  const [locais, setLocais] = useState([]);
+  const [localSelecionado, setLocalSelecionado] = useState(searchParams.get("localId") || "consolidado");
+
+  // products (full list)
+  const [produtos, setProdutos] = useState([]);
+  // local-specific stock
+  const [estoqueLocal, setEstoqueLocal] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedProduto, setSelectedProduto] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferProduto, setTransferProduto] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [historico, setHistorico] = useState({});
   const [editingMinimo, setEditingMinimo] = useState(null);
   const [minimoValue, setMinimoValue] = useState("");
   const minimoInputRef = useRef(null);
-  const router = useRouter();
+
+  // Fetch locais on mount
+  const fetchLocais = useCallback(async () => {
+    try {
+      const res = await fetch("/api/locais-estoque");
+      const data = await res.json();
+      if (res.ok) setLocais(data.data || []);
+    } catch {}
+  }, []);
 
   const fetchProdutos = useCallback(async () => {
     try {
       const res = await fetch("/api/produtos");
       const data = await res.json();
-      if (res.ok) setProdutos(data.data);
+      if (res.ok) setProdutos(data.data || []);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchProdutos(); }, [fetchProdutos]);
+  const fetchEstoqueLocal = useCallback(async (localId) => {
+    if (!localId || localId === "consolidado") return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/estoque-local?localId=${localId}`);
+      const data = await res.json();
+      if (res.ok) setEstoqueLocal(data.data || []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLocais();
+    fetchProdutos();
+  }, [fetchLocais, fetchProdutos]);
+
+  useEffect(() => {
+    if (localSelecionado !== "consolidado") {
+      fetchEstoqueLocal(localSelecionado);
+    }
+  }, [localSelecionado, fetchEstoqueLocal]);
+
   useEffect(() => {
     if (editingMinimo && minimoInputRef.current) minimoInputRef.current.focus();
   }, [editingMinimo]);
@@ -217,22 +407,36 @@ export default function EstoquePage() {
     } catch { toast.error("Erro ao remover"); }
   }
 
+  // Build display list depending on selected tab
+  const displayProdutos = useMemo(() => {
+    if (localSelecionado === "consolidado") return produtos;
+    // Map estoqueLocal entries to produto-like shape
+    return estoqueLocal
+      .filter((el) => el.produto)
+      .map((el) => ({
+        ...el.produto,
+        quantidade: el.quantidade,
+        minimo: el.minimo,
+        _estoqueLocalId: el._id,
+      }));
+  }, [localSelecionado, produtos, estoqueLocal]);
+
   const filtered = useMemo(() =>
-    produtos.filter((p) =>
+    displayProdutos.filter((p) =>
       p.nome.toLowerCase().includes(search.toLowerCase()) ||
       (p.codigo && p.codigo.includes(search))
     ),
-    [produtos, search]
+    [displayProdutos, search]
   );
 
   const lowStock = useMemo(() =>
-    produtos.filter((p) => p.minimo > 0 && p.quantidade <= p.minimo),
-    [produtos]
+    displayProdutos.filter((p) => p.minimo > 0 && p.quantidade <= p.minimo),
+    [displayProdutos]
   );
 
   const totalValue = useMemo(() =>
-    produtos.reduce((sum, p) => sum + (p.precoCompra || 0) * p.quantidade, 0),
-    [produtos]
+    displayProdutos.reduce((sum, p) => sum + (p.precoCompra || 0) * p.quantidade, 0),
+    [displayProdutos]
   );
 
   const sorted = useMemo(() => [...filtered].sort((a, b) => {
@@ -245,27 +449,102 @@ export default function EstoquePage() {
     return diff !== 0 ? diff : a.nome.localeCompare(b.nome, "pt-BR");
   }), [filtered]);
 
+  function handleTabChange(val) {
+    setLocalSelecionado(val);
+    setSearch("");
+    setExpandedId(null);
+    setHistorico({});
+    // update URL
+    const url = new URL(window.location.href);
+    if (val === "consolidado") {
+      url.searchParams.delete("localId");
+    } else {
+      url.searchParams.set("localId", val);
+    }
+    router.replace(url.pathname + url.search);
+  }
+
+  function handleRefresh() {
+    fetchProdutos();
+    if (localSelecionado !== "consolidado") fetchEstoqueLocal(localSelecionado);
+  }
+
   return (
     <>
       <div className="pb-28">
-        <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              className="pl-9 pr-9 bg-card border-border h-10"
-              placeholder="Buscar produto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
+        {/* Tab bar */}
+        <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border">
+          <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => handleTabChange("consolidado")}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors shrink-0",
+                localSelecionado === "consolidado"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+            >
+              Consolidado
+            </button>
+            {locais.map((local) => (
+              <button
+                key={local._id}
+                onClick={() => handleTabChange(local._id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors shrink-0",
+                  localSelecionado === local._id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+              >
+                {local.nome}
               </button>
-            )}
+            ))}
+            <button
+              onClick={() => router.push("/estoque/locais")}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent flex items-center gap-1"
+            >
+              <MapPin className="h-3 w-3" />
+              Locais
+            </button>
+          </div>
+          <div className="px-4 py-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                className="pl-9 pr-9 bg-card border-border h-10"
+                placeholder="Buscar produto..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="px-4 pt-4 flex flex-col gap-4">
+        <div className="px-4 pt-2 flex flex-col gap-4">
+
+          {/* Local header with transfer button */}
+          {localSelecionado !== "consolidado" && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {locais.find((l) => l._id === localSelecionado)?.nome}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8 text-xs"
+                onClick={() => { setTransferProduto(null); setTransferModalOpen(true); }}
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                Transferir
+              </Button>
+            </div>
+          )}
 
           {!loading && totalValue > 0 && (
             <div className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3">
@@ -384,6 +663,16 @@ export default function EstoquePage() {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
+                          {/* Transfer button visible when in a local tab */}
+                          {localSelecionado !== "consolidado" && (
+                            <button
+                              onClick={() => { setTransferProduto(produto); setTransferModalOpen(true); }}
+                              className="h-8 w-8 rounded-lg bg-muted hover:bg-accent flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground"
+                              title="Transferir"
+                            >
+                              <ArrowLeftRight className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           <button onClick={() => toggleExpand(produto._id)} className="text-right">
                             <p className={cn(
                               "text-xl font-bold tabular-nums leading-none",
@@ -467,12 +756,21 @@ export default function EstoquePage() {
         produto={selectedProduto}
         onClose={() => setModalOpen(false)}
         onSuccess={() => {
-          fetchProdutos();
+          handleRefresh();
           if (expandedId === selectedProduto?._id) {
             setHistorico((prev) => { const next = { ...prev }; delete next[selectedProduto._id]; return next; });
             loadHistorico(selectedProduto._id);
           }
         }}
+      />
+
+      <TransferModal
+        open={transferModalOpen}
+        locais={locais}
+        produtoInicial={transferProduto}
+        localOrigemId={localSelecionado !== "consolidado" ? localSelecionado : null}
+        onClose={() => setTransferModalOpen(false)}
+        onSuccess={handleRefresh}
       />
     </>
   );
