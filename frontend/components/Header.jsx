@@ -28,6 +28,13 @@ const PAGE_META = {
   "/delivery/novo": { title: "Novo pedido", back: "/delivery" },
   "/clientes": { title: "Clientes", back: "/home" },
   "/clientes/novo": { title: "Novo cliente", back: "/clientes" },
+  "/estoque/locais": { title: "Locais de Estoque", back: "/estoque" },
+  "/configuracoes/estoque": { title: "Configurações", back: "/home" },
+  "/financeiro": { title: "Financeiro", back: "/home" },
+  "/financeiro/caixa": { title: "Caixa do Dia", back: "/financeiro" },
+  "/financeiro/lancamentos": { title: "Lançamentos", back: "/financeiro" },
+  "/financeiro/contas-pagar": { title: "Contas a Pagar", back: "/financeiro" },
+  "/financeiro/relatorios": { title: "Relatórios", back: "/financeiro" },
 };
 
 function getMeta(pathname) {

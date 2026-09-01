@@ -38,6 +38,15 @@ module.exports = {
           DEFAULT: "oklch(var(--card) / <alpha-value>)",
           foreground: "oklch(var(--card-foreground) / <alpha-value>)",
         },
+        popover: {
+          DEFAULT: "oklch(var(--popover) / <alpha-value>)",
+          foreground: "oklch(var(--popover-foreground) / <alpha-value>)",
+        },
+        sidebar: {
+          DEFAULT: "oklch(var(--sidebar) / <alpha-value>)",
+          foreground: "oklch(var(--sidebar-foreground) / <alpha-value>)",
+          border: "oklch(var(--sidebar-border) / <alpha-value>)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

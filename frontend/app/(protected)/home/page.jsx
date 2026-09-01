@@ -11,6 +11,7 @@ import {
   Truck,
   Users,
   LayoutGrid,
+  Wallet,
 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -244,6 +245,17 @@ export default async function HomePage() {
             ) : (
               <p className="text-xs text-muted-foreground mt-0.5">Controle</p>
             )}
+          </div>
+        </Link>
+
+        {/* Financeiro */}
+        <Link href="/financeiro" className="group">
+          <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
+            <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
+              <Wallet className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-bold text-foreground">Financeiro</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Caixa e contas</p>
           </div>
         </Link>
 
