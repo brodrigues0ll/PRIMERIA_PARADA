@@ -6,6 +6,7 @@ export default function OrderCard({ comanda, href }) {
   const isClosed = comanda.status === "fechada";
   const initial = comanda.nome?.[0]?.toUpperCase() ?? "?";
   const time = formatRelativeTime(isClosed ? comanda.fechadaEm : comanda.abertaEm);
+  const mesaNome = comanda.mesa?.nome ?? null;
 
   return (
     <Link href={href} className="block group">
@@ -25,12 +26,18 @@ export default function OrderCard({ comanda, href }) {
           <p className="text-sm font-semibold text-foreground truncate leading-snug">
             {comanda.nome}
           </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <span className={cn(
               "h-1.5 w-1.5 rounded-full shrink-0",
               isClosed ? "bg-muted-foreground/40" : "bg-emerald-500"
             )} />
-            <span className="text-xs text-muted-foreground truncate">{time}</span>
+            <span className="text-xs text-muted-foreground">{time}</span>
+            {mesaNome && (
+              <>
+                <span className="text-muted-foreground/40 text-xs">·</span>
+                <span className="text-xs text-muted-foreground truncate">{mesaNome}</span>
+              </>
+            )}
           </div>
         </div>
 

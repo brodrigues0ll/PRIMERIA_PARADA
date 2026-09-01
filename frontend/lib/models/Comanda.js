@@ -20,6 +20,10 @@ const ComandaSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    mesa: { type: mongoose.Schema.Types.ObjectId, ref: "Mesa", default: null },
+    grupo: { type: mongoose.Schema.Types.ObjectId, ref: "GrupoMesas", default: null },
+    pagantes: { type: [String], default: [] },
+    pagantesPagos: { type: [String], default: [] },
   },
   {
     timestamps: true,

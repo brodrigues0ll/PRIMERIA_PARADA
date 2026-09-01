@@ -21,7 +21,7 @@ export async function POST(request, { params }) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const { id } = await params;
-  const { menuItemId } = await request.json();
+  const { menuItemId, pagante } = await request.json();
 
   if (!menuItemId) return NextResponse.json({ error: "menuItemId é obrigatório" }, { status: 400 });
 
@@ -30,7 +30,8 @@ export async function POST(request, { params }) {
   const menuItem = await MenuItem.findById(menuItemId);
   if (!menuItem) return NextResponse.json({ error: "Item do cardápio não encontrado" }, { status: 404 });
 
-  const existing = await Pedido.findOne({ comanda: id, menuItem: menuItemId });
+  const paganteVal = pagante ?? null;
+  const existing = await Pedido.findOne({ comanda: id, menuItem: menuItemId, pagante: paganteVal });
 
   let pedido;
   if (existing) {
@@ -42,6 +43,7 @@ export async function POST(request, { params }) {
       nome: menuItem.nome,
       preco: menuItem.preco,
       quantidade: 1,
+      pagante: paganteVal,
     });
   }
 

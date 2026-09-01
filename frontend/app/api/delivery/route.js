@@ -4,6 +4,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import connectDB from "@/lib/mongodb";
 import PedidoDelivery from "@/lib/models/PedidoDelivery";
 import MenuItem from "@/lib/models/MenuItem";
+import EnderecoSalvo from "@/lib/models/EnderecoSalvo";
+import NomeAvulso from "@/lib/models/NomeAvulso";
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -102,6 +104,23 @@ export async function POST(request) {
     troco_para: troco_para ?? null,
     na_conta: Boolean(na_conta),
   });
+
+  if (endereco_entrega?.rua) {
+    const { rua, numero, bairro, complemento, referencia } = endereco_entrega;
+    EnderecoSalvo.findOneAndUpdate(
+      { rua: { $regex: `^${rua.trim()}$`, $options: "i" }, numero: numero || "", bairro: bairro || "" },
+      { $inc: { usos: 1 }, $setOnInsert: { rua: rua.trim(), numero: numero || "", bairro: bairro || "", complemento: complemento || "", referencia: referencia || "" } },
+      { upsert: true, new: true }
+    ).catch(() => {});
+  }
+
+  if (nome_avulso?.trim()) {
+    NomeAvulso.findOneAndUpdate(
+      { nome: { $regex: `^${nome_avulso.trim()}$`, $options: "i" } },
+      { $inc: { usos: 1 }, $setOnInsert: { nome: nome_avulso.trim() } },
+      { upsert: true, new: true }
+    ).catch(() => {});
+  }
 
   return NextResponse.json({ data: pedido }, { status: 201 });
 }

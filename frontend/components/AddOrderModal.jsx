@@ -1,8 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,24 +12,46 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function AddOrderModal({ open, onClose }) {
   const [nome, setNome] = useState("");
+  const [mesasLivres, setMesasLivres] = useState([]);
+  const [loadingMesas, setLoadingMesas] = useState(false);
+  const [mesaSelecionada, setMesaSelecionada] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    if (!open) { setNome(""); setMesaSelecionada(null); return; }
+    setLoadingMesas(true);
+    fetch("/api/salao")
+      .then((r) => r.json())
+      .then((d) => {
+        const livres = (d.data ?? []).filter((m) => m.status === "livre");
+        setMesasLivres(livres);
+      })
+      .catch(() => toast.error("Erro ao carregar mesas"))
+      .finally(() => setLoadingMesas(false));
+  }, [open]);
+
   async function handleCreate() {
-    if (!nome.trim()) return;
+    const nomeEnviado = nome.trim() || mesaSelecionada?.mesa.nome || "Avulso";
     setLoading(true);
     try {
       const res = await fetch("/api/comandas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: nome.trim() }),
+        body: JSON.stringify({
+          nome: nomeEnviado,
+          mesaId: mesaSelecionada?.mesa._id ?? null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Erro ao criar comanda"); return; }
       setNome("");
+      setMesaSelecionada(null);
       onClose();
       router.push(`/orders/${data.data._id}`);
     } catch {
@@ -41,40 +62,91 @@ export default function AddOrderModal({ open, onClose }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { setNome(""); onClose(); } }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setNome(""); setMesaSelecionada(null); onClose(); } }}>
       <DialogContent className="bg-card border-border sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nova comanda</DialogTitle>
-          <DialogDescription>Informe o nome do cliente ou mesa</DialogDescription>
+          <DialogDescription>Selecione a mesa e informe o cliente</DialogDescription>
         </DialogHeader>
+
         <div className="flex flex-col gap-4">
+          {/* Seleção de mesa */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nome-comanda">Cliente / Mesa</Label>
-            <div className="relative">
-              <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="nome-comanda"
-                className="pl-9 bg-background border-input"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex: Mesa 4, João..."
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-                autoFocus
-              />
-            </div>
+            <Label>
+              Mesa{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            {loadingMesas ? (
+              <div className="grid grid-cols-3 gap-2">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="h-10 rounded-xl" />
+                ))}
+              </div>
+            ) : mesasLivres.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-1">
+                Nenhuma mesa livre no momento
+              </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {mesasLivres.map((item) => {
+                  const selected = mesaSelecionada?.mesa._id === item.mesa._id;
+                  return (
+                    <button
+                      key={item.mesa._id}
+                      type="button"
+                      onClick={() =>
+                        setMesaSelecionada(selected ? null : item)
+                      }
+                      className={cn(
+                        "py-2 px-3 rounded-xl border text-sm font-medium transition-colors text-center",
+                        selected
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-foreground hover:bg-accent"
+                      )}
+                    >
+                      {item.mesa.nome}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
+
+          {/* Nome do cliente */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="nome-comanda">
+              Cliente{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            <Input
+              id="nome-comanda"
+              className="bg-background border-input"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder={
+                mesaSelecionada ? mesaSelecionada.mesa.nome : "Nome do cliente..."
+              }
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              autoFocus
+            />
+          </div>
+
           <div className="flex gap-2">
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => { setNome(""); onClose(); }}
+              onClick={() => {
+                setNome("");
+                setMesaSelecionada(null);
+                onClose();
+              }}
             >
               Cancelar
             </Button>
             <Button
               className="flex-1 bg-primary hover:bg-primary/90"
               onClick={handleCreate}
-              disabled={loading || !nome.trim()}
+              disabled={loading}
             >
               {loading ? "Criando..." : "Criar comanda"}
             </Button>

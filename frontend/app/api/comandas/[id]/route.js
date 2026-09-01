@@ -38,16 +38,23 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
     const { action } = body;
 
-    if (!["fechar", "reabrir"].includes(action)) {
+    if (!["fechar", "reabrir", "pagantes", "pagantesPagos"].includes(action)) {
       return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
     }
 
     await connectDB();
 
-    const update =
-      action === "fechar"
-        ? { status: "fechada", fechadaEm: new Date() }
-        : { status: "aberta", fechadaEm: null };
+    let update;
+    if (action === "pagantes") {
+      update = { pagantes: body.pagantes ?? [] };
+    } else if (action === "pagantesPagos") {
+      update = { pagantesPagos: body.pagantesPagos ?? [] };
+    } else {
+      update =
+        action === "fechar"
+          ? { status: "fechada", fechadaEm: new Date() }
+          : { status: "aberta", fechadaEm: null };
+    }
 
     const comanda = await Comanda.findByIdAndUpdate(id, update, { new: true });
 

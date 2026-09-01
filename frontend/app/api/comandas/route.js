@@ -19,7 +19,7 @@ export async function GET(request) {
     const filter = status ? { status } : {};
     const sort = status === "fechada" ? { fechadaEm: -1 } : { abertaEm: -1 };
 
-    const comandas = await Comanda.find(filter).sort(sort);
+    const comandas = await Comanda.find(filter).populate("mesa", "nome").sort(sort);
 
     return NextResponse.json({ data: comandas });
   } catch (error) {
@@ -35,7 +35,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { nome } = body;
+    const { nome, mesaId } = body;
 
     if (!nome?.trim()) {
       return NextResponse.json({ error: "Nome do cliente é obrigatório" }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(request) {
       nome: nome.trim(),
       status: "aberta",
       abertaEm: new Date(),
+      mesa: mesaId || null,
     });
 
     return NextResponse.json({ data: comanda }, { status: 201 });

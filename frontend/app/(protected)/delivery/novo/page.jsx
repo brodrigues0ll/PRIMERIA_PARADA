@@ -1,12 +1,11 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Minus, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Plus, Minus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { cn, formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -22,19 +21,81 @@ function SectionTitle({ children }) {
   );
 }
 
-function EnderecoFields({ values, onChange, prefix = "" }) {
+function EnderecoFields({ values, onChange }) {
+  const [sugestoes, setSugestoes] = useState([]);
+  const timerRef = useRef(null);
+  const containerRef = useRef(null);
+
+  function handleRuaChange(e) {
+    const rua = e.target.value;
+    onChange({ ...values, rua });
+    clearTimeout(timerRef.current);
+    if (rua.length < 2) { setSugestoes([]); return; }
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/enderecos?q=${encodeURIComponent(rua)}`);
+        const json = await res.json();
+        setSugestoes(json.data || []);
+      } catch { setSugestoes([]); }
+    }, 300);
+  }
+
+  function selecionarSugestao(end) {
+    onChange({
+      rua: end.rua,
+      numero: end.numero || "",
+      bairro: end.bairro || "",
+      complemento: end.complemento || "",
+      referencia: end.referencia || "",
+    });
+    setSugestoes([]);
+  }
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setSugestoes([]);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   function field(name) {
     return {
       value: values[name] || "",
       onChange: (e) => onChange({ ...values, [name]: e.target.value }),
     };
   }
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
-        <div className="col-span-2">
+        <div className="col-span-2 relative" ref={containerRef}>
           <Label className="text-xs text-muted-foreground mb-1.5 block">Rua</Label>
-          <Input placeholder="Rua, Av..." {...field("rua")} />
+          <Input
+            placeholder="Rua, Av..."
+            value={values.rua || ""}
+            onChange={handleRuaChange}
+            autoComplete="off"
+          />
+          {sugestoes.length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+              {sugestoes.map((end, i) => (
+                <div key={end._id}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2.5 hover:bg-accent/60 transition-colors"
+                    onMouseDown={(e) => { e.preventDefault(); selecionarSugestao(end); }}
+                  >
+                    <p className="text-sm font-medium text-foreground">{end.rua}{end.numero ? `, ${end.numero}` : ""}</p>
+                    {end.bairro && <p className="text-xs text-muted-foreground">{end.bairro}</p>}
+                  </button>
+                  {i < sugestoes.length - 1 && <Separator />}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <Label className="text-xs text-muted-foreground mb-1.5 block">Número</Label>
@@ -83,6 +144,23 @@ export default function NovoDeliveryPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const buscaClienteTimer = useRef(null);
+  const [sugestoesNome, setSugestoesNome] = useState([]);
+  const nomeAvulsoTimer = useRef(null);
+  const nomeContainerRef = useRef(null);
+
+  function handleNomeAvulsoChange(e) {
+    const v = e.target.value;
+    setNomeAvulso(v);
+    clearTimeout(nomeAvulsoTimer.current);
+    if (v.length < 2) { setSugestoesNome([]); return; }
+    nomeAvulsoTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/nomes-avulsos?q=${encodeURIComponent(v)}`);
+        const json = await res.json();
+        setSugestoesNome(json.data || []);
+      } catch { setSugestoesNome([]); }
+    }, 300);
+  }
 
   useEffect(() => {
     fetch("/api/cardapio")
@@ -330,13 +408,31 @@ export default function NovoDeliveryPage() {
             )}
           </div>
         ) : (
-          <div>
+          <div className="relative" ref={nomeContainerRef}>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Nome do cliente</Label>
             <Input
               placeholder="Nome"
               value={nomeAvulso}
-              onChange={(e) => setNomeAvulso(e.target.value)}
+              onChange={handleNomeAvulsoChange}
+              autoComplete="off"
+              onBlur={() => setTimeout(() => setSugestoesNome([]), 150)}
             />
+            {sugestoesNome.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                {sugestoesNome.map((item, i) => (
+                  <div key={item._id}>
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2.5 hover:bg-accent/60 transition-colors text-sm text-foreground"
+                      onMouseDown={(e) => { e.preventDefault(); setNomeAvulso(item.nome); setSugestoesNome([]); }}
+                    >
+                      {item.nome}
+                    </button>
+                    {i < sugestoesNome.length - 1 && <Separator />}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

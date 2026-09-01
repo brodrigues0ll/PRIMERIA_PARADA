@@ -8,3 +8,7 @@ export { default as Empresa } from "./Empresa";
 export { default as Cliente } from "./Cliente";
 export { default as PedidoDelivery } from "./PedidoDelivery";
 export { default as PagamentoCliente } from "./PagamentoCliente";
+export { default as EnderecoSalvo } from "./EnderecoSalvo";
+export { default as NomeAvulso } from "./NomeAvulso";
+export { default as Mesa } from "./Mesa";
+export { default as GrupoMesas } from "./GrupoMesas";

@@ -14,13 +14,12 @@ const STATUS_TABS = [
   { value: "recebido", label: "Recebidos" },
   { value: "em_preparo", label: "Em Preparo" },
   { value: "saiu", label: "Saiu" },
-  { value: "entregue", label: "Entregues" },
 ];
 
 const NEXT_STATUS = {
   recebido: { label: "Iniciar preparo", next: "em_preparo" },
   em_preparo: { label: "Marcar saiu", next: "saiu" },
-  saiu: { label: "Confirmar entrega", next: "entregue" },
+  saiu: { label: "Confirmar saída", next: "entregue" },
 };
 
 const PAYMENT_LABEL = { dinheiro: "Dinheiro", pix: "Pix", cartao: "Cartão" };
@@ -116,17 +115,15 @@ function PedidoCard({ pedido, onUpdate }) {
             {nextAction.label}
           </Button>
         )}
-        {pedido.status !== "entregue" && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 text-destructive border-destructive/30 hover:bg-destructive/10"
-            onClick={cancelar}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9 text-destructive border-destructive/30 hover:bg-destructive/10"
+          onClick={cancelar}
+          disabled={loading}
+        >
+          Cancelar
+        </Button>
       </div>
     </div>
   );
@@ -202,7 +199,7 @@ export default function DeliveryPage() {
 
       <div className="px-4 pt-4 pb-28">
         <Tabs defaultValue="recebido">
-          <TabsList className="w-full mb-4 grid grid-cols-4 h-auto">
+          <TabsList className="w-full mb-4 grid grid-cols-3 h-auto">
             {STATUS_TABS.map((tab) => {
               const count = byStatus(tab.value).length;
               return (
@@ -234,7 +231,7 @@ export default function DeliveryPage() {
               {loading ? (
                 <TabSkeleton />
               ) : byStatus(tab.value).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
                     <Truck className="h-6 w-6 text-muted-foreground" />
                   </div>
@@ -242,7 +239,7 @@ export default function DeliveryPage() {
                   <p className="text-xs text-muted-foreground">Sem pedidos neste status para a data selecionada</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 mt-4">
                   {byStatus(tab.value).map((pedido) => (
                     <PedidoCard key={pedido._id} pedido={pedido} onUpdate={() => fetchPedidos(true)} />
                   ))}

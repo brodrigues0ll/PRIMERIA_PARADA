@@ -26,6 +26,7 @@ const PedidoSchema = new mongoose.Schema(
       min: [1, "Quantidade mínima é 1"],
       default: 1,
     },
+    pagante: { type: String, default: null },
   },
   {
     timestamps: true,
