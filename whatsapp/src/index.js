@@ -9,6 +9,7 @@ import { spec } from './openapi.js'
 import authRouter     from './routes/auth.js'
 import chatsRouter    from './routes/chats.js'
 import messagesRouter from './routes/messages.js'
+import eventsRouter   from './routes/events.js'
 
 const app        = express()
 const httpServer = createServer(app)
@@ -22,7 +23,6 @@ const API_KEY = process.env.WA_API_KEY || process.env.API_KEY || null
 app.use(cors())
 app.use(express.json())
 
-// Autenticação por API key (só ativa se API_KEY estiver no .env)
 if (API_KEY) {
   app.use('/api', (req, res, next) => {
     const key = req.headers['x-api-key'] || req.query.api_key
@@ -34,6 +34,7 @@ if (API_KEY) {
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 
 app.use('/api',        authRouter)
+app.use('/api',        eventsRouter)
 app.use('/api/chats',  chatsRouter)
 app.use('/api/chats',  messagesRouter)
 
@@ -77,21 +78,10 @@ app.get('/api/test/latest', (_req, res) => {
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #efeae2; min-height: 100vh; display: flex; flex-direction: column }
-
-  header {
-    background: #128c7e; color: #fff; padding: 12px 16px;
-    display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10;
-    box-shadow: 0 1px 4px rgba(0,0,0,.2)
-  }
-  .avatar {
-    width: 40px; height: 40px; border-radius: 50%; background: #075e54;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 14px; flex-shrink: 0
-  }
+  header { background: #128c7e; color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 4px rgba(0,0,0,.2) }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: #075e54; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0 }
   .chat-info small { opacity: .8; font-size: 12px; display: block }
-
   .messages { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 6px; max-width: 720px; width: 100%; margin: 0 auto }
-
   .bubble { max-width: 70%; padding: 8px 12px 4px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative }
   .bubble.them { background: #fff; border-top-left-radius: 0; align-self: flex-start }
   .bubble.me   { background: #d9fdd3; border-top-right-radius: 0; align-self: flex-end }
@@ -99,7 +89,6 @@ app.get('/api/test/latest', (_req, res) => {
   .bubble.me .label { color: #075e54 }
   .bubble p { color: #111; word-break: break-word }
   .bubble .time { font-size: 10px; color: #999; display: block; text-align: right; margin-top: 4px }
-
   footer { text-align: center; padding: 8px; font-size: 11px; color: #999 }
 </style>
 </head>
@@ -119,10 +108,16 @@ app.get('/api/test/latest', (_req, res) => {
 
 app.get('/openapi.json', (_req, res) => res.json(spec))
 app.get('/docs', apiReference({ spec: { url: '/openapi.json' } }))
-
 app.get('/', (_req, res) => res.redirect('/docs'))
 
-// ── Socket.IO — eventos em tempo real ─────────────────────────────────────────
+// ── Socket.IO ─────────────────────────────────────────────────────────────────
+
+io.use((socket, next) => {
+  if (!API_KEY) return next()
+  const token = socket.handshake.auth?.token || socket.handshake.headers?.['x-api-key']
+  if (token !== API_KEY) return next(new Error('Unauthorized'))
+  next()
+})
 
 io.on('connection', (socket) => {
   console.log(`[ws] cliente conectado: ${socket.id}`)
@@ -138,7 +133,7 @@ emitter.on('message_update', (d) => io.emit('message_update', d))
 
 httpServer.listen(PORT, () => {
   console.log(`WhatsApp API rodando em http://localhost:${PORT}`)
-  connect()
+  connect().catch(e => console.error('[connect] erro fatal:', e))
 })
 
 process.on('SIGINT',  () => { saveStore(); process.exit() })

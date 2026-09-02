@@ -10,9 +10,24 @@ import { Boom } from '@hapi/boom'
 import pino from 'pino'
 import qrcode from 'qrcode'
 import { EventEmitter } from 'events'
-import { rmSync, readFileSync, writeFileSync, renameSync, existsSync } from 'fs'
+import { rmSync, readdirSync, readFileSync, writeFileSync, renameSync, existsSync } from 'fs'
+import { join } from 'path'
 
 export const emitter = new EventEmitter()
+
+// ── Long helper ───────────────────────────────────────────────────────────────
+// Converte timestamps do protobufjs (Long ou string ou number) para number JS
+function toLong(val) {
+  if (!val) return 0
+  if (typeof val === 'number') return val
+  if (typeof val === 'bigint') return Number(val)
+  if (typeof val === 'string') return parseInt(val, 10) || 0
+  // protobufjs Long: { low: int32, high: int32, unsigned: bool }
+  if (val.low !== undefined && val.high !== undefined) {
+    return (val.high >>> 0) * 4294967296 + (val.low >>> 0)
+  }
+  return Number(val) || 0
+}
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 const STORE_PATH = './store.json'
@@ -20,6 +35,7 @@ const STORE_PATH = './store.json'
 const chats    = new Map() // jid → Chat
 const messages = new Map() // jid → WAMessage[]
 const contacts = new Map() // jid → Contact
+const lidMap   = new Map() // @lid → @s.whatsapp.net
 
 function loadStore() {
   if (!existsSync(STORE_PATH)) return
@@ -27,7 +43,32 @@ function loadStore() {
     const { chats: c, messages: m, contacts: ct } = JSON.parse(readFileSync(STORE_PATH, 'utf8'))
     for (const [k, v] of c)  chats.set(k, v)
     for (const [k, v] of m)  messages.set(k, v)
-    for (const [k, v] of ct) contacts.set(k, v)
+    for (const [k, v] of ct) registerContact(v)
+
+    // Corrige chats cujo timestamp é um Long protobuf e popula lastMessage a partir das msgs
+    for (const [jid, chat] of chats) {
+      const chatTs = toLong(chat.conversationTimestamp || chat.timestamp) || 0
+      const existingLastTs = toLong(chat.lastMessage?.timestamp) || 0
+
+      const msgs = messages.get(jid) || []
+      let latestMsg = null
+      let latestTs  = existingLastTs
+
+      for (const m of msgs) {
+        const ts = toLong(m.messageTimestamp)
+        if (ts > latestTs) { latestTs = ts; latestMsg = m }
+      }
+
+      const newTs = Math.max(chatTs, latestTs)
+      if (latestMsg || newTs !== (chat.timestamp || 0)) {
+        chats.set(jid, {
+          ...chat,
+          timestamp:   newTs,
+          lastMessage: latestMsg ? normalizeMessage(latestMsg) : (chat.lastMessage || null),
+        })
+      }
+    }
+
     console.log(`[store] carregado: ${chats.size} chats, ${messages.size} conversas`)
   } catch (e) {
     console.error('[store] erro ao carregar:', e.message)
@@ -35,16 +76,20 @@ function loadStore() {
 }
 
 function saveStore() {
+  const payload = JSON.stringify({
+    chats:    [...chats.entries()],
+    messages: [...messages.entries()],
+    contacts: [...contacts.entries()],
+  })
   const tmp = STORE_PATH + '.tmp'
   try {
-    writeFileSync(tmp, JSON.stringify({
-      chats:    [...chats.entries()],
-      messages: [...messages.entries()],
-      contacts: [...contacts.entries()],
-    }))
+    writeFileSync(tmp, payload)
     renameSync(tmp, STORE_PATH)
-  } catch (e) {
-    console.error('[store] erro ao salvar:', e.message)
+  } catch {
+    // renameSync falha em bind mounts WSL2/Windows — fallback direto
+    try { writeFileSync(STORE_PATH, payload) } catch (e) {
+      console.error('[store] erro ao salvar:', e.message)
+    }
   }
 }
 
@@ -54,6 +99,12 @@ let sock            = null
 let currentQR       = null
 let connectionState = 'disconnected'
 let connectedUser   = null
+let reconnectTimer  = null   // timer de reconexão — cancelado quando a conexão abre
+
+function scheduleReconnect(ms) {
+  if (reconnectTimer) clearTimeout(reconnectTimer)
+  reconnectTimer = setTimeout(() => { reconnectTimer = null; connect() }, ms)
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -61,15 +112,21 @@ function extractText(msg) {
   if (!msg?.message) return ''
   const m = msg.message
   return (
-    m.conversation                    ||
-    m.extendedTextMessage?.text       ||
-    m.imageMessage?.caption           ||
-    m.videoMessage?.caption           ||
-    m.documentMessage?.fileName       ||
-    (m.audioMessage    ? '[áudio]'    : null) ||
-    (m.stickerMessage  ? '[sticker]'  : null) ||
-    (m.locationMessage ? '[localização]' : null) ||
-    (m.contactMessage  ? '[contato]'  : null) ||
+    m.conversation                          ||
+    m.extendedTextMessage?.text             ||
+    m.imageMessage?.caption                 ||
+    m.videoMessage?.caption                 ||
+    m.documentMessage?.fileName             ||
+    (m.imageMessage    ? '[imagem]'         : null) ||
+    (m.videoMessage    ? '[vídeo]'          : null) ||
+    (m.audioMessage    ? '[áudio]'          : null) ||
+    (m.stickerMessage  ? '[sticker]'        : null) ||
+    (m.documentMessage ? '[documento]'      : null) ||
+    (m.locationMessage ? '[localização]'    : null) ||
+    (m.contactMessage  ? '[contato]'        : null) ||
+    (m.pollCreationMessage ? '[enquete]'    : null) ||
+    (m.buttonsMessage  ? m.buttonsMessage.contentText || '[botões]' : null) ||
+    (m.listMessage     ? m.listMessage.description    || '[lista]'  : null) ||
     ''
   )
 }
@@ -82,10 +139,10 @@ function extractType(msg) {
 export function normalizeMessage(msg) {
   return {
     id:          msg.key.id,
-    jid:         msg.key.remoteJid,
+    jid:         resolveLid(msg.key.remoteJid),
     fromMe:      !!msg.key.fromMe,
     participant: msg.key.participant || null,
-    timestamp:   Number(msg.messageTimestamp) || 0,
+    timestamp:   toLong(msg.messageTimestamp),
     text:        extractText(msg),
     type:        extractType(msg),
     status:      msg.status ?? null,
@@ -113,58 +170,87 @@ function formatPhone(jid) {
   return `+${raw}`
 }
 
+function resolveLid(jid) {
+  if (!jid?.endsWith('@lid')) return jid
+  return lidMap.get(jid) || jid
+}
+
+function registerContact(c) {
+  contacts.set(c.id, { ...contacts.get(c.id), ...c })
+  // Constrói mapa @lid → @s.whatsapp.net
+  if (c.lid && c.id && !c.id.endsWith('@lid')) lidMap.set(c.lid, c.id)
+  if (c.id?.endsWith('@lid') && c.phoneNumber) {
+    const real = `${c.phoneNumber}@s.whatsapp.net`
+    lidMap.set(c.id, real)
+  }
+}
+
 function contactName(jid) {
-  const c = contacts.get(jid)
-  return c?.name || c?.notify || formatPhone(jid)
+  const resolved = resolveLid(jid)
+  const c = contacts.get(resolved) || contacts.get(jid)
+  return c?.name || c?.notify || formatPhone(resolved)
 }
 
 // ── Store helpers ─────────────────────────────────────────────────────────────
 
 function pushMessage(jid, msg) {
-  if (!messages.has(jid)) messages.set(jid, [])
-  const list = messages.get(jid)
+  const key = resolveLid(jid)
+  if (!messages.has(key)) messages.set(key, [])
+  const list = messages.get(key)
   const idx  = list.findIndex(m => m.key?.id === msg.key?.id)
   if (idx === -1) list.push(msg)
   else list[idx] = { ...list[idx], ...msg }
 }
 
 function touchChat(msg) {
-  const jid     = msg.key.remoteJid
-  const current = chats.get(jid) || { id: jid, unreadCount: 0 }
+  const jid     = resolveLid(msg.key.remoteJid)
+  const current = chats.get(jid) || chats.get(msg.key.remoteJid) || { id: jid, unreadCount: 0 }
+  const ts      = toLong(msg.messageTimestamp)
   chats.set(jid, {
     ...current,
+    id:          jid,
     lastMessage: normalizeMessage(msg),
-    timestamp:   Number(msg.messageTimestamp) || current.timestamp || 0,
+    timestamp:   Math.max(ts, toLong(current.timestamp)),
   })
 }
 
 // ── Leitura pública ───────────────────────────────────────────────────────────
 
 export function getChats() {
+  const seen = new Set()
   return Array.from(chats.values())
-    .filter(c => !isJidBroadcast(c.id) && !c.id.endsWith('@lid') && !c.id.endsWith('@newsletter'))
-    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+    .filter(c => !isJidBroadcast(c.id) && !c.id.endsWith('@newsletter'))
     .map(c => {
-      const contact = contacts.get(c.id)
-      // Para grupos: usa o nome do grupo. Para contatos: prefere o nome salvo no celular.
-      const name = isJidGroup(c.id)
-        ? c.name
-        : (contact?.name || c.name || contact?.notify || formatPhone(c.id))
+      // Resolve chats salvos com @lid para o JID real
+      const resolvedId = resolveLid(c.id)
+      // Se @lid não foi resolvido, descarta
+      if (resolvedId.endsWith('@lid')) return null
+      // Evita duplicatas (pode ter o mesmo contato salvo como @lid e @s.whatsapp.net)
+      if (seen.has(resolvedId)) return null
+      seen.add(resolvedId)
+
+      const contact = contacts.get(resolvedId) || contacts.get(c.id)
+      const name = isJidGroup(resolvedId)
+        ? (c.name || contact?.name)
+        : (contact?.name || c.name || contact?.notify || formatPhone(resolvedId))
       return {
-        jid:         c.id,
+        jid:         resolvedId,
         name,
-        isGroup:     isJidGroup(c.id),
+        isGroup:     isJidGroup(resolvedId),
         unreadCount: c.unreadCount || 0,
         lastMessage: c.lastMessage || null,
         timestamp:   c.timestamp || 0,
       }
     })
+    .filter(Boolean)
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
 }
 
 export function getChatMessages(jid, limit = 50) {
-  return (messages.get(jid) || [])
+  const list = messages.get(jid) || []
+  return list
     .slice()
-    .sort((a, b) => Number(a.messageTimestamp) - Number(b.messageTimestamp))
+    .sort((a, b) => toLong(a.messageTimestamp) - toLong(b.messageTimestamp))
     .slice(-limit)
     .map(normalizeMessage)
 }
@@ -210,16 +296,36 @@ export async function getProfilePictureUrl(jid) {
 export { saveStore }
 
 export async function logout() {
-  if (sock) await sock.logout()
-  rmSync('./auth', { recursive: true, force: true })
-  setTimeout(connect, 1000)
+  // Desconecta do WA (ignora erros se já estiver desconectado)
+  try { if (sock) await sock.logout() } catch {}
+  try { if (sock) sock.end() } catch {}
+  sock = null
+
+  // Limpa conteúdo de auth/ sem remover o diretório (preserva o bind mount do Docker)
+  try {
+    for (const f of readdirSync('./auth'))
+      rmSync(join('./auth', f), { recursive: true, force: true })
+  } catch {}
+
+  // Limpa store em memória
+  chats.clear()
+  messages.clear()
+  contacts.clear()
+  connectionState = 'disconnected'
+  connectedUser   = null
+  currentQR       = null
+
+  scheduleReconnect(800)
 }
 
 // ── Conexão ───────────────────────────────────────────────────────────────────
 
 async function connect() {
+  console.log('[connect] iniciando...')
   const { state, saveCreds } = await useMultiFileAuthState('./auth')
+  console.log('[connect] auth carregada, buscando versão WA...')
   const { version }          = await fetchLatestBaileysVersion()
+  console.log('[connect] versão WA:', version)
 
   sock = makeWASocket({
     version,
@@ -251,8 +357,10 @@ async function connect() {
     }
 
     if (connection === 'open') {
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
       currentQR       = null
       connectionState = 'connected'
+      console.log(`[connection] open user=${sock.user?.id}`)
       connectedUser   = sock.user
         ? { id: jidNormalizedUser(sock.user.id), name: sock.user.name }
         : null
@@ -264,34 +372,68 @@ async function connect() {
       connectedUser   = null
       const code      = new Boom(lastDisconnect?.error)?.output?.statusCode
       const loggedOut = code === DisconnectReason.loggedOut
+      console.log(`[connection] close code=${code} loggedOut=${loggedOut}`)
       emitter.emit('connection', { status: 'disconnected', loggedOut })
-      setTimeout(connect, 3000)
+      if (loggedOut) {
+        // Limpa auth para gerar novo QR na próxima conexão
+        try {
+          for (const f of readdirSync('./auth'))
+            rmSync(join('./auth', f), { recursive: true, force: true })
+        } catch {}
+        scheduleReconnect(1000)
+      } else {
+        scheduleReconnect(3000)
+      }
     }
   })
 
   // Histórico inicial (sync após login/reconexão)
   sock.ev.on('messaging-history.set', ({ chats: cl, contacts: ctl, messages: ml }) => {
     console.log(`[history] chats=${cl.length} contacts=${ctl.length} messages=${ml.length}`)
-    for (const c of ctl) contacts.set(c.id, c)
+    for (const c of ctl) registerContact(c)
     for (const c of cl) {
       const existing = chats.get(c.id)
+      const chatTs   = toLong(c.conversationTimestamp || c.timestamp)
+      const existTs  = toLong(existing?.timestamp)
       chats.set(c.id, {
         ...existing,
         ...c,
-        // Preserva o timestamp mais recente para manter a ordenação correta
-        timestamp: Math.max(Number(existing?.timestamp) || 0, Number(c.timestamp) || 0),
+        timestamp: Math.max(existTs, chatTs),
       })
     }
+
+    // Rastreia a mensagem mais recente por JID em O(n)
+    const latestPerJid = new Map()
     for (const m of ml) {
       const jid = m.key?.remoteJid
-      if (jid) pushMessage(jid, m)
+      if (!jid) continue
+      pushMessage(jid, m)
+      const ts  = toLong(m.messageTimestamp)
+      const cur = latestPerJid.get(jid)
+      if (!cur || ts > toLong(cur.messageTimestamp)) latestPerJid.set(jid, m)
     }
+
+    // Popula lastMessage e timestamp nos chats a partir do histórico
+    for (const [jid, m] of latestPerJid) {
+      const chat = chats.get(jid)
+      if (!chat) continue
+      const incoming = toLong(m.messageTimestamp)
+      const existing = toLong(chat.lastMessage?.timestamp)
+      if (incoming > existing) {
+        chats.set(jid, {
+          ...chat,
+          lastMessage: normalizeMessage(m),
+          timestamp:   Math.max(toLong(chat.timestamp), incoming),
+        })
+      }
+    }
+
     saveStore()
   })
 
   let contactsSaveTimer = null
   sock.ev.on('contacts.upsert', (list) => {
-    for (const c of list) contacts.set(c.id, { ...contacts.get(c.id), ...c })
+    for (const c of list) registerContact(c)
     clearTimeout(contactsSaveTimer)
     contactsSaveTimer = setTimeout(saveStore, 3000)
   })
@@ -306,13 +448,27 @@ async function connect() {
     }
   })
 
+  // Tipos de mensagem interna do WhatsApp — nunca exibir no chat
+  const SKIP_TYPES = new Set([
+    'protocolMessage',
+    'senderKeyDistributionMessage',
+    'messageContextInfo',
+    'reactionMessage',
+  ])
+
   sock.ev.on('messages.upsert', ({ messages: list, type }) => {
     for (const msg of list) {
       const jid = msg.key.remoteJid
       if (!jid) continue
       pushMessage(jid, msg)
       touchChat(msg)
-      if (type === 'notify') emitter.emit('message', normalizeMessage(msg))
+      if (type === 'notify') {
+        const msgType = extractType(msg)
+        if (SKIP_TYPES.has(msgType)) continue
+        const norm = normalizeMessage(msg)
+        console.log(`[upsert] emit fromMe=${norm.fromMe} type=${msgType} text="${norm.text?.slice(0,40)}"`)
+        emitter.emit('message', norm)
+      }
     }
     saveStore()
   })
