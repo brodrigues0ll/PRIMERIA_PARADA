@@ -177,18 +177,48 @@ function formatPhone(jid) {
   return `+${raw}`
 }
 
+// Extrai a parte numérica de um JID ou número formatado ("628:2@s.whatsapp.net" → "628")
+function userPart(jid) {
+  if (!jid) return ''
+  // Remove sufixo @domínio e :device
+  return jid.split('@')[0].split(':')[0].replace(/\D/g, '')
+}
+
 function resolveLid(jid) {
   if (!jid?.endsWith('@lid')) return jid
   return lidMap.get(jid) || jid
 }
 
+// Aprende mapeamentos lid→pn a partir dos campos Alt do key Baileys v7
+// (remoteJidAlt / participantAlt são o dialeto oposto do mesmo campo)
+function recordKeyLidMappings(key) {
+  const pairs = [
+    { a: key.remoteJid,  b: key.remoteJidAlt  },
+    { a: key.participant, b: key.participantAlt },
+  ]
+  for (const { a, b } of pairs) {
+    if (!a || !b) continue
+    let lid, pn
+    if (a.endsWith('@lid')) { lid = a; pn = b }
+    else if (b.endsWith('@lid')) { lid = b; pn = a }
+    else continue
+    if (lid && pn && !lidMap.has(lid)) {
+      lidMap.set(lid, pn)
+      console.log(`[lid] aprendeu ${lid} → ${pn}`)
+    }
+  }
+}
+
 function registerContact(c) {
   contacts.set(c.id, { ...contacts.get(c.id), ...c })
-  // Constrói mapa @lid → @s.whatsapp.net
-  if (c.lid && c.id && !c.id.endsWith('@lid')) lidMap.set(c.lid, c.id)
+  // Constrói mapa @lid → @s.whatsapp.net a partir do campo lid do contato
+  if (c.lid && c.id && !c.id.endsWith('@lid')) {
+    lidMap.set(c.lid, c.id)
+  }
+  // Contato salvo como @lid com phoneNumber: extrai só os dígitos (phoneNumber pode ser JID)
   if (c.id?.endsWith('@lid') && c.phoneNumber) {
-    const real = `${c.phoneNumber}@s.whatsapp.net`
-    lidMap.set(c.id, real)
+    const digits = userPart(c.phoneNumber)
+    if (digits) lidMap.set(c.id, `${digits}@s.whatsapp.net`)
   }
 }
 
@@ -459,12 +489,14 @@ async function connect() {
     console.log(`[history] chats=${cl.length} contacts=${ctl.length} messages=${ml.length}`)
     for (const c of ctl) registerContact(c)
     for (const c of cl) {
-      const existing = chats.get(c.id)
+      const jid      = resolveLid(c.id)
+      const existing = chats.get(jid)
       const chatTs   = toLong(c.conversationTimestamp || c.timestamp)
       const existTs  = toLong(existing?.timestamp)
-      chats.set(c.id, {
+      chats.set(jid, {
         ...existing,
         ...c,
+        id:        jid,
         timestamp: Math.max(existTs, chatTs),
       })
     }
@@ -474,6 +506,7 @@ async function connect() {
     for (const m of ml) {
       const jid = m.key?.remoteJid
       if (!jid) continue
+      recordKeyLidMappings(m.key)  // aprende lid→pn a partir do Alt Baileys v7
       pushMessage(jid, m)
       const ts  = toLong(m.messageTimestamp)
       const cur = latestPerJid.get(jid)
@@ -506,12 +539,17 @@ async function connect() {
   })
 
   sock.ev.on('chats.upsert', (list) => {
-    for (const c of list) chats.set(c.id, { ...chats.get(c.id), ...c })
+    for (const c of list) {
+      const jid = resolveLid(c.id)
+      chats.set(jid, { ...chats.get(jid), ...c, id: jid })
+    }
   })
 
   sock.ev.on('chats.update', (list) => {
     for (const u of list) {
-      if (chats.has(u.id)) chats.set(u.id, { ...chats.get(u.id), ...u })
+      const jid = resolveLid(u.id)
+      const key = chats.has(jid) ? jid : (chats.has(u.id) ? u.id : jid)
+      chats.set(key, { ...chats.get(key), ...u, id: jid })
     }
   })
 
@@ -527,6 +565,7 @@ async function connect() {
     for (const msg of list) {
       const jid = msg.key.remoteJid
       if (!jid) continue
+      recordKeyLidMappings(msg.key)  // aprende lid→pn a partir do Alt Baileys v7
       pushMessage(jid, msg)
       touchChat(msg)
       if (type === 'notify') {
