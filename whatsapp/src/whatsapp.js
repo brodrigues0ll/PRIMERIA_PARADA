@@ -96,9 +96,24 @@ export function normalizeJidParam(raw) {
   return `${jid}@s.whatsapp.net`
 }
 
+function formatPhone(jid) {
+  const raw = jid.split('@')[0]
+  if (!/^\d+$/.test(raw)) return raw
+  // Número brasileiro: 55 + DDD (2) + número (8 ou 9 dígitos)
+  if (raw.startsWith('55') && (raw.length === 12 || raw.length === 13)) {
+    const ddd  = raw.slice(2, 4)
+    const rest = raw.slice(4)
+    const part = rest.length === 9
+      ? `${rest.slice(0, 5)}-${rest.slice(5)}`
+      : `${rest.slice(0, 4)}-${rest.slice(4)}`
+    return `+55 (${ddd}) ${part}`
+  }
+  return `+${raw}`
+}
+
 function contactName(jid) {
   const c = contacts.get(jid)
-  return c?.name || c?.notify || jid.split('@')[0]
+  return c?.name || c?.notify || formatPhone(jid)
 }
 
 // ── Store helpers ─────────────────────────────────────────────────────────────
@@ -125,14 +140,14 @@ function touchChat(msg) {
 
 export function getChats() {
   return Array.from(chats.values())
-    .filter(c => !isJidBroadcast(c.id))
+    .filter(c => !isJidBroadcast(c.id) && !c.id.endsWith('@lid') && !c.id.endsWith('@newsletter'))
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
     .map(c => {
       const contact = contacts.get(c.id)
       // Para grupos: usa o nome do grupo. Para contatos: prefere o nome salvo no celular.
       const name = isJidGroup(c.id)
         ? c.name
-        : (contact?.name || c.name || contact?.notify || c.id.split('@')[0])
+        : (contact?.name || c.name || contact?.notify || formatPhone(c.id))
       return {
         jid:         c.id,
         name,
