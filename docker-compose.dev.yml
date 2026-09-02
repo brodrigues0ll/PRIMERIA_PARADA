@@ -15,6 +15,7 @@ services:
     env_file: .env.local
     depends_on:
       - backend
+      - whatsapp
     restart: unless-stopped
 
   backend:
@@ -46,9 +47,9 @@ services:
     volumes:
       - ./whatsapp/auth:/app/auth
       - ./whatsapp/store.json:/app/store.json
+    env_file: .env.local
     environment:
       - PORT=3099
-      - API_KEY=${WA_API_KEY}
     restart: unless-stopped
 
   minio:

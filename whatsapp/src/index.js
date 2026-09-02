@@ -15,7 +15,7 @@ const httpServer = createServer(app)
 const io         = new Server(httpServer, { cors: { origin: '*' } })
 
 const PORT    = process.env.PORT    || 3000
-const API_KEY = process.env.API_KEY || null
+const API_KEY = process.env.WA_API_KEY || process.env.API_KEY || null
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
