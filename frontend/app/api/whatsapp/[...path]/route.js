@@ -93,22 +93,33 @@ const MSG_TYPE = {
   unknown: "unknown",
 };
 
+const DISPLAYABLE_TYPES = new Set([
+  "conversation", "imageMessage", "videoMessage", "audioMessage",
+  "pttMessage", "documentMessage", "documentWithCaptionMessage",
+  "stickerMessage", "locationMessage", "vcard",
+]);
+
 function normalizeChatHistory(msg) {
   const type = MSG_TYPE[msg.type] ?? msg.type ?? "unknown";
 
-  // Texto de preview (usado na lista de chats e no bubble)
   let text = msg.body ?? "";
   if (!text && msg.media?.filename) text = msg.media.filename;
+
+  // Descarta mensagens sem conteúdo exibível (reações, status, revogadas, etc.)
+  if (!text && !DISPLAYABLE_TYPES.has(type)) return null;
 
   const quoted = msg.quotedMessage
     ? { id: msg.quotedMessage.id, text: msg.quotedMessage.body ?? "" }
     : null;
 
+  // wwebjs usa `from` como remetente; Baileys usa `author`
+  const participant = msg.author ?? (msg.isGroup && !msg.fromMe ? msg.from : null);
+
   return {
     id: msg.id,
     jid: msg.chatId,
     fromMe: !!msg.fromMe,
-    participant: msg.author ?? null,
+    participant,
     timestamp: msg.timestamp ?? 0,
     text,
     type,
@@ -124,7 +135,7 @@ function normalizeChat(c) {
     isGroup: c.isGroup ?? c.kind === "group",
     unreadCount: c.unreadCount ?? 0,
     lastMessage: c.lastMessage
-      ? { text: c.lastMessage, timestamp: c.timestamp ?? 0 }
+      ? { text: c.lastMessage, type: "conversation", timestamp: c.timestamp ?? 0 }
       : null,
     timestamp: c.timestamp ?? 0,
   };
@@ -169,9 +180,38 @@ async function handleChats() {
     const { json } = await owFetch("GET", `/sessions/${sid}/chats`);
     const list = Array.isArray(json) ? json : [];
     const SKIP = new Set(["status", "channel", "broadcast"]);
-    return NextResponse.json(
-      list.filter((c) => !SKIP.has(c.kind)).map(normalizeChat)
-    );
+    const chats = list.filter((c) => !SKIP.has(c.kind)).map(normalizeChat);
+
+    // Enriches chats that have no last message text, in batches to avoid overloading
+    const needsEnrich = chats.filter((c) => !c.lastMessage?.text);
+    const BATCH = 20;
+    for (let i = 0; i < needsEnrich.length; i += BATCH) {
+      await Promise.all(
+        needsEnrich.slice(i, i + BATCH).map(async (chat) => {
+          try {
+            const { res, json: msgs } = await owFetch(
+              "GET",
+              `/sessions/${sid}/messages/${encodeURIComponent(chat.jid)}/history?limit=5`
+            );
+            if (!res.ok || !Array.isArray(msgs) || msgs.length === 0) return;
+            // Sort newest first and pick the first displayable message
+            const sorted = [...msgs].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+            for (const msg of sorted) {
+              const normalized = normalizeChatHistory(msg);
+              if (!normalized) continue;
+              chat.lastMessage = {
+                text: normalized.text,
+                type: normalized.type,
+                timestamp: normalized.timestamp,
+              };
+              break;
+            }
+          } catch {}
+        })
+      );
+    }
+
+    return NextResponse.json(chats);
   } catch {
     return NextResponse.json([]);
   }
@@ -206,7 +246,7 @@ async function handlePicture(jid) {
 async function handleMessages(jid, searchParams) {
   const sid = await getSession();
   if (!sid) return NextResponse.json([]);
-  const limit = searchParams.get("limit") || "50";
+  const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 200);
   try {
     const { res, json } = await owFetch(
       "GET",
@@ -214,8 +254,12 @@ async function handleMessages(jid, searchParams) {
     );
     if (!res.ok) return NextResponse.json([]);
     const list = Array.isArray(json) ? json : [];
-    // history vem do mais recente para o mais antigo — inverte para exibição
-    return NextResponse.json(list.reverse().map(normalizeChatHistory));
+    return NextResponse.json(
+      list
+        .map(normalizeChatHistory)
+        .filter(Boolean)
+        .sort((a, b) => a.timestamp - b.timestamp)
+    );
   } catch {
     return NextResponse.json([]);
   }

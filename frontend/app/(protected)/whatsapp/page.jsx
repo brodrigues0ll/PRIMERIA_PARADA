@@ -260,9 +260,21 @@ function ChatAvatar({ jid, name, size = "md" }) {
   );
 }
 
+const LAST_MSG_LABELS = {
+  audioMessage: "🎙 Áudio",
+  pttMessage: "🎙 Áudio",
+  imageMessage: "📷 Foto",
+  videoMessage: "📹 Vídeo",
+  documentMessage: "📄 Documento",
+  documentWithCaptionMessage: "📄 Documento",
+  stickerMessage: "🔖 Figurinha",
+};
+
 function ChatItem({ chat, selected, onClick }) {
   const preview = chat.lastMessage?.text
     ? truncate(chat.lastMessage.text)
+    : chat.lastMessage?.type
+    ? (LAST_MSG_LABELS[chat.lastMessage.type] ?? "Mensagem")
     : "Sem mensagens";
   const time = formatTime(chat.lastMessage?.timestamp || chat.timestamp);
 
@@ -546,7 +558,7 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages?limit=50`);
+      const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages?limit=100`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       const raw = Array.isArray(data) ? data : [];
