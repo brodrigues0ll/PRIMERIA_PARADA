@@ -38,14 +38,14 @@ services:
 
   whatsapp:
     build:
-      context: ../whatsapp
+      context: ./whatsapp
       dockerfile: Dockerfile
     image: primeira-parada-whatsapp
     ports:
       - "3099:3099"
     volumes:
-      - ../whatsapp/auth:/app/auth
-      - ../whatsapp/store.json:/app/store.json
+      - ./whatsapp/auth:/app/auth
+      - ./whatsapp/store.json:/app/store.json
     environment:
       - PORT=3099
       - API_KEY=${WA_API_KEY}
