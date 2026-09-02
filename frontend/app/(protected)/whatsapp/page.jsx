@@ -14,6 +14,10 @@ import {
   Mic,
   Paperclip,
   X,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  File,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -316,6 +320,71 @@ function QuotedPreview({ quoted, compact = false }) {
 // ─── Message Bubble ──────────────────────────────────────────────────────────
 
 const MEDIA_TYPES = new Set(["imageMessage", "stickerMessage", "videoMessage"])
+const DOC_TYPES   = new Set(["documentMessage", "documentWithCaptionMessage"])
+const AUDIO_TYPES = new Set(["audioMessage", "pttMessage"])
+
+function fileIcon(filename) {
+  const ext = (filename || "").split(".").pop().toLowerCase()
+  if (ext === "pdf") return <FileText className="h-8 w-8 text-red-500 shrink-0" />
+  if (["xls", "xlsx", "csv"].includes(ext)) return <FileSpreadsheet className="h-8 w-8 text-green-600 shrink-0" />
+  if (["doc", "docx"].includes(ext)) return <FileText className="h-8 w-8 text-blue-500 shrink-0" />
+  return <File className="h-8 w-8 text-[#54656f] shrink-0" />
+}
+
+function DocumentContent({ msg }) {
+  const [downloading, setDownloading] = useState(false)
+  const filename = msg.text || "documento"
+  const encodedJid = encodeURIComponent(msg.jid)
+  const mediaUrl = `/api/whatsapp/chats/${encodedJid}/messages/${msg.id}/media`
+
+  async function handleDownload() {
+    setDownloading(true)
+    try {
+      const res = await fetch(mediaUrl)
+      if (!res.ok) throw new Error("Falha ao baixar")
+      const blob = await res.blob()
+      const a = document.createElement("a")
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch {
+      toast.error("Erro ao baixar arquivo")
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5 min-w-[220px] max-w-[280px]">
+      {fileIcon(filename)}
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-medium text-[#111b21] truncate leading-tight">{filename}</p>
+        <p className="text-[11px] text-[#54656f] mt-0.5">Documento</p>
+      </div>
+      <button
+        onClick={handleDownload}
+        disabled={downloading}
+        className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-black/10 transition-colors shrink-0 disabled:opacity-50"
+        title="Baixar arquivo"
+      >
+        {downloading
+          ? <div className="h-4 w-4 border-2 border-[#54656f] border-t-transparent rounded-full animate-spin" />
+          : <Download className="h-4 w-4" />}
+      </button>
+    </div>
+  )
+}
+
+function AudioContent({ msg }) {
+  const encodedJid = encodeURIComponent(msg.jid)
+  const src = `/api/whatsapp/chats/${encodedJid}/messages/${msg.id}/media`
+  return (
+    <div className="px-2 py-2 min-w-[220px]">
+      <audio controls src={src} className="w-full h-10" style={{ accentColor: "#25d366" }} />
+    </div>
+  )
+}
 
 function MediaContent({ msg }) {
   const encodedJid = encodeURIComponent(msg.jid)
@@ -344,19 +413,34 @@ function MediaContent({ msg }) {
 }
 
 function MessageBubble({ msg, onReply }) {
-  const isMine = msg.fromMe;
-  const isMedia = MEDIA_TYPES.has(msg.type)
+  const isMine  = msg.fromMe;
+  const isMedia  = MEDIA_TYPES.has(msg.type)
   const isSticker = msg.type === "stickerMessage"
+  const isDoc    = DOC_TYPES.has(msg.type)
+  const isAudio  = AUDIO_TYPES.has(msg.type)
+
+  const replyBtn = (
+    <button
+      onClick={() => onReply?.(msg)}
+      className="absolute -top-2 right-2 hidden group-hover:flex h-6 w-6 items-center justify-center rounded-full bg-[#e9edef] text-[#54656f] shadow-sm z-10"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+    </button>
+  )
+
+  const timeRow = (extra = "") => (
+    <div className={cn("flex items-center gap-1 justify-end", extra)}>
+      <span className="text-[11px] text-[#667781] whitespace-nowrap">{formatHour(msg.timestamp)}</span>
+      {isMine && <span className="text-[#53bdeb] text-[13px] leading-none">✓✓</span>}
+    </div>
+  )
 
   if (isSticker) {
     return (
       <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
         <div className="max-w-[65%] relative">
           <MediaContent msg={msg} />
-          <div className={cn("flex items-center gap-1 justify-end mt-0.5")}>
-            <span className="text-[11px] text-[#667781]">{formatHour(msg.timestamp)}</span>
-            {isMine && <span className="text-[#53bdeb] text-[13px] leading-none">✓✓</span>}
-          </div>
+          {timeRow("mt-0.5")}
           <button
             onClick={() => onReply?.(msg)}
             className="absolute top-1 right-1 hidden group-hover:flex h-6 w-6 items-center justify-center rounded-full bg-black/20 text-white"
@@ -368,14 +452,46 @@ function MessageBubble({ msg, onReply }) {
     )
   }
 
+  const bubbleBase = cn(
+    "relative max-w-[65%] text-[14px] leading-[19px]",
+    isMine
+      ? "bg-[#d9fdd3] rounded-[7.5px] rounded-tr-none"
+      : "bg-white rounded-[7.5px] rounded-tl-none shadow-[0_1px_2px_rgba(0,0,0,0.13)]",
+  )
+
+  // ── Documento ──────────────────────────────────────────────────────────────
+  if (isDoc) {
+    return (
+      <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
+        <div className={cn(bubbleBase, "overflow-hidden")}>
+          {msg.quotedMessage && <div className="px-3 pt-2 pb-0"><QuotedPreview quoted={msg.quotedMessage} /></div>}
+          <DocumentContent msg={msg} />
+          {timeRow("px-3 pb-2 mt-[-2px]")}
+          {replyBtn}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Áudio ──────────────────────────────────────────────────────────────────
+  if (isAudio) {
+    return (
+      <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
+        <div className={cn(bubbleBase, "overflow-hidden")}>
+          {msg.quotedMessage && <div className="px-2 pt-2 pb-0"><QuotedPreview quoted={msg.quotedMessage} /></div>}
+          <AudioContent msg={msg} />
+          {timeRow("px-3 pb-2 mt-[-4px]")}
+          {replyBtn}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "relative max-w-[65%] text-[14px] leading-[19px]",
-          isMine
-            ? "bg-[#d9fdd3] rounded-[7.5px] rounded-tr-none"
-            : "bg-white rounded-[7.5px] rounded-tl-none shadow-[0_1px_2px_rgba(0,0,0,0.13)]",
+          bubbleBase,
           isMedia ? "p-[3px]" : "px-[9px] pt-[6px] pb-[8px]"
         )}
       >
@@ -391,20 +507,8 @@ function MessageBubble({ msg, onReply }) {
         {msg.text && isMedia && (
           <p className="break-words whitespace-pre-wrap text-[#111b21] px-[6px] pb-[2px] pt-[4px] pr-10">{msg.text}</p>
         )}
-        <div className={cn("flex items-center gap-1 justify-end", isMedia ? "px-[6px] pb-[4px] mt-[-4px]" : "mt-[-4px]")}>
-          <span className="text-[11px] text-[#667781] whitespace-nowrap">
-            {formatHour(msg.timestamp)}
-          </span>
-          {isMine && (
-            <span className="text-[#53bdeb] text-[13px] leading-none">✓✓</span>
-          )}
-        </div>
-        <button
-          onClick={() => onReply?.(msg)}
-          className="absolute -top-2 right-2 hidden group-hover:flex h-6 w-6 items-center justify-center rounded-full bg-[#e9edef] text-[#54656f] shadow-sm"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-        </button>
+        {timeRow(isMedia ? "px-[6px] pb-[4px] mt-[-4px]" : "mt-[-4px]")}
+        {replyBtn}
       </div>
     </div>
   );
