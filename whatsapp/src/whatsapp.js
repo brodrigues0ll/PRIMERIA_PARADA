@@ -10,7 +10,7 @@ import { Boom } from '@hapi/boom'
 import pino from 'pino'
 import qrcode from 'qrcode'
 import { EventEmitter } from 'events'
-import { rmSync, readFileSync, writeFileSync, existsSync } from 'fs'
+import { rmSync, readFileSync, writeFileSync, renameSync, existsSync } from 'fs'
 
 export const emitter = new EventEmitter()
 
@@ -35,12 +35,14 @@ function loadStore() {
 }
 
 function saveStore() {
+  const tmp = STORE_PATH + '.tmp'
   try {
-    writeFileSync(STORE_PATH, JSON.stringify({
+    writeFileSync(tmp, JSON.stringify({
       chats:    [...chats.entries()],
       messages: [...messages.entries()],
       contacts: [...contacts.entries()],
     }))
+    renameSync(tmp, STORE_PATH)
   } catch (e) {
     console.error('[store] erro ao salvar:', e.message)
   }
@@ -160,7 +162,11 @@ export function getChats() {
 }
 
 export function getChatMessages(jid, limit = 50) {
-  return (messages.get(jid) || []).slice(-limit).map(normalizeMessage)
+  return (messages.get(jid) || [])
+    .slice()
+    .sort((a, b) => Number(a.messageTimestamp) - Number(b.messageTimestamp))
+    .slice(-limit)
+    .map(normalizeMessage)
 }
 
 // ── Status / QR ───────────────────────────────────────────────────────────────
@@ -267,7 +273,15 @@ async function connect() {
   sock.ev.on('messaging-history.set', ({ chats: cl, contacts: ctl, messages: ml }) => {
     console.log(`[history] chats=${cl.length} contacts=${ctl.length} messages=${ml.length}`)
     for (const c of ctl) contacts.set(c.id, c)
-    for (const c of cl)   chats.set(c.id, { ...chats.get(c.id), ...c })
+    for (const c of cl) {
+      const existing = chats.get(c.id)
+      chats.set(c.id, {
+        ...existing,
+        ...c,
+        // Preserva o timestamp mais recente para manter a ordenação correta
+        timestamp: Math.max(Number(existing?.timestamp) || 0, Number(c.timestamp) || 0),
+      })
+    }
     for (const m of ml) {
       const jid = m.key?.remoteJid
       if (jid) pushMessage(jid, m)
