@@ -278,7 +278,20 @@ export async function getQRBuffer() {
 
 export async function sendText(jid, text) {
   if (connectionState !== 'connected') throw new Error('WhatsApp não conectado')
-  return sock.sendMessage(jid, { text })
+  const result = await sock.sendMessage(jid, { text })
+  // Garante que o chat é atualizado no store mesmo que messages.upsert dispare tarde
+  if (result?.key) {
+    const fakeMsg = {
+      key: result.key,
+      message: { conversation: text },
+      messageTimestamp: Math.floor(Date.now() / 1000),
+      status: 1,
+    }
+    pushMessage(resolveLid(jid), fakeMsg)
+    touchChat(fakeMsg)
+    saveStore()
+  }
+  return result
 }
 
 export async function markAsRead(jid) {
