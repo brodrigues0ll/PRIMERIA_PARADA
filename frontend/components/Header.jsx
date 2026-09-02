@@ -7,6 +7,7 @@ import { ChevronLeft, LogOut, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 const PAGE_META = {
   "/home": { title: null, back: null },
@@ -53,6 +54,8 @@ export default function Header({ session, empresa }) {
   const pathname = usePathname();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { title, back } = getMeta(pathname);
   const isHome = pathname === "/home";
   const isOrders = pathname === "/orders" || pathname === "/orders/fechadas";
@@ -104,7 +107,7 @@ export default function Header({ session, empresa }) {
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={toggleTheme}
           >
-            {resolvedTheme === "dark"
+            {mounted && resolvedTheme === "dark"
               ? <Sun className="h-4 w-4" />
               : <Moon className="h-4 w-4" />}
           </Button>
