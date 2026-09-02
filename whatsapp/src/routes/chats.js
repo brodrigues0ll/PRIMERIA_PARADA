@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getChats, normalizeJidParam, getProfilePictureUrl } from '../whatsapp.js'
+import { getChats, normalizeJidParam, getProfilePictureUrl, debugContact } from '../whatsapp.js'
 
 const router = Router()
 
@@ -33,6 +33,12 @@ router.get('/:jid', (req, res) => {
   const chat  = chats.find(c => c.jid === jid)
   if (!chat) return res.status(404).json({ error: 'Chat não encontrado' })
   res.json(chat)
+})
+
+// GET /api/chats/:jid/debug → diagnóstico do contato no store
+router.get('/:jid/debug', (req, res) => {
+  const jid = normalizeJidParam(req.params.jid)
+  res.json(debugContact(jid))
 })
 
 // Deduplicação de fetches concorrentes para o mesmo JID

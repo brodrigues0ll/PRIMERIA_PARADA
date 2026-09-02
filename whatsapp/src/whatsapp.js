@@ -309,6 +309,48 @@ function touchChat(msg) {
   })
 }
 
+// Aprende o nome de display (pushName) a partir de uma mensagem recebida.
+// Serve como fallback quando o contato não tem name/notify no store.
+function learnPushName(msg) {
+  if (msg.key.fromMe || !msg.pushName) return
+  const rawJid    = msg.key.participant || msg.key.remoteJid
+  if (!rawJid) return
+  const senderJid = resolveLid(rawJid)
+  if (senderJid.endsWith('@g.us') || senderJid.endsWith('@broadcast')) return
+  const existing = findContact(senderJid)
+  // Só atualiza se ainda não temos nome salvo (name > verifiedName têm prioridade)
+  if (existing?.name || existing?.verifiedName) return
+  const c = contacts.get(senderJid) || {}
+  if (c.notify === msg.pushName) return
+  contacts.set(senderJid, { ...c, id: senderJid, notify: msg.pushName })
+}
+
+// ── Debug ─────────────────────────────────────────────────────────────────────
+
+export function debugContact(jid) {
+  const resolved = resolveLid(jid)
+  const direct   = contacts.get(jid)
+  const byResolved = contacts.get(resolved)
+  // Busca reversa via lidMap
+  const reverseEntries = []
+  for (const [lid, real] of lidMap) {
+    if (real === jid || real === resolved) {
+      reverseEntries.push({ lid, real, contact: contacts.get(lid) })
+    }
+  }
+  const chat = chats.get(resolved) || chats.get(jid)
+  return {
+    jid,
+    resolved,
+    directContact:   direct   ? { name: direct.name, notify: direct.notify, lid: direct.lid } : null,
+    resolvedContact: byResolved ? { name: byResolved.name, notify: byResolved.notify } : null,
+    lidMapEntries:   reverseEntries,
+    chatName:        chat?.name || null,
+    contactsSize:    contacts.size,
+    lidMapSize:      lidMap.size,
+  }
+}
+
 // ── Leitura pública ───────────────────────────────────────────────────────────
 
 export function getChats() {
@@ -616,6 +658,7 @@ async function connect() {
       const jid = m.key?.remoteJid
       if (!jid) continue
       recordKeyLidMappings(m.key)  // aprende lid→pn a partir do Alt Baileys v7
+      learnPushName(m)             // armazena pushName como notify se não há nome salvo
       pushMessage(jid, m)
       const ts  = toLong(m.messageTimestamp)
       const cur = latestPerJid.get(jid)
@@ -692,6 +735,7 @@ async function connect() {
       const jid = msg.key.remoteJid
       if (!jid) continue
       recordKeyLidMappings(msg.key)  // aprende lid→pn a partir do Alt Baileys v7
+      learnPushName(msg)             // armazena pushName como notify se não há nome salvo
       pushMessage(jid, msg)
       touchChat(msg)
       if (type === 'notify') {
