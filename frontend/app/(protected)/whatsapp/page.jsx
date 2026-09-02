@@ -240,7 +240,7 @@ function MessagesPanel({ chat, onBack }) {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const bottomRef = useRef(null);
+  const scrollAreaRef = useRef(null);
   const encodedJid = encodeURIComponent(chat.jid);
 
   const fetchMessages = useCallback(async () => {
@@ -267,7 +267,9 @@ function MessagesPanel({ chat, onBack }) {
   }, [fetchMessages]);
 
   useEffect(() => {
-    if (!loading) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!loading && scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
   }, [messages, loading]);
 
   async function handleSend(e) {
@@ -306,7 +308,7 @@ function MessagesPanel({ chat, onBack }) {
         <span className="text-sm font-semibold text-foreground truncate">{chat.name || chat.jid}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <MessagesSkeleton />
         ) : messages.length === 0 ? (
@@ -321,7 +323,6 @@ function MessagesPanel({ chat, onBack }) {
             {messages.map((msg) => (
               <MessageBubble key={msg.id} msg={msg} />
             ))}
-            <div ref={bottomRef} />
           </div>
         )}
       </div>
