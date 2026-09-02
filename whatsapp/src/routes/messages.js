@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getChatMessages, sendText, markAsRead, normalizeJidParam } from '../whatsapp.js'
+import { getChatMessages, sendText, markAsRead, normalizeJidParam, downloadMedia } from '../whatsapp.js'
 
 const router = Router()
 
@@ -39,6 +39,21 @@ router.post('/:jid/read', async (req, res) => {
     res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/chats/:jid/messages/:msgId/media
+// Retorna o binário da mídia (imagem, sticker, vídeo, áudio)
+router.get('/:jid/messages/:msgId/media', async (req, res) => {
+  const jid   = normalizeJidParam(req.params.jid)
+  const msgId = req.params.msgId
+  try {
+    const { buffer, mime } = await downloadMedia(jid, msgId)
+    res.setHeader('Content-Type', mime)
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    res.send(buffer)
+  } catch (err) {
+    res.status(404).json({ error: err.message })
   }
 })
 

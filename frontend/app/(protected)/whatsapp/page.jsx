@@ -298,20 +298,72 @@ function ChatItem({ chat, selected, onClick }) {
 
 // ─── Message Bubble ──────────────────────────────────────────────────────────
 
+const MEDIA_TYPES = new Set(["imageMessage", "stickerMessage", "videoMessage"])
+
+function MediaContent({ msg }) {
+  const encodedJid = encodeURIComponent(msg.jid)
+  const src = `/api/whatsapp/chats/${encodedJid}/messages/${msg.id}/media`
+  const isSticker = msg.type === "stickerMessage"
+
+  if (isSticker) {
+    return (
+      <img
+        src={src}
+        alt="sticker"
+        className="w-32 h-32 object-contain"
+        loading="lazy"
+      />
+    )
+  }
+
+  return (
+    <img
+      src={src}
+      alt={msg.text || "imagem"}
+      className="max-w-full rounded-[6px] max-h-64 object-cover cursor-pointer"
+      loading="lazy"
+    />
+  )
+}
+
 function MessageBubble({ msg }) {
   const isMine = msg.fromMe;
+  const isMedia = MEDIA_TYPES.has(msg.type)
+  const isSticker = msg.type === "stickerMessage"
+
+  if (isSticker) {
+    return (
+      <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
+        <div className="max-w-[65%]">
+          <MediaContent msg={msg} />
+          <div className={cn("flex items-center gap-1 justify-end mt-0.5")}>
+            <span className="text-[11px] text-[#667781]">{formatHour(msg.timestamp)}</span>
+            {isMine && <span className="text-[#53bdeb] text-[13px] leading-none">✓✓</span>}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "relative max-w-[65%] px-[9px] pt-[6px] pb-[8px] text-[14px] leading-[19px]",
+          "relative max-w-[65%] text-[14px] leading-[19px]",
           isMine
             ? "bg-[#d9fdd3] rounded-[7.5px] rounded-tr-none"
-            : "bg-white rounded-[7.5px] rounded-tl-none shadow-[0_1px_2px_rgba(0,0,0,0.13)]"
+            : "bg-white rounded-[7.5px] rounded-tl-none shadow-[0_1px_2px_rgba(0,0,0,0.13)]",
+          isMedia ? "p-[3px]" : "px-[9px] pt-[6px] pb-[8px]"
         )}
       >
-        <p className="break-words whitespace-pre-wrap text-[#111b21] pr-10">{msg.text || ""}</p>
-        <div className="flex items-center gap-1 justify-end mt-[-4px]">
+        {isMedia && <MediaContent msg={msg} />}
+        {msg.text && !isMedia && (
+          <p className="break-words whitespace-pre-wrap text-[#111b21] pr-10">{msg.text}</p>
+        )}
+        {msg.text && isMedia && (
+          <p className="break-words whitespace-pre-wrap text-[#111b21] px-[6px] pb-[2px] pt-[4px] pr-10">{msg.text}</p>
+        )}
+        <div className={cn("flex items-center gap-1 justify-end", isMedia ? "px-[6px] pb-[4px] mt-[-4px]" : "mt-[-4px]")}>
           <span className="text-[11px] text-[#667781] whitespace-nowrap">
             {formatHour(msg.timestamp)}
           </span>

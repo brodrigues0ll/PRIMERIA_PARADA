@@ -5,6 +5,7 @@ import makeWASocket, {
   isJidGroup,
   isJidBroadcast,
   jidNormalizedUser,
+  downloadMediaMessage,
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import pino from 'pino'
@@ -41,9 +42,11 @@ function loadStore() {
   if (!existsSync(STORE_PATH)) return
   try {
     const { chats: c, messages: m, contacts: ct } = JSON.parse(readFileSync(STORE_PATH, 'utf8'))
+    // Carrega contatos primeiro para popular lidMap antes de resolver mensagens
+    for (const [, v] of ct) registerContact(v)
     for (const [k, v] of c)  chats.set(k, v)
-    for (const [k, v] of m)  messages.set(k, v)
-    for (const [k, v] of ct) registerContact(v)
+    // Migra mensagens: chaves @lid → @s.whatsapp.net
+    for (const [k, v] of m)  messages.set(resolveLid(k), v)
 
     // Corrige chats cujo timestamp é um Long protobuf e popula lastMessage a partir das msgs
     for (const [jid, chat] of chats) {
@@ -294,6 +297,42 @@ export async function getProfilePictureUrl(jid) {
 }
 
 export { saveStore }
+
+export function getRawMessage(jid, msgId) {
+  // Busca direta pelo JID resolvido
+  let list = messages.get(jid) || []
+  let msg  = list.find(m => m.key?.id === msgId)
+  if (msg) return msg
+
+  // Fallback: procura em todas as listas (mensagens antigas podem ter chave diferente)
+  for (const [, msgs] of messages) {
+    msg = msgs.find(m => m.key?.id === msgId)
+    if (msg) return msg
+  }
+  return null
+}
+
+export async function downloadMedia(jid, msgId) {
+  const msg = getRawMessage(jid, msgId)
+  if (!msg) throw new Error('Mensagem não encontrada')
+  const m = msg.message
+  if (!m) throw new Error('Mensagem sem conteúdo')
+
+  const type = Object.keys(m).find(k =>
+    ['imageMessage', 'videoMessage', 'audioMessage', 'stickerMessage', 'documentMessage'].includes(k)
+  )
+  if (!type) throw new Error('Mensagem sem mídia')
+
+  const buffer = await downloadMediaMessage(
+    msg,
+    'buffer',
+    {},
+    { logger: pino({ level: 'silent' }), reuploadRequest: sock?.updateMediaMessage }
+  )
+
+  const mime = m[type]?.mimetype || 'application/octet-stream'
+  return { buffer, mime, type }
+}
 
 export async function logout() {
   // Desconecta do WA (ignora erros se já estiver desconectado)
