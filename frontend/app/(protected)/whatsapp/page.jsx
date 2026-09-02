@@ -1036,6 +1036,10 @@ export default function WhatsAppPage() {
           if (data.loggedOut) { setStatus("disconnected"); }
         });
 
+        socket.on("contacts_synced", () => {
+          fetchChats();
+        });
+
         socketRef.current = socket;
       })
       .catch(() => {});

@@ -124,10 +124,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log(`[ws] cliente desconectado: ${socket.id}`))
 })
 
-emitter.on('qr',             (d) => io.emit('qr',             d))
-emitter.on('connection',     (d) => io.emit('connection',     d))
-emitter.on('message',        (d) => io.emit('message',        d))
-emitter.on('message_update', (d) => io.emit('message_update', d))
+emitter.on('qr',              (d) => io.emit('qr',              d))
+emitter.on('connection',      (d) => io.emit('connection',      d))
+emitter.on('message',         (d) => io.emit('message',         d))
+emitter.on('message_update',  (d) => io.emit('message_update',  d))
+emitter.on('contacts_synced', ()  => io.emit('contacts_synced')   )
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

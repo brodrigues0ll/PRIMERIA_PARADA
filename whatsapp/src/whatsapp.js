@@ -238,24 +238,42 @@ function recordKeyLidMappings(key) {
   }
 }
 
+function stripDevice(jid) {
+  if (!jid) return jid
+  // "5522...:37@s.whatsapp.net" → "5522...@s.whatsapp.net"
+  const at = jid.lastIndexOf('@')
+  if (at === -1) return jid
+  const local  = jid.slice(0, at).split(':')[0]
+  const domain = jid.slice(at)
+  return local + domain
+}
+
 function registerContact(c) {
-  contacts.set(c.id, { ...contacts.get(c.id), ...c })
+  if (!c.id) return
+  const id = stripDevice(c.id)
+  const merged = { ...contacts.get(id), ...c, id }
+  contacts.set(id, merged)
   // Constrói mapa @lid → @s.whatsapp.net a partir do campo lid do contato
-  if (c.lid && c.id && !c.id.endsWith('@lid')) {
-    lidMap.set(c.lid, c.id)
+  if (merged.lid && !id.endsWith('@lid')) {
+    lidMap.set(merged.lid, id)
   }
-  // Contato salvo como @lid com phoneNumber: extrai só os dígitos (phoneNumber pode ser JID)
-  if (c.id?.endsWith('@lid') && c.phoneNumber) {
-    const digits = userPart(c.phoneNumber)
-    if (digits) lidMap.set(c.id, `${digits}@s.whatsapp.net`)
+  // Contato salvo como @lid com phoneNumber: extrai só os dígitos
+  if (id.endsWith('@lid') && merged.phoneNumber) {
+    const digits = userPart(merged.phoneNumber)
+    if (digits) lidMap.set(id, `${digits}@s.whatsapp.net`)
   }
 }
 
 function findContact(jid) {
+  if (!jid) return null
+  // Lookup direto
   if (contacts.has(jid)) return contacts.get(jid)
-  // Busca reversa: algum @lid no lidMap que aponte para este jid?
+  // Tenta sem sufixo de device
+  const stripped = stripDevice(jid)
+  if (stripped !== jid && contacts.has(stripped)) return contacts.get(stripped)
+  // Busca reversa via lidMap: @lid que aponta para este jid
   for (const [lid, real] of lidMap) {
-    if (real === jid && contacts.has(lid)) return contacts.get(lid)
+    if ((real === jid || real === stripped) && contacts.has(lid)) return contacts.get(lid)
   }
   return null
 }
@@ -620,13 +638,30 @@ async function connect() {
     }
 
     saveStore()
+    emitter.emit('contacts_synced')
   })
 
   let contactsSaveTimer = null
   sock.ev.on('contacts.upsert', (list) => {
     for (const c of list) registerContact(c)
     clearTimeout(contactsSaveTimer)
-    contactsSaveTimer = setTimeout(saveStore, 3000)
+    contactsSaveTimer = setTimeout(() => {
+      saveStore()
+      emitter.emit('contacts_synced')
+    }, 3000)
+  })
+
+  sock.ev.on('contacts.update', (list) => {
+    for (const u of list) {
+      if (!u.id) continue
+      const id = stripDevice(u.id)
+      contacts.set(id, { ...contacts.get(id), ...u, id })
+    }
+    clearTimeout(contactsSaveTimer)
+    contactsSaveTimer = setTimeout(() => {
+      saveStore()
+      emitter.emit('contacts_synced')
+    }, 3000)
   })
 
   sock.ev.on('chats.upsert', (list) => {
