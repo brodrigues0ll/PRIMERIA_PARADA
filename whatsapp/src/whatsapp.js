@@ -44,7 +44,11 @@ function loadStore() {
     const { chats: c, messages: m, contacts: ct } = JSON.parse(readFileSync(STORE_PATH, 'utf8'))
     // Carrega contatos primeiro para popular lidMap antes de resolver mensagens
     for (const [, v] of ct) registerContact(v)
-    for (const [k, v] of c)  chats.set(k, v)
+    // Migra chats: chaves @lid → @s.whatsapp.net
+    for (const [k, v] of c) {
+      const rk = resolveLid(k)
+      chats.set(rk, { ...v, id: rk })
+    }
     // Migra mensagens: chaves @lid → @s.whatsapp.net
     for (const [k, v] of m)  messages.set(resolveLid(k), v)
 
@@ -207,9 +211,11 @@ function pushMessage(jid, msg) {
 
 function touchChat(msg) {
   const jid     = resolveLid(msg.key.remoteJid)
-  const current = chats.get(jid) || chats.get(msg.key.remoteJid) || { id: jid, unreadCount: 0 }
+  // Usa a chave já existente no Map (evita duplicar entrada @lid + real)
+  const chatKey = chats.has(jid) ? jid : (chats.has(msg.key.remoteJid) ? msg.key.remoteJid : jid)
+  const current = chats.get(chatKey) || { id: jid, unreadCount: 0 }
   const ts      = toLong(msg.messageTimestamp)
-  chats.set(jid, {
+  chats.set(chatKey, {
     ...current,
     id:          jid,
     lastMessage: normalizeMessage(msg),
@@ -296,12 +302,15 @@ export async function sendText(jid, text) {
 
 export async function markAsRead(jid) {
   if (connectionState !== 'connected') throw new Error('WhatsApp não conectado')
-  const list = messages.get(jid) || []
+  const resolved = resolveLid(jid)
+  const list = messages.get(resolved) || []
   const last = list.at(-1)
   if (last) await sock.readMessages([last.key])
-  const current = chats.get(jid)
+  // Busca o chat pela chave resolvida ou pela chave original (compatibilidade)
+  const chatKey = chats.has(resolved) ? resolved : (chats.has(jid) ? jid : resolved)
+  const current = chats.get(chatKey)
   if (current && current.unreadCount) {
-    chats.set(jid, { ...current, unreadCount: 0 })
+    chats.set(chatKey, { ...current, unreadCount: 0 })
     saveStore()
   }
 }
