@@ -1,3 +1,14 @@
 {
-  "cSpell.language": "pt-BR,en-US"
+  "cSpell.language": "pt-BR,en-US",
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "OpenWA/**": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "OpenWA/**": true
+  },
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false
 }
