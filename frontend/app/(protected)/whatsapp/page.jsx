@@ -799,7 +799,14 @@ export default function WhatsAppPage() {
                   key={chat.jid}
                   chat={chat}
                   selected={selectedChat?.jid === chat.jid}
-                  onClick={() => setSelectedChat(chat)}
+                  onClick={() => {
+                    setSelectedChat(chat);
+                    if (chat.unreadCount > 0) {
+                      setChats((prev) =>
+                        prev.map((c) => c.jid === chat.jid ? { ...c, unreadCount: 0 } : c)
+                      );
+                    }
+                  }}
                 />
               ))}
             </div>
