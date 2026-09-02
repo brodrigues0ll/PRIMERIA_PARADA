@@ -33,3 +33,9 @@ next-env.d.ts
 
 /possibilidades
 /files
+
+# OpenWA — código externo, não versionado aqui
+/OpenWA/
+
+# Dados de runtime do WhatsApp
+whatsapp/store.json.tmp

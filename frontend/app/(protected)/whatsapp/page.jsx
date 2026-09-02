@@ -549,7 +549,9 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
       const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages?limit=50`);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
+      const raw = Array.isArray(data) ? data : [];
+      const seen = new Set();
+      const list = raw.filter((m) => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
       setMessages((prev) => {
         const serverIds = new Set(list.map((m) => m.id));
         const pending = prev.filter((m) => m.id.startsWith("temp-") && !serverIds.has(m.id));
@@ -580,7 +582,6 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
 
   useEffect(() => {
     if (!liveMessage) return;
-    console.log("[panel] live jid:", liveMessage.jid, "| chat jid:", chat.jid, "| match:", liveMessage.jid === chat.jid);
     if (liveMessage.jid !== chat.jid) return;
     setMessages((prev) => {
       if (prev.some((m) => m.id === liveMessage.id)) return prev;
@@ -629,11 +630,12 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
         throw new Error();
       }
       const data = await res.json();
-      // Troca o id temporário pelo id real assim que o servidor confirma
+      // Troca o id temporário pelo id real; remove duplicata que possa ter chegado pelo WebSocket
       if (data?.id) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, id: data.id } : m))
-        );
+        setMessages((prev) => {
+          const withoutDup = prev.filter((m) => m.id !== data.id);
+          return withoutDup.map((m) => (m.id === tempId ? { ...m, id: data.id } : m));
+        });
       }
       // Reconcilia com o servidor para garantir ordem e campos corretos
       setTimeout(fetchMessages, 1500);
@@ -693,9 +695,10 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
         }
         const data = await res.json();
         if (data?.id) {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === tempId ? { ...m, id: data.id } : m))
-          );
+          setMessages((prev) => {
+            const withoutDup = prev.filter((m) => m.id !== data.id);
+            return withoutDup.map((m) => (m.id === tempId ? { ...m, id: data.id } : m));
+          });
         }
         setTimeout(fetchMessages, 1500);
       } catch {
@@ -928,7 +931,9 @@ export default function WhatsAppPage() {
       const res = await fetch("/api/whatsapp/chats");
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
+      const raw = Array.isArray(data) ? data : [];
+      const seen = new Set();
+      const list = raw.filter((c) => { if (seen.has(c.jid)) return false; seen.add(c.jid); return true; });
       setChats(list);
     } catch {
       toast.error("Erro ao carregar conversas");
@@ -979,8 +984,33 @@ export default function WhatsAppPage() {
     prevStatusRef.current = status;
   }, [status, fetchChats]);
 
-  // Socket.IO — atualizações em tempo real
+  // Socket.IO — atualizações em tempo real (OpenWA /events namespace)
   const socketRef = useRef(null);
+
+  // Normaliza mensagem do formato OpenWA para o formato interno do frontend
+  const normalizeOwMsg = useCallback((data) => {
+    const TYPE_MAP = {
+      text: "conversation", image: "imageMessage", video: "videoMessage",
+      audio: "audioMessage", voice: "pttMessage", document: "documentMessage",
+      sticker: "stickerMessage", location: "locationMessage",
+    };
+    const quoted = data.quotedMessage
+      ? { id: data.quotedMessage.id, text: data.quotedMessage.body ?? "" }
+      : null;
+    let text = data.body ?? "";
+    if (!text && data.media?.filename) text = data.media.filename;
+    return {
+      id: data.id ?? data.waMessageId,
+      jid: data.chatId,
+      fromMe: !!data.fromMe,
+      participant: data.author ?? null,
+      timestamp: data.timestamp ?? Math.floor(Date.now() / 1000),
+      text,
+      type: TYPE_MAP[data.type] ?? data.type ?? "unknown",
+      status: data.status ?? null,
+      quotedMessage: quoted,
+    };
+  }, []);
 
   useEffect(() => {
     if (status !== "connected") {
@@ -996,48 +1026,59 @@ export default function WhatsAppPage() {
       .then(({ url, token }) => {
         if (cancelled) return;
 
+        // OpenWA: auth via apiKey, namespace já incluso na url (/events)
         const socket = io(url, {
-          auth: { token },
+          auth: { apiKey: token },
+          extraHeaders: { "X-API-Key": token },
           transports: ["websocket"],
           reconnectionDelay: 2000,
           reconnectionDelayMax: 10000,
         });
 
-        socket.on("connect", () => console.log("[ws] conectado:", socket.id));
+        socket.on("connect", () => {
+          console.log("[ws] conectado:", socket.id);
+          // OpenWA requer subscrição explícita após conexão
+          socket.emit("message", { type: "subscribe", sessionId: "*", events: ["*"] });
+        });
         socket.on("disconnect", (reason) => console.log("[ws] desconectado:", reason));
         socket.on("connect_error", (err) => console.error("[ws] erro:", err.message));
 
-        socket.on("message", (msg) => {
-          console.log("[ws] msg recebida — fromMe:", msg.fromMe, "| texto:", msg.text?.slice(0, 50));
-          setLiveMessage(msg);
+        // OpenWA entrega eventos via evento "message" com envelope { type, payload }
+        socket.on("message", (data) => {
+          if (data.type !== "event") return;
+          const { event, data: eventData } = data.payload;
 
-          const existsInList = chatsRef.current.some((c) => c.jid === msg.jid);
-          if (!existsInList) { fetchChats(); return; }
+          if (event === "message.received" || event === "message.sent") {
+            const msg = normalizeOwMsg(eventData);
+            setLiveMessage(msg);
 
-          setChats((prev) => {
-            const idx = prev.findIndex((c) => c.jid === msg.jid);
-            if (idx === -1) return prev;
-            const current = prev[idx];
-            const isOpen = selectedChatRef.current?.jid === msg.jid;
-            const updated = {
-              ...current,
-              lastMessage: msg,
-              timestamp: msg.timestamp,
-              unreadCount: isOpen ? 0 : (current.unreadCount || 0) + 1,
-            };
-            const next = [...prev];
-            next.splice(idx, 1);
-            return [updated, ...next];
-          });
-        });
+            const existsInList = chatsRef.current.some((c) => c.jid === msg.jid);
+            if (!existsInList) { fetchChats(); return; }
 
-        socket.on("connection", (data) => {
-          if (data.user) setUser(data.user);
-          if (data.loggedOut) { setStatus("disconnected"); }
-        });
+            setChats((prev) => {
+              const idx = prev.findIndex((c) => c.jid === msg.jid);
+              if (idx === -1) return prev;
+              const current = prev[idx];
+              const isOpen = selectedChatRef.current?.jid === msg.jid;
+              const updated = {
+                ...current,
+                lastMessage: msg,
+                timestamp: msg.timestamp,
+                unreadCount: isOpen ? 0 : (current.unreadCount || 0) + 1,
+              };
+              const next = [...prev];
+              next.splice(idx, 1);
+              return [updated, ...next];
+            });
+          }
 
-        socket.on("contacts_synced", () => {
-          fetchChats();
+          if (event === "session.status") {
+            const newStatus = eventData?.status;
+            if (newStatus === "ready") fetchChats();
+            if (newStatus === "disconnected" || newStatus === "failed") {
+              setStatus("disconnected");
+            }
+          }
         });
 
         socketRef.current = socket;
@@ -1045,7 +1086,7 @@ export default function WhatsAppPage() {
       .catch(() => {});
 
     return () => { cancelled = true; };
-  }, [status, fetchChats]);
+  }, [status, fetchChats, normalizeOwMsg]);
 
   useEffect(() => () => { socketRef.current?.disconnect(); socketRef.current = null; }, []);
 
