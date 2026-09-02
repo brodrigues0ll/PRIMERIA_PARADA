@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeft, Send, MessageCircle } from "lucide-react";
+import { ChevronLeft, Send, MessageCircle, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -39,41 +40,86 @@ function truncate(str, max = 40) {
   return str.length > max ? str.slice(0, max) + "…" : str;
 }
 
-// ─── Status Bar ─────────────────────────────────────────────────────────────
+// ─── QR / Disconnected screen ────────────────────────────────────────────────
 
-function StatusBar({ status, qrSrc }) {
-  if (status === null) {
-    return (
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-card">
-        <Skeleton className="h-2.5 w-2.5 rounded-full" />
-        <Skeleton className="h-3.5 w-24" />
-      </div>
-    );
-  }
-
-  const isConnected = status === "connected";
+function NotConnectedScreen({ status, qrSrc, onRefresh }) {
   const isQR = status === "qr";
+  const isConnecting = status === "connecting";
 
   return (
-    <div className="px-4 py-2.5 border-b border-border bg-card">
-      <div className="flex items-center gap-2">
-        <span
-          className={cn(
-            "h-2.5 w-2.5 rounded-full shrink-0",
-            isConnected ? "bg-green-500" : isQR ? "bg-amber-500" : "bg-destructive"
-          )}
-        />
-        <span className="text-xs font-medium text-foreground">
-          {isConnected ? "Conectado" : isQR ? "Aguardando leitura do QR" : "Desconectado"}
-        </span>
+    <div className="flex flex-col items-center justify-center h-full px-8 text-center gap-6">
+      <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+        <WhatsAppIcon className="h-8 w-8 text-emerald-600" />
       </div>
 
-      {isQR && qrSrc && (
-        <div className="mt-3 flex flex-col items-center gap-2 pb-2">
-          <img src={qrSrc} alt="QR Code WhatsApp" className="h-48 w-48 rounded-lg border border-border" />
-          <p className="text-xs text-muted-foreground">Escaneie com seu WhatsApp</p>
-        </div>
+      {isQR && qrSrc ? (
+        <>
+          <div>
+            <p className="text-base font-semibold text-foreground mb-1">Conectar WhatsApp</p>
+            <p className="text-sm text-muted-foreground">
+              Abra o WhatsApp no celular, vá em{" "}
+              <span className="font-medium text-foreground">Dispositivos conectados</span> e
+              escaneie o QR code abaixo
+            </p>
+          </div>
+          <img
+            src={qrSrc}
+            alt="QR Code WhatsApp"
+            className="h-56 w-56 rounded-2xl border border-border shadow-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            O código expira em 60 segundos — será atualizado automaticamente
+          </p>
+        </>
+      ) : isQR && !qrSrc ? (
+        <>
+          <p className="text-sm text-muted-foreground">Gerando QR code…</p>
+          <Skeleton className="h-56 w-56 rounded-2xl" />
+        </>
+      ) : isConnecting ? (
+        <>
+          <p className="text-base font-semibold text-foreground">Conectando…</p>
+          <p className="text-sm text-muted-foreground">Aguarde enquanto o WhatsApp é inicializado</p>
+          <div className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+        </>
+      ) : (
+        <>
+          <div>
+            <p className="text-base font-semibold text-foreground mb-1">WhatsApp desconectado</p>
+            <p className="text-sm text-muted-foreground">
+              O serviço não está respondendo ou a sessão expirou
+            </p>
+          </div>
+          <Button variant="outline" onClick={onRefresh} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Tentar novamente
+          </Button>
+        </>
       )}
+    </div>
+  );
+}
+
+// ─── Status bar (connected) ──────────────────────────────────────────────────
+
+function ConnectedBar({ user, onDisconnect, disconnecting }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card shrink-0">
+      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-foreground leading-none">Conectado</p>
+        {user?.name && (
+          <p className="text-[11px] text-muted-foreground truncate mt-0.5">{user.name}</p>
+        )}
+      </div>
+      <button
+        onClick={onDisconnect}
+        disabled={disconnecting}
+        className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
+      >
+        <LogOut className="h-3.5 w-3.5" />
+        {disconnecting ? "Saindo…" : "Desconectar"}
+      </button>
     </div>
   );
 }
@@ -101,7 +147,6 @@ function ChatListSkeleton() {
 }
 
 function ChatItem({ chat, selected, onClick }) {
-  const initial = getInitial(chat.name);
   const preview = chat.lastMessage?.text
     ? truncate(chat.lastMessage.text)
     : "Sem mensagens";
@@ -116,7 +161,7 @@ function ChatItem({ chat, selected, onClick }) {
       )}
     >
       <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
-        {initial}
+        {getInitial(chat.name)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -199,7 +244,6 @@ function MessagesPanel({ chat, onBack }) {
     }
   }, [encodedJid]);
 
-  // Mark as read (fire-and-forget)
   useEffect(() => {
     fetch(`/api/whatsapp/chats/${encodedJid}/read`, { method: "POST" }).catch(() => {});
   }, [encodedJid]);
@@ -210,11 +254,8 @@ function MessagesPanel({ chat, onBack }) {
     fetchMessages();
   }, [fetchMessages]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
-    if (!loading) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
+    if (!loading) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   async function handleSend(e) {
@@ -240,7 +281,6 @@ function MessagesPanel({ chat, onBack }) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Panel header */}
       <div className="flex items-center gap-3 px-4 h-14 border-b border-border bg-background/80 backdrop-blur-md shrink-0">
         <Button
           variant="ghost"
@@ -256,7 +296,6 @@ function MessagesPanel({ chat, onBack }) {
         <span className="text-sm font-semibold text-foreground truncate">{chat.name || chat.jid}</span>
       </div>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <MessagesSkeleton />
@@ -277,7 +316,6 @@ function MessagesPanel({ chat, onBack }) {
         )}
       </div>
 
-      {/* Input bar */}
       <form
         onSubmit={handleSend}
         className="flex items-center gap-2 px-4 py-3 border-t border-border bg-background shrink-0"
@@ -321,18 +359,20 @@ function NoChat() {
 
 export default function WhatsAppPage() {
   const [status, setStatus] = useState(null);
+  const [user, setUser] = useState(null);
   const [qrSrc, setQrSrc] = useState(null);
   const [chats, setChats] = useState([]);
   const [chatsLoading, setChatsLoading] = useState(true);
   const [selectedChat, setSelectedChat] = useState(null);
+  const [disconnecting, setDisconnecting] = useState(false);
 
-  // Fetch WA status
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch("/api/whatsapp/status");
       if (!res.ok) throw new Error();
       const data = await res.json();
       setStatus(data.status ?? "disconnected");
+      setUser(data.user ?? null);
       if (data.status === "qr") {
         const qrRes = await fetch("/api/whatsapp/qr");
         if (qrRes.ok) {
@@ -347,7 +387,6 @@ export default function WhatsAppPage() {
     }
   }, []);
 
-  // Fetch chats
   const fetchChats = useCallback(async () => {
     try {
       const res = await fetch("/api/whatsapp/chats");
@@ -368,70 +407,86 @@ export default function WhatsAppPage() {
     return () => clearInterval(interval);
   }, [fetchStatus, fetchChats]);
 
-  const isQR = status === "qr";
-
-  function handleSelectChat(chat) {
-    setSelectedChat(chat);
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      await fetch("/api/whatsapp/logout", { method: "DELETE" });
+      setSelectedChat(null);
+      setChats([]);
+      setUser(null);
+      toast.success("WhatsApp desconectado");
+      await fetchStatus();
+    } catch {
+      toast.error("Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
+    }
   }
 
-  function handleBack() {
-    setSelectedChat(null);
+  const isConnected = status === "connected";
+
+  if (status !== null && !isConnected) {
+    return (
+      <div style={{ height: "calc(100vh - 3.5rem)" }}>
+        <NotConnectedScreen status={status} qrSrc={qrSrc} onRefresh={fetchStatus} />
+      </div>
+    );
   }
 
   return (
-    <div
-      className="flex overflow-hidden"
-      style={{ height: "calc(100vh - 3.5rem)" }} // 3.5rem = header h-14
-    >
-      {/* Left panel — chat list */}
+    <div className="flex overflow-hidden" style={{ height: "calc(100vh - 3.5rem)" }}>
+      {/* Left panel */}
       <div
         className={cn(
           "flex flex-col w-full md:w-80 lg:w-96 border-r border-border bg-background shrink-0",
-          // On mobile, hide list when a chat is selected
           selectedChat ? "hidden md:flex" : "flex"
         )}
       >
-        <StatusBar status={status} qrSrc={qrSrc} />
-
-        {isQR ? null : (
-          <div className="flex-1 overflow-y-auto">
-            {chatsLoading ? (
-              <ChatListSkeleton />
-            ) : chats.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center px-8">
-                <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center mb-3">
-                  <MessageCircle className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground">Nenhuma conversa encontrada</p>
-              </div>
-            ) : (
-              <div>
-                {chats.map((chat, i) => (
-                  <div key={chat.jid}>
-                    <ChatItem
-                      chat={chat}
-                      selected={selectedChat?.jid === chat.jid}
-                      onClick={() => handleSelectChat(chat)}
-                    />
-                    {i < chats.length - 1 && <Separator />}
-                  </div>
-                ))}
-              </div>
-            )}
+        {status === null ? (
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-card">
+            <Skeleton className="h-2 w-2 rounded-full" />
+            <Skeleton className="h-3.5 w-24" />
           </div>
+        ) : (
+          <ConnectedBar user={user} onDisconnect={handleDisconnect} disconnecting={disconnecting} />
         )}
+
+        <div className="flex-1 overflow-y-auto">
+          {chatsLoading ? (
+            <ChatListSkeleton />
+          ) : chats.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-8">
+              <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                <MessageCircle className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">Nenhuma conversa encontrada</p>
+            </div>
+          ) : (
+            <div>
+              {chats.map((chat, i) => (
+                <div key={chat.jid}>
+                  <ChatItem
+                    chat={chat}
+                    selected={selectedChat?.jid === chat.jid}
+                    onClick={() => setSelectedChat(chat)}
+                  />
+                  {i < chats.length - 1 && <Separator />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Right panel — messages */}
+      {/* Right panel */}
       <div
         className={cn(
           "flex-1 overflow-hidden",
-          // On mobile, show only when a chat is selected
           selectedChat ? "flex flex-col" : "hidden md:flex md:flex-col"
         )}
       >
         {selectedChat ? (
-          <MessagesPanel chat={selectedChat} onBack={handleBack} />
+          <MessagesPanel chat={selectedChat} onBack={() => setSelectedChat(null)} />
         ) : (
           <NoChat />
         )}

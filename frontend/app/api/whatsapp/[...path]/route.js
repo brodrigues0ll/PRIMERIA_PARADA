@@ -32,3 +32,4 @@ async function proxyRequest(request, params) {
 
 export const GET = (req, ctx) => proxyRequest(req, ctx.params);
 export const POST = (req, ctx) => proxyRequest(req, ctx.params);
+export const DELETE = (req, ctx) => proxyRequest(req, ctx.params);
