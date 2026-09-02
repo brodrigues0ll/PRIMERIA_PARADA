@@ -296,8 +296,14 @@ export async function sendText(jid, text) {
 
 export async function markAsRead(jid) {
   if (connectionState !== 'connected') throw new Error('WhatsApp não conectado')
-  const last = (messages.get(jid) || []).at(-1)
+  const list = messages.get(jid) || []
+  const last = list.at(-1)
   if (last) await sock.readMessages([last.key])
+  const current = chats.get(jid)
+  if (current && current.unreadCount) {
+    chats.set(jid, { ...current, unreadCount: 0 })
+    saveStore()
+  }
 }
 
 export async function getProfilePictureUrl(jid) {

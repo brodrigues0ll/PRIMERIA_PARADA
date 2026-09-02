@@ -857,6 +857,7 @@ export default function WhatsAppPage() {
                       setChats((prev) =>
                         prev.map((c) => c.jid === chat.jid ? { ...c, unreadCount: 0 } : c)
                       );
+                      fetch(`/api/whatsapp/chats/${encodeURIComponent(chat.jid)}/read`, { method: "POST" }).catch(() => {});
                     }
                   }}
                 />
