@@ -127,14 +127,21 @@ export function getChats() {
   return Array.from(chats.values())
     .filter(c => !isJidBroadcast(c.id))
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-    .map(c => ({
-      jid:          c.id,
-      name:         c.name || contactName(c.id),
-      isGroup:      isJidGroup(c.id),
-      unreadCount:  c.unreadCount || 0,
-      lastMessage:  c.lastMessage || null,
-      timestamp:    c.timestamp || 0,
-    }))
+    .map(c => {
+      const contact = contacts.get(c.id)
+      // Para grupos: usa o nome do grupo. Para contatos: prefere o nome salvo no celular.
+      const name = isJidGroup(c.id)
+        ? c.name
+        : (contact?.name || c.name || contact?.notify || c.id.split('@')[0])
+      return {
+        jid:         c.id,
+        name,
+        isGroup:     isJidGroup(c.id),
+        unreadCount: c.unreadCount || 0,
+        lastMessage: c.lastMessage || null,
+        timestamp:   c.timestamp || 0,
+      }
+    })
 }
 
 export function getChatMessages(jid, limit = 50) {
@@ -253,8 +260,11 @@ async function connect() {
     saveStore()
   })
 
+  let contactsSaveTimer = null
   sock.ev.on('contacts.upsert', (list) => {
     for (const c of list) contacts.set(c.id, { ...contacts.get(c.id), ...c })
+    clearTimeout(contactsSaveTimer)
+    contactsSaveTimer = setTimeout(saveStore, 3000)
   })
 
   sock.ev.on('chats.upsert', (list) => {
