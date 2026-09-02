@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getChatMessages, sendText, markAsRead, normalizeJidParam, downloadMedia } from '../whatsapp.js'
+import { getChatMessages, sendText, sendMedia, markAsRead, normalizeJidParam, downloadMedia } from '../whatsapp.js'
 
 const router = Router()
 
@@ -12,18 +12,32 @@ router.get('/:jid/messages', (req, res) => {
 })
 
 // POST /api/chats/:jid/messages
-// Body: { text: "mensagem" }
+// Body: { text: "mensagem", quotedMessageId?: "id" }
 // Envia uma mensagem de texto
 router.post('/:jid/messages', async (req, res) => {
   const jid  = normalizeJidParam(req.params.jid)
-  const { text } = req.body
-
-  if (!text?.trim()) {
-    return res.status(400).json({ error: 'Campo "text" é obrigatório' })
-  }
-
+  const { text, quotedMessageId } = req.body
+  if (!text?.trim()) return res.status(400).json({ error: 'Campo "text" é obrigatório' })
   try {
-    const result = await sendText(jid, text.trim())
+    const result = await sendText(jid, text.trim(), quotedMessageId || null)
+    res.status(201).json({ ok: true, id: result?.key?.id })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/chats/:jid/messages/media
+// Body: { type, base64, mimetype, filename?, caption?, quotedMessageId? }
+// Envia uma mensagem de mídia
+router.post('/:jid/messages/media', async (req, res) => {
+  const jid = normalizeJidParam(req.params.jid)
+  const { type, base64, mimetype, filename, caption, quotedMessageId } = req.body
+  if (!type || !base64 || !mimetype) {
+    return res.status(400).json({ error: 'Campos "type", "base64" e "mimetype" são obrigatórios' })
+  }
+  try {
+    const buffer = Buffer.from(base64, 'base64')
+    const result = await sendMedia(jid, { type, buffer, mimetype, filename, caption, quotedMessageId })
     res.status(201).json({ ok: true, id: result?.key?.id })
   } catch (err) {
     res.status(500).json({ error: err.message })

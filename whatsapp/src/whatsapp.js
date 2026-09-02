@@ -143,16 +143,45 @@ function extractType(msg) {
   return Object.keys(msg.message).find(k => k !== 'messageContextInfo') || 'unknown'
 }
 
+function extractQuotedInfo(msg) {
+  const content = msg.message
+  if (!content) return null
+  const ctxInfo =
+    content?.extendedTextMessage?.contextInfo ||
+    content?.imageMessage?.contextInfo ||
+    content?.videoMessage?.contextInfo ||
+    content?.audioMessage?.contextInfo ||
+    content?.documentMessage?.contextInfo ||
+    content?.stickerMessage?.contextInfo
+  if (!ctxInfo?.stanzaId) return null
+  const qm = ctxInfo.quotedMessage
+  if (!qm) return null
+  const text =
+    qm.conversation ||
+    qm.extendedTextMessage?.text ||
+    qm.imageMessage?.caption ||
+    qm.videoMessage?.caption ||
+    qm.documentMessage?.fileName ||
+    (qm.imageMessage    ? '[imagem]'    : null) ||
+    (qm.videoMessage    ? '[vídeo]'     : null) ||
+    (qm.audioMessage    ? '[áudio]'     : null) ||
+    (qm.stickerMessage  ? '[sticker]'   : null) ||
+    (qm.documentMessage ? '[documento]' : null) ||
+    ''
+  return { id: ctxInfo.stanzaId, participant: ctxInfo.participant || null, text }
+}
+
 export function normalizeMessage(msg) {
   return {
-    id:          msg.key.id,
-    jid:         resolveLid(msg.key.remoteJid),
-    fromMe:      !!msg.key.fromMe,
-    participant: msg.key.participant || null,
-    timestamp:   toLong(msg.messageTimestamp),
-    text:        extractText(msg),
-    type:        extractType(msg),
-    status:      msg.status ?? null,
+    id:            msg.key.id,
+    jid:           resolveLid(msg.key.remoteJid),
+    fromMe:        !!msg.key.fromMe,
+    participant:   msg.key.participant || null,
+    timestamp:     toLong(msg.messageTimestamp),
+    text:          extractText(msg),
+    type:          extractType(msg),
+    status:        msg.status ?? null,
+    quotedMessage: extractQuotedInfo(msg),
   }
 }
 
@@ -222,10 +251,19 @@ function registerContact(c) {
   }
 }
 
+function findContact(jid) {
+  if (contacts.has(jid)) return contacts.get(jid)
+  // Busca reversa: algum @lid no lidMap que aponte para este jid?
+  for (const [lid, real] of lidMap) {
+    if (real === jid && contacts.has(lid)) return contacts.get(lid)
+  }
+  return null
+}
+
 function contactName(jid) {
   const resolved = resolveLid(jid)
-  const c = contacts.get(resolved) || contacts.get(jid)
-  return c?.name || c?.notify || formatPhone(resolved)
+  const c = findContact(resolved) || findContact(jid)
+  return c?.name || c?.verifiedName || c?.notify || formatPhone(resolved)
 }
 
 // ── Store helpers ─────────────────────────────────────────────────────────────
@@ -268,10 +306,10 @@ export function getChats() {
       if (seen.has(resolvedId)) return null
       seen.add(resolvedId)
 
-      const contact = contacts.get(resolvedId) || contacts.get(c.id)
+      const contact = findContact(resolvedId) || findContact(c.id)
       const name = isJidGroup(resolvedId)
         ? (c.name || contact?.name)
-        : (contact?.name || c.name || contact?.notify || formatPhone(resolvedId))
+        : (contact?.name || contact?.verifiedName || c.name || contact?.notify || formatPhone(resolvedId))
       return {
         jid:         resolvedId,
         name,
@@ -312,14 +350,67 @@ export async function getQRBuffer() {
 
 // ── Ações ─────────────────────────────────────────────────────────────────────
 
-export async function sendText(jid, text) {
+export async function sendText(jid, text, quotedMessageId = null) {
   if (connectionState !== 'connected') throw new Error('WhatsApp não conectado')
-  const result = await sock.sendMessage(jid, { text })
+  const opts = {}
+  if (quotedMessageId) {
+    const raw = getRawMessage(resolveLid(jid), quotedMessageId)
+    if (raw) opts.quoted = raw
+  }
+  const result = await sock.sendMessage(jid, { text }, opts)
   // Garante que o chat é atualizado no store mesmo que messages.upsert dispare tarde
   if (result?.key) {
     const fakeMsg = {
       key: result.key,
       message: { conversation: text },
+      messageTimestamp: Math.floor(Date.now() / 1000),
+      status: 1,
+    }
+    pushMessage(resolveLid(jid), fakeMsg)
+    touchChat(fakeMsg)
+    saveStore()
+  }
+  return result
+}
+
+export async function sendMedia(jid, { type, buffer, mimetype, filename, caption, quotedMessageId }) {
+  if (connectionState !== 'connected') throw new Error('WhatsApp não conectado')
+  const VALID = ['image', 'video', 'audio', 'voice', 'document', 'sticker']
+  if (!VALID.includes(type)) throw new Error(`Tipo de mídia inválido: ${type}`)
+
+  let content = {}
+  switch (type) {
+    case 'image':
+      content = { image: buffer, mimetype, caption: caption || '' }
+      break
+    case 'video':
+      content = { video: buffer, mimetype, caption: caption || '' }
+      break
+    case 'audio':
+      content = { audio: buffer, mimetype, ptt: false }
+      break
+    case 'voice':
+      content = { audio: buffer, mimetype, ptt: true }
+      break
+    case 'document':
+      content = { document: buffer, mimetype, fileName: filename || 'arquivo', caption: caption || '' }
+      break
+    case 'sticker':
+      content = { sticker: buffer }
+      break
+  }
+
+  const opts = {}
+  if (quotedMessageId) {
+    const raw = getRawMessage(resolveLid(jid), quotedMessageId)
+    if (raw) opts.quoted = raw
+  }
+
+  const result = await sock.sendMessage(jid, content, opts)
+  if (result?.key) {
+    const fakeMsg = {
+      key: result.key,
+      message: result.message || {},
       messageTimestamp: Math.floor(Date.now() / 1000),
       status: 1,
     }

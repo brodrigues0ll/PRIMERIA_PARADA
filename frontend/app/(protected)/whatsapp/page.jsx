@@ -12,6 +12,8 @@ import {
   Phone,
   Smile,
   Mic,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -296,6 +298,21 @@ function ChatItem({ chat, selected, onClick }) {
   );
 }
 
+// ─── Quoted Preview ──────────────────────────────────────────────────────────
+
+function QuotedPreview({ quoted, compact = false }) {
+  if (!quoted) return null;
+  return (
+    <div className={cn(
+      "border-l-[3px] border-[#25d366] bg-black/5 rounded-[4px] px-2 py-1 mb-1",
+      compact ? "text-[11px]" : "text-[12px]"
+    )}>
+      <p className="text-[#25d366] font-medium text-[11px] leading-tight mb-0.5">Mensagem citada</p>
+      <p className="text-[#54656f] truncate leading-snug">{quoted.text || "[mídia]"}</p>
+    </div>
+  );
+}
+
 // ─── Message Bubble ──────────────────────────────────────────────────────────
 
 const MEDIA_TYPES = new Set(["imageMessage", "stickerMessage", "videoMessage"])
@@ -326,27 +343,33 @@ function MediaContent({ msg }) {
   )
 }
 
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onReply }) {
   const isMine = msg.fromMe;
   const isMedia = MEDIA_TYPES.has(msg.type)
   const isSticker = msg.type === "stickerMessage"
 
   if (isSticker) {
     return (
-      <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
-        <div className="max-w-[65%]">
+      <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
+        <div className="max-w-[65%] relative">
           <MediaContent msg={msg} />
           <div className={cn("flex items-center gap-1 justify-end mt-0.5")}>
             <span className="text-[11px] text-[#667781]">{formatHour(msg.timestamp)}</span>
             {isMine && <span className="text-[#53bdeb] text-[13px] leading-none">✓✓</span>}
           </div>
+          <button
+            onClick={() => onReply?.(msg)}
+            className="absolute top-1 right-1 hidden group-hover:flex h-6 w-6 items-center justify-center rounded-full bg-black/20 text-white"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
+    <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
       <div
         className={cn(
           "relative max-w-[65%] text-[14px] leading-[19px]",
@@ -356,6 +379,11 @@ function MessageBubble({ msg }) {
           isMedia ? "p-[3px]" : "px-[9px] pt-[6px] pb-[8px]"
         )}
       >
+        {msg.quotedMessage && (
+          <div className="px-0 pt-0 pb-1">
+            <QuotedPreview quoted={msg.quotedMessage} />
+          </div>
+        )}
         {isMedia && <MediaContent msg={msg} />}
         {msg.text && !isMedia && (
           <p className="break-words whitespace-pre-wrap text-[#111b21] pr-10">{msg.text}</p>
@@ -371,6 +399,12 @@ function MessageBubble({ msg }) {
             <span className="text-[#53bdeb] text-[13px] leading-none">✓✓</span>
           )}
         </div>
+        <button
+          onClick={() => onReply?.(msg)}
+          className="absolute -top-2 right-2 hidden group-hover:flex h-6 w-6 items-center justify-center rounded-full bg-[#e9edef] text-[#54656f] shadow-sm"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+        </button>
       </div>
     </div>
   );
@@ -400,8 +434,10 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   const scrollAreaRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
   const encodedJid = encodeURIComponent(chat.jid);
 
   const fetchMessages = useCallback(async () => {
@@ -471,15 +507,17 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
       text: trimmed,
       type: "conversation",
       status: null,
+      quotedMessage: replyTo ? { id: replyTo.id, text: replyTo.text } : null,
     };
     setMessages((prev) => [...prev, optimistic]);
     onSent?.(optimistic);
+    setReplyTo(null);
 
     try {
       const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: trimmed }),
+        body: JSON.stringify({ text: trimmed, quotedMessageId: replyTo?.id || null }),
       });
       if (!res.ok) {
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -501,6 +539,66 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
       setSending(false);
       inputRef.current?.focus();
     }
+  }
+
+  async function handleSendMedia(file) {
+    const MAX_MB = 16;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(`Arquivo muito grande (máximo ${MAX_MB}MB)`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(",")[1];
+      const mimetype = file.type || "application/octet-stream";
+      let type = "document";
+      if (mimetype.startsWith("image/")) type = "image";
+      else if (mimetype.startsWith("video/")) type = "video";
+      else if (mimetype.startsWith("audio/")) type = "audio";
+
+      const tempId = `temp-${Date.now()}`;
+      const optimistic = {
+        id: tempId,
+        jid: chat.jid,
+        fromMe: true,
+        timestamp: Math.floor(Date.now() / 1000),
+        text: file.name,
+        type: type === "image" ? "imageMessage" : type === "video" ? "videoMessage" : type === "audio" ? "audioMessage" : "documentMessage",
+        status: null,
+        quotedMessage: replyTo ? { id: replyTo.id, text: replyTo.text } : null,
+      };
+      setMessages((prev) => [...prev, optimistic]);
+      onSent?.(optimistic);
+      setReplyTo(null);
+
+      try {
+        const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages/media`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type,
+            base64,
+            mimetype,
+            filename: file.name,
+            quotedMessageId: replyTo?.id || null,
+          }),
+        });
+        if (!res.ok) {
+          setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          throw new Error();
+        }
+        const data = await res.json();
+        if (data?.id) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === tempId ? { ...m, id: data.id } : m))
+          );
+        }
+        setTimeout(fetchMessages, 1500);
+      } catch {
+        toast.error("Erro ao enviar arquivo");
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   const isEmpty = !text.trim();
@@ -552,23 +650,68 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
         ) : (
           <div className="flex flex-col gap-[2px]">
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} />
+              <MessageBubble key={msg.id} msg={msg} onReply={setReplyTo} />
             ))}
           </div>
         )}
       </div>
 
+      {/* Reply preview bar */}
+      {replyTo && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#f0f2f5] border-t border-[#e9edef]">
+          <div className="flex-1 border-l-[3px] border-[#25d366] bg-white rounded-[6px] px-3 py-1.5">
+            <p className="text-[11px] text-[#25d366] font-medium mb-0.5">Responder</p>
+            <p className="text-[12px] text-[#54656f] truncate">{replyTo.text || "[mídia]"}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyTo(null)}
+            className="h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Input area */}
       <form
         onSubmit={handleSend}
-        className="flex items-center gap-3 px-4 py-3 bg-[#f0f2f5] shrink-0"
+        className="flex items-end gap-2 px-3 py-3 bg-[#f0f2f5] shrink-0"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const file = e.dataTransfer.files[0];
+          if (file) handleSendMedia(file);
+        }}
       >
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleSendMedia(file);
+            e.target.value = "";
+          }}
+        />
+
         {/* Emoji icon */}
         <button
           type="button"
-          className="h-9 w-9 flex items-center justify-center text-[#54656f] hover:text-[#111b21] shrink-0 transition-colors"
+          className="h-9 w-9 flex items-center justify-center text-[#54656f] hover:text-[#111b21] shrink-0 transition-colors mb-[1px]"
         >
           <Smile className="h-[22px] w-[22px]" />
+        </button>
+
+        {/* Paperclip / attach */}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="h-9 w-9 flex items-center justify-center text-[#54656f] hover:text-[#111b21] shrink-0 transition-colors mb-[1px]"
+        >
+          <Paperclip className="h-[20px] w-[20px]" />
         </button>
 
         {/* Text input */}
@@ -591,7 +734,7 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
         {isEmpty ? (
           <button
             type="button"
-            className="h-[42px] w-[42px] flex items-center justify-center rounded-full bg-[#00a884] text-white shrink-0 hover:bg-[#008f72] transition-colors"
+            className="h-[42px] w-[42px] flex items-center justify-center rounded-full bg-[#00a884] text-white shrink-0 hover:bg-[#008f72] transition-colors mb-[0px]"
           >
             <Mic className="h-5 w-5" />
           </button>
@@ -599,7 +742,7 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
           <button
             type="submit"
             disabled={sending}
-            className="h-[42px] w-[42px] flex items-center justify-center rounded-full bg-[#00a884] text-white shrink-0 hover:bg-[#008f72] transition-colors disabled:opacity-60"
+            className="h-[42px] w-[42px] flex items-center justify-center rounded-full bg-[#00a884] text-white shrink-0 hover:bg-[#008f72] transition-colors disabled:opacity-60 mb-[0px]"
           >
             <Send className="h-5 w-5" />
           </button>
