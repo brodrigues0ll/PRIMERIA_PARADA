@@ -343,7 +343,7 @@ function MessagesSkeleton() {
   );
 }
 
-function MessagesPanel({ chat, onBack, liveMessage }) {
+function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -421,6 +421,7 @@ function MessagesPanel({ chat, onBack, liveMessage }) {
       status: null,
     };
     setMessages((prev) => [...prev, optimistic]);
+    onSent?.(optimistic);
 
     try {
       const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages`, {
@@ -818,6 +819,16 @@ export default function WhatsAppPage() {
             chat={selectedChat}
             onBack={() => setSelectedChat(null)}
             liveMessage={liveMessage}
+            onSent={(msg) => {
+              setChats((prev) => {
+                const idx = prev.findIndex((c) => c.jid === msg.jid);
+                if (idx === -1) return prev;
+                const updated = { ...prev[idx], lastMessage: msg, timestamp: msg.timestamp };
+                const next = [...prev];
+                next.splice(idx, 1);
+                return [updated, ...next];
+              });
+            }}
           />
         ) : (
           <NoChat />
