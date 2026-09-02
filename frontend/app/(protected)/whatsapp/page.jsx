@@ -409,7 +409,6 @@ function MessagesPanel({ chat, onBack, liveMessage }) {
     if (!trimmed || sending) return;
     setSending(true);
     setText("");
-    setTimeout(() => inputRef.current?.focus(), 0);
 
     const tempId = `temp-${Date.now()}`;
     const optimistic = {
@@ -447,6 +446,7 @@ function MessagesPanel({ chat, onBack, liveMessage }) {
       toast.error("Erro ao enviar mensagem");
     } finally {
       setSending(false);
+      inputRef.current?.focus();
     }
   }
 
@@ -527,7 +527,6 @@ function MessagesPanel({ chat, onBack, liveMessage }) {
           placeholder="Digite uma mensagem"
           rows={1}
           className="flex-1 min-h-[42px] max-h-[120px] rounded-3xl bg-white px-4 py-[10px] text-[15px] text-[#111b21] placeholder:text-[#54656f] focus:outline-none resize-none overflow-y-auto leading-[22px]"
-          disabled={sending}
           style={{ height: "auto" }}
           onInput={(e) => {
             e.target.style.height = "auto";
