@@ -170,6 +170,15 @@ export async function markAsRead(jid) {
   if (last) await sock.readMessages([last.key])
 }
 
+export async function getProfilePictureUrl(jid) {
+  if (connectionState !== 'connected' || !sock) return null
+  try {
+    return await sock.profilePictureUrl(jid, 'image')
+  } catch {
+    return null
+  }
+}
+
 export { saveStore }
 
 export async function logout() {

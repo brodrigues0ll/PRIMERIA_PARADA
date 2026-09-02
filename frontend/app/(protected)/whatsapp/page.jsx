@@ -146,6 +146,20 @@ function ChatListSkeleton() {
   );
 }
 
+function ChatAvatar({ jid, name }) {
+  const [err, setErr] = useState(false);
+  const src = `/api/whatsapp/chats/${encodeURIComponent(jid)}/picture`;
+  return (
+    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold overflow-hidden">
+      {!err ? (
+        <img src={src} alt="" className="h-10 w-10 object-cover" onError={() => setErr(true)} />
+      ) : (
+        getInitial(name)
+      )}
+    </div>
+  );
+}
+
 function ChatItem({ chat, selected, onClick }) {
   const preview = chat.lastMessage?.text
     ? truncate(chat.lastMessage.text)
@@ -160,9 +174,7 @@ function ChatItem({ chat, selected, onClick }) {
         selected && "bg-muted"
       )}
     >
-      <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
-        {getInitial(chat.name)}
-      </div>
+      <ChatAvatar jid={chat.jid} name={chat.name} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
           <span className="text-sm font-medium text-foreground truncate">{chat.name || chat.jid}</span>
@@ -290,9 +302,7 @@ function MessagesPanel({ chat, onBack }) {
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
-          {getInitial(chat.name)}
-        </div>
+        <ChatAvatar jid={chat.jid} name={chat.name} />
         <span className="text-sm font-semibold text-foreground truncate">{chat.name || chat.jid}</span>
       </div>
 

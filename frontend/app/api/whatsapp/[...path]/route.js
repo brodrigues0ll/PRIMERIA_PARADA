@@ -26,6 +26,19 @@ async function proxyRequest(request, params) {
   }
 
   const res = await fetch(url, init);
+  const contentType = res.headers.get("content-type") || "";
+
+  if (contentType.startsWith("image/")) {
+    const buffer = await res.arrayBuffer();
+    return new Response(buffer, {
+      status: res.status,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  }
+
   const data = await res.json().catch(() => null);
   return NextResponse.json(data ?? {}, { status: res.status });
 }
