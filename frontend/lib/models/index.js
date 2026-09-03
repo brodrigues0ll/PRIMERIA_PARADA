@@ -18,3 +18,5 @@ export { default as CaixaDiario } from "./CaixaDiario";
 export { default as LancamentoFinanceiro } from "./LancamentoFinanceiro";
 export { default as ContaAPagar } from "./ContaAPagar";
 export { default as MembroFamiliar } from "./MembroFamiliar";
+export { default as WaContactNickname } from "./WaContactNickname";
+export { default as WaConfig } from "./WaConfig";

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { io } from "socket.io-client";
 import {
   ChevronLeft,
@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Search,
   MoreVertical,
-  Phone,
   Smile,
   Mic,
   Paperclip,
@@ -18,12 +17,73 @@ import {
   FileText,
   FileSpreadsheet,
   File,
+  Play,
+  Pause,
+  Settings,
+  Plus,
+  Palette,
+  Check,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
+
+// ── IDB helpers ──────────────────────────────────────────────────────────────
+const IDB_NAME = "primeria-wa";
+const IDB_VERSION = 1;
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta");
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGet(key) {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("meta", "readonly");
+      const req = tx.objectStore("meta").get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(undefined);
+    });
+  } catch { return undefined; }
+}
+
+async function idbSet(key, value) {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("meta", "readwrite");
+      tx.objectStore("meta").put(value, key);
+      tx.oncomplete = resolve;
+      tx.onerror = resolve;
+    });
+  } catch {}
+}
+
+// ── Color palette ─────────────────────────────────────────────────────────────
+const COLOR_MAP = {
+  red:    "#ef4444",
+  orange: "#f97316",
+  yellow: "#eab308",
+  green:  "#22c55e",
+  teal:   "#14b8a6",
+  blue:   "#3b82f6",
+  purple: "#a855f7",
+  pink:   "#ec4899",
+  gray:   "#6b7280",
+  brown:  "#92400e",
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -121,7 +181,7 @@ function NotConnectedScreen({ status, qrSrc, onRefresh }) {
 
 // ─── Status bar (connected) ──────────────────────────────────────────────────
 
-function ConnectedBar({ user, onDisconnect, disconnecting }) {
+function ConnectedBar({ user, onDisconnect, disconnecting, onSettings }) {
   return (
     <div className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0">
       {/* Avatar do usuário conectado */}
@@ -140,6 +200,14 @@ function ConnectedBar({ user, onDisconnect, disconnecting }) {
       </div>
 
       <button
+        onClick={onSettings}
+        className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] transition-colors mr-1"
+        title="Configurações"
+      >
+        <Settings className="h-4 w-4" />
+      </button>
+
+      <button
         onClick={onDisconnect}
         disabled={disconnecting}
         className="flex items-center gap-1.5 text-xs text-[#54656f] hover:text-red-500 transition-colors disabled:opacity-50"
@@ -154,17 +222,23 @@ function ConnectedBar({ user, onDisconnect, disconnecting }) {
 
 // ─── Search bar ──────────────────────────────────────────────────────────────
 
-function SearchBar() {
+function SearchBar({ value, onChange }) {
   return (
     <div className="px-3 py-2 bg-[#f0f2f5] shrink-0">
       <div className="flex items-center gap-2 bg-white rounded-full px-3 h-9">
         <Search className="h-4 w-4 text-[#54656f] shrink-0" />
         <input
           type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder="Pesquisar ou começar uma conversa"
           className="flex-1 text-[13px] text-[#111b21] placeholder:text-[#54656f] bg-transparent focus:outline-none"
-          readOnly
         />
+        {value && (
+          <button onClick={() => onChange("")} className="text-[#54656f] hover:text-[#111b21]">
+            ✕
+          </button>
+        )}
       </div>
     </div>
   );
@@ -270,7 +344,8 @@ const LAST_MSG_LABELS = {
   stickerMessage: "🔖 Figurinha",
 };
 
-function ChatItem({ chat, selected, onClick }) {
+function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMarkRead, onSetNickname, onHide, onSetColor }) {
+  const displayName = nickname || chat.name || chat.jid;
   const preview = chat.lastMessage?.text
     ? truncate(chat.lastMessage.text)
     : chat.lastMessage?.type
@@ -278,39 +353,186 @@ function ChatItem({ chat, selected, onClick }) {
     : "Sem mensagens";
   const time = formatTime(chat.lastMessage?.timestamp || chat.timestamp);
 
+  const [ctxMenu, setCtxMenu] = useState(null); // { x, y }
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(displayName);
+  const itemRef = useRef(null);
+
+  function handleContextMenu(e) {
+    e.preventDefault();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
+  }
+
+  // fecha menu ao clicar fora
+  useEffect(() => {
+    if (!ctxMenu) return;
+    function handler() {
+      setCtxMenu(null);
+    }
+    window.addEventListener("click", handler);
+    return () => window.removeEventListener("click", handler);
+  }, [ctxMenu]);
+
+  // fecha color picker ao clicar fora
+  useEffect(() => {
+    if (!showColorPicker) return;
+    function handler() {
+      setShowColorPicker(false);
+    }
+    window.addEventListener("click", handler);
+    return () => window.removeEventListener("click", handler);
+  }, [showColorPicker]);
+
+  async function confirmName() {
+    if (nameInput.trim() && nameInput.trim() !== displayName) {
+      await onSetNickname?.(chat.jid, nameInput.trim());
+    }
+    setEditingName(false);
+  }
+
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-[#e9edef]",
-        selected ? "bg-[#f0f2f5]" : "bg-white hover:bg-[#f5f6f6]"
+    <div ref={itemRef} className="relative group" onContextMenu={handleContextMenu}>
+      {/* Barra de cor esquerda */}
+      {color && COLOR_MAP[color] && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r z-10"
+          style={{ backgroundColor: COLOR_MAP[color] }}
+        />
       )}
-    >
-      <ChatAvatar jid={chat.jid} name={chat.name} size="lg" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-0.5">
-          <span className="text-[15px] font-normal text-[#111b21] truncate">
-            {chat.name || chat.jid}
-          </span>
-          <span
-            className={cn(
-              "text-[12px] shrink-0",
-              chat.unreadCount > 0 ? "text-[#25d366]" : "text-[#54656f]"
+
+      <button
+        onClick={onClick}
+        className={cn(
+          "w-full flex items-center gap-3 py-3 text-left transition-colors border-b border-[#e9edef]",
+          color ? "pl-[18px] pr-4" : "px-4",
+          selected ? "bg-[#f0f2f5]" : "bg-white hover:bg-[#f5f6f6]"
+        )}
+      >
+        <ChatAvatar jid={chat.jid} name={displayName} size="lg" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            {editingName ? (
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onBlur={confirmName}
+                onKeyDown={(e) => { if (e.key === "Enter") confirmName(); if (e.key === "Escape") setEditingName(false); }}
+                onClick={(e) => e.stopPropagation()}
+                className="flex-1 text-[15px] font-normal text-[#111b21] bg-transparent border-b border-[#25d366] focus:outline-none"
+              />
+            ) : (
+              <span className="text-[15px] font-normal text-[#111b21] truncate">{displayName}</span>
             )}
-          >
-            {time}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] text-[#54656f] truncate">{preview}</span>
-          {chat.unreadCount > 0 && (
-            <span className="h-5 min-w-5 px-1 rounded-full bg-[#25d366] text-white text-[11px] font-medium flex items-center justify-center shrink-0">
-              {chat.unreadCount}
+            <span className={cn("text-[12px] shrink-0", chat.unreadCount > 0 ? "text-[#25d366]" : "text-[#54656f]")}>
+              {time}
             </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-[#54656f] truncate">{preview}</span>
+            {chat.unreadCount > 0 && (
+              <span className="h-5 min-w-5 px-1 rounded-full bg-[#25d366] text-white text-[11px] font-medium flex items-center justify-center shrink-0">
+                {chat.unreadCount}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Botão paleta — aparece no hover */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowColorPicker(true); setCtxMenu(null); }}
+          className="h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          title="Marcar cor"
+        >
+          <Palette className="h-4 w-4" />
+        </button>
+      </button>
+
+      {/* Menu de contexto */}
+      {ctxMenu && (
+        <div
+          className="fixed z-50 bg-white rounded-lg shadow-lg border border-[#e9edef] py-1 min-w-[180px]"
+          style={{ top: ctxMenu.y, left: ctxMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => { onMarkRead?.(); setCtxMenu(null); }}
+            className="w-full text-left px-4 py-2 text-[14px] text-[#111b21] hover:bg-[#f5f6f6]"
+          >
+            Marcar como lida
+          </button>
+          <button
+            onClick={() => { setEditingName(true); setNameInput(displayName); setCtxMenu(null); }}
+            className="w-full text-left px-4 py-2 text-[14px] text-[#111b21] hover:bg-[#f5f6f6]"
+          >
+            Definir nome
+          </button>
+          <button
+            onClick={() => { onHide?.(); setCtxMenu(null); }}
+            className="w-full text-left px-4 py-2 text-[14px] text-red-500 hover:bg-[#f5f6f6]"
+          >
+            Ocultar conversa
+          </button>
+        </div>
+      )}
+
+      {/* Seletor de cores */}
+      {showColorPicker && (
+        <div
+          className="fixed z-50 bg-white rounded-lg shadow-lg border border-[#e9edef] p-3 min-w-[160px]"
+          style={{
+            top: itemRef.current?.getBoundingClientRect().top ?? 0,
+            left: (itemRef.current?.getBoundingClientRect().right ?? 0) + 4,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] text-[#54656f] font-medium">Marcadores</p>
+            <button
+              onClick={() => setShowColorPicker(false)}
+              className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] text-[#54656f]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+          {Object.keys(colorLabels || {}).length === 0 ? (
+            <p className="text-[12px] text-[#54656f] text-center py-2 leading-snug">
+              Nenhum marcador configurado
+            </p>
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              {Object.entries(colorLabels || {}).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => { onSetColor?.(chat.jid, color === key ? null : key); setShowColorPicker(false); }}
+                  className={cn(
+                    "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-left transition-colors",
+                    color === key ? "bg-[#f0f2f5]" : "hover:bg-[#f5f6f6]"
+                  )}
+                >
+                  <div
+                    className="h-4 w-4 rounded-full shrink-0 flex items-center justify-center"
+                    style={{ backgroundColor: COLOR_MAP[key] }}
+                  >
+                    {color === key && <Check className="h-2.5 w-2.5 text-white" />}
+                  </div>
+                  <span className="text-[13px] text-[#111b21] truncate">{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {color && (
+            <button
+              onClick={() => { onSetColor?.(chat.jid, null); setShowColorPicker(false); }}
+              className="mt-2 pt-2 border-t border-[#e9edef] w-full text-[11px] text-[#54656f] hover:text-[#111b21] text-center"
+            >
+              Remover marcador
+            </button>
           )}
         </div>
-      </div>
-    </button>
+      )}
+    </div>
   );
 }
 
@@ -334,6 +556,101 @@ function QuotedPreview({ quoted, compact = false }) {
 const MEDIA_TYPES = new Set(["imageMessage", "stickerMessage", "videoMessage"])
 const DOC_TYPES   = new Set(["documentMessage", "documentWithCaptionMessage"])
 const AUDIO_TYPES = new Set(["audioMessage", "pttMessage"])
+
+const URL_RE = /https?:\/\/[^\s<>"{}|\\^`[\]]+/g;
+
+function extractFirstUrl(text) {
+  const m = text?.match(URL_RE);
+  return m ? m[0] : null;
+}
+
+function TextWithLinks({ text }) {
+  const parts = [];
+  let last = 0;
+  let m;
+  URL_RE.lastIndex = 0;
+  while ((m = URL_RE.exec(text)) !== null) {
+    if (m.index > last) parts.push({ type: "text", value: text.slice(last, m.index) });
+    parts.push({ type: "url", value: m[0] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ type: "text", value: text.slice(last) });
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.type === "url" ? (
+          <a key={i} href={p.value} target="_blank" rel="noreferrer"
+            className="underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {p.value}
+          </a>
+        ) : (
+          <span key={i}>{p.value}</span>
+        )
+      )}
+    </>
+  );
+}
+
+const previewCache = new Map();
+
+function LinkPreview({ url, isMine }) {
+  const [data, setData] = useState(undefined);
+
+  useEffect(() => {
+    if (previewCache.has(url)) { setData(previewCache.get(url)); return; }
+    fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const val = d.title || d.image ? d : null;
+        previewCache.set(url, val);
+        setData(val);
+      })
+      .catch(() => { previewCache.set(url, null); setData(null); });
+  }, [url]);
+
+  if (!data) return null;
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="block no-underline overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {data.image && (
+        <img
+          src={data.image}
+          alt=""
+          className="w-full max-h-52 object-cover"
+          onError={(e) => { e.currentTarget.style.display = "none"; }}
+        />
+      )}
+      <div className={cn(
+        "px-3 py-2 border-l-4",
+        isMine ? "border-[#25d366] bg-[#c5e8bb]" : "border-[#25d366] bg-[#f0f2f5]"
+      )}>
+        {data.siteName && (
+          <p className="text-[11px] text-[#667781] font-medium uppercase tracking-wide mb-0.5">
+            {data.siteName}
+          </p>
+        )}
+        {data.title && (
+          <p className="text-[13px] font-semibold text-[#111b21] leading-snug line-clamp-2">
+            {data.title}
+          </p>
+        )}
+        {data.description && (
+          <p className="text-[12px] text-[#54656f] leading-snug line-clamp-2 mt-0.5">
+            {data.description}
+          </p>
+        )}
+      </div>
+    </a>
+  );
+}
 
 function fileIcon(filename) {
   const ext = (filename || "").split(".").pop().toLowerCase()
@@ -388,20 +705,184 @@ function DocumentContent({ msg }) {
   )
 }
 
-function AudioContent({ msg }) {
-  const encodedJid = encodeURIComponent(msg.jid)
-  const src = `/api/whatsapp/chats/${encodedJid}/messages/${msg.id}/media`
+function formatAudioTime(secs) {
+  const s = Math.floor(secs || 0);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function AudioContent({ msg, isMine }) {
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const audioRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  const src = `/api/whatsapp/chats/${encodeURIComponent(msg.jid)}/messages/${msg.id}/media`;
+
+  // Gera forma de onda determinística baseada no ID da mensagem
+  const bars = useMemo(() => {
+    const seed = [...msg.id].reduce((a, c) => a + c.charCodeAt(0), 0);
+    return Array.from({ length: 44 }, (_, i) => {
+      const v = Math.abs(Math.sin(seed * 0.31 + i * 0.7) * Math.cos(i * 0.4 + seed * 0.07));
+      return 0.12 + v * 0.88;
+    });
+  }, [msg.id]);
+
+  // Redesenha o canvas ao mudar progresso ou tamanho
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.offsetWidth * window.devicePixelRatio;
+    const H = canvas.offsetHeight * window.devicePixelRatio;
+    canvas.width = W;
+    canvas.height = H;
+
+    const barW = Math.round(3 * window.devicePixelRatio);
+    const gap = Math.round(2 * window.devicePixelRatio);
+    const totalW = bars.length * (barW + gap) - gap;
+    const startX = (W - totalW) / 2;
+    const progress = duration > 0 ? currentTime / duration : 0;
+
+    ctx.clearRect(0, 0, W, H);
+    bars.forEach((h, i) => {
+      const barH = Math.max(barW, h * (H - 4 * window.devicePixelRatio));
+      const x = startX + i * (barW + gap);
+      const y = (H - barH) / 2;
+      const filled = i / bars.length <= progress;
+      ctx.fillStyle = filled
+        ? (isMine ? "#25d366" : "#53bdeb")
+        : (isMine ? "#a8d5b3" : "#c4cdd2");
+      ctx.beginPath();
+      ctx.roundRect(x, y, barW, barH, barW / 2);
+      ctx.fill();
+    });
+  }, [bars, currentTime, duration, isMine]);
+
+  function togglePlay() {
+    const a = audioRef.current;
+    if (!a) return;
+    playing ? a.pause() : a.play();
+  }
+
+  function cycleSpeed() {
+    const opts = [1, 1.5, 2];
+    const next = opts[(opts.indexOf(speed) + 1) % opts.length];
+    setSpeed(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  }
+
+  function seek(e) {
+    const a = audioRef.current;
+    if (!a || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    a.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
+  }
+
   return (
-    <div className="px-2 py-2 min-w-[220px]">
-      <audio controls src={src} className="w-full h-10" style={{ accentColor: "#25d366" }} />
+    <div className="flex items-center gap-2.5 px-3 py-2.5 min-w-[260px] max-w-[320px]">
+      {/* Botão play/pause */}
+      <button
+        onClick={togglePlay}
+        className={cn(
+          "h-10 w-10 rounded-full flex items-center justify-center shrink-0 transition-colors",
+          isMine ? "bg-[#25d366] text-white" : "bg-[#25d366] text-white"
+        )}
+      >
+        {playing
+          ? <Pause className="h-4 w-4" />
+          : <Play className="h-4 w-4 ml-0.5" />}
+      </button>
+
+      {/* Waveform + meta */}
+      <div className="flex-1 flex flex-col gap-1 min-w-0">
+        <canvas
+          ref={canvasRef}
+          onClick={seek}
+          className="w-full cursor-pointer"
+          style={{ height: 24, display: "block" }}
+        />
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-[#54656f]">
+            {formatAudioTime(playing || currentTime > 0 ? currentTime : duration)}
+          </span>
+          <button
+            onClick={cycleSpeed}
+            className="text-[11px] font-semibold text-[#54656f] hover:text-[#111b21] transition-colors"
+          >
+            {speed === 1 ? "1×" : speed === 1.5 ? "1,5×" : "2×"}
+          </button>
+        </div>
+      </div>
+
+      {/* Ícone do tipo */}
+      <div className={cn(
+        "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+        isMine ? "bg-[#b7e5c1]" : "bg-[#dfe5e7]"
+      )}>
+        <Mic className="h-4 w-4 text-[#54656f]" />
+      </div>
+
+      <audio
+        ref={audioRef}
+        src={src}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setCurrentTime(0); }}
+        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+        preload="metadata"
+      />
     </div>
-  )
+  );
+}
+
+function VideoContent({ msg }) {
+  const [active, setActive] = useState(false);
+  const src = `/api/whatsapp/chats/${encodeURIComponent(msg.jid)}/messages/${msg.id}/media`;
+
+  if (!active) {
+    return (
+      <div
+        className="relative max-w-full w-64 h-40 bg-black/80 rounded-[6px] flex items-center justify-center cursor-pointer group"
+        onClick={() => setActive(true)}
+      >
+        <div className="h-14 w-14 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-black/70 transition-colors">
+          <Play className="h-7 w-7 text-white ml-1" />
+        </div>
+        <span className="absolute bottom-2 right-2 text-[11px] text-white/80">Vídeo</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative max-w-full">
+      <video
+        src={src}
+        controls
+        autoPlay
+        preload="none"
+        className="max-w-full rounded-[6px] max-h-64"
+      />
+      <a
+        href={src}
+        download
+        className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+        title="Salvar vídeo"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Download className="h-3.5 w-3.5 text-white" />
+      </a>
+    </div>
+  );
 }
 
 function MediaContent({ msg }) {
   const encodedJid = encodeURIComponent(msg.jid)
   const src = `/api/whatsapp/chats/${encodedJid}/messages/${msg.id}/media`
   const isSticker = msg.type === "stickerMessage"
+  const isVideo = msg.type === "videoMessage"
 
   if (isSticker) {
     return (
@@ -412,6 +893,10 @@ function MediaContent({ msg }) {
         loading="lazy"
       />
     )
+  }
+
+  if (isVideo) {
+    return <VideoContent msg={msg} />;
   }
 
   return (
@@ -491,7 +976,7 @@ function MessageBubble({ msg, onReply }) {
       <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
         <div className={cn(bubbleBase, "overflow-hidden")}>
           {msg.quotedMessage && <div className="px-2 pt-2 pb-0"><QuotedPreview quoted={msg.quotedMessage} /></div>}
-          <AudioContent msg={msg} />
+          <AudioContent msg={msg} isMine={isMine} />
           {timeRow("px-3 pb-2 mt-[-4px]")}
           {replyBtn}
         </div>
@@ -513,11 +998,25 @@ function MessageBubble({ msg, onReply }) {
           </div>
         )}
         {isMedia && <MediaContent msg={msg} />}
-        {msg.text && !isMedia && (
-          <p className="break-words whitespace-pre-wrap text-[#111b21] pr-10">{msg.text}</p>
-        )}
+        {msg.text && !isMedia && (() => {
+          const firstUrl = extractFirstUrl(msg.text);
+          return (
+            <>
+              {firstUrl && (
+                <div className="overflow-hidden rounded-[4px] mb-1 -mx-[9px] -mt-[6px]">
+                  <LinkPreview url={firstUrl} isMine={isMine} />
+                </div>
+              )}
+              <p className="break-words whitespace-pre-wrap text-[#111b21] pr-10">
+                <TextWithLinks text={msg.text} />
+              </p>
+            </>
+          );
+        })()}
         {msg.text && isMedia && (
-          <p className="break-words whitespace-pre-wrap text-[#111b21] px-[6px] pb-[2px] pt-[4px] pr-10">{msg.text}</p>
+          <p className="break-words whitespace-pre-wrap text-[#111b21] px-[6px] pb-[2px] pt-[4px] pr-10">
+            <TextWithLinks text={msg.text} />
+          </p>
         )}
         {timeRow(isMedia ? "px-[6px] pb-[4px] mt-[-4px]" : "mt-[-4px]")}
         {replyBtn}
@@ -545,7 +1044,7 @@ function MessagesSkeleton() {
   );
 }
 
-function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
+function MessagesPanel({ chat, onBack, liveMessage, onSent, onOpenDelivery, hasDraft }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -733,15 +1232,22 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
           <ChevronLeft className="h-5 w-5" />
         </button>
         <ChatAvatar jid={chat.jid} name={chat.name} size="md" />
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex items-center gap-1.5">
           <p className="text-[15px] font-medium text-[#111b21] truncate leading-tight">
             {chat.name || chat.jid}
           </p>
+          <button
+            onClick={() => onOpenDelivery?.()}
+            className="relative h-6 w-6 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] transition-colors shrink-0"
+            title="Abrir pedido de delivery"
+          >
+            <Plus className="h-4 w-4" />
+            {hasDraft && (
+              <span className="absolute top-0 right-0 h-1.5 w-1.5 rounded-full bg-orange-500" />
+            )}
+          </button>
         </div>
         <div className="flex items-center gap-1">
-          <button className="h-9 w-9 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] transition-colors">
-            <Phone className="h-5 w-5" />
-          </button>
           <button className="h-9 w-9 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] transition-colors">
             <Search className="h-5 w-5" />
           </button>
@@ -871,6 +1377,173 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent }) {
   );
 }
 
+// ─── Delivery Aside ───────────────────────────────────────────────────────────
+
+const PAYMENT_OPTS = ["Dinheiro", "Pix", "Cartão"];
+
+function DeliveryAside({ jid, chat, nicknames, onClose }) {
+  const [draft, setDraft] = useState({
+    name: "",
+    phone: "",
+    rua: "",
+    numero: "",
+    bairro: "",
+    complemento: "",
+    referencia: "",
+    itens: "",
+    pagamento: "Pix",
+    troco: "",
+    obs: "",
+  });
+  const [loaded, setLoaded] = useState(false);
+
+  const draftKey = `delivery_draft_${jid}`;
+
+  // Carrega rascunho do IDB na montagem
+  useEffect(() => {
+    idbGet(draftKey).then((saved) => {
+      if (saved) {
+        setDraft(saved);
+      } else {
+        const displayName = nicknames?.[jid] || chat?.name || "";
+        const phone = jid?.replace("@c.us", "").replace("@s.whatsapp.net", "") || "";
+        setDraft((d) => ({ ...d, name: displayName, phone }));
+      }
+      setLoaded(true);
+    });
+  }, [jid]);
+
+  // Salva rascunho no IDB a cada mudança
+  useEffect(() => {
+    if (!loaded) return;
+    idbSet(draftKey, draft);
+  }, [draft, loaded]);
+
+  function update(field, value) {
+    setDraft((d) => ({ ...d, [field]: value }));
+  }
+
+  function handleConfirm() {
+    const lines = [
+      `Cliente: ${draft.name}`,
+      `Telefone: ${draft.phone}`,
+      `Endereço: ${draft.rua}, ${draft.numero}${draft.complemento ? ` - ${draft.complemento}` : ""}, ${draft.bairro}`,
+      draft.referencia ? `Referência: ${draft.referencia}` : null,
+      `Itens: ${draft.itens}`,
+      `Pagamento: ${draft.pagamento}`,
+      draft.pagamento === "Dinheiro" && draft.troco ? `Troco para: R$ ${draft.troco}` : null,
+      draft.obs ? `Obs: ${draft.obs}` : null,
+    ].filter(Boolean).join("\n");
+    navigator.clipboard?.writeText(lines).catch(() => {});
+    toast.success("Resumo copiado!");
+    idbSet(draftKey, null);
+    onClose?.();
+  }
+
+  function Field({ label, value, onChange, placeholder, multiline }) {
+    return (
+      <div>
+        <label className="block text-[11px] font-medium text-[#54656f] mb-1">{label}</label>
+        {multiline ? (
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={3}
+            className="w-full rounded-lg border border-[#e9edef] px-3 py-2 text-[13px] text-[#111b21] placeholder:text-[#54656f] focus:outline-none focus:border-[#25d366] resize-none"
+          />
+        ) : (
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full rounded-lg border border-[#e9edef] px-3 py-2 text-[13px] text-[#111b21] placeholder:text-[#54656f] focus:outline-none focus:border-[#25d366]"
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full w-[420px] bg-white border-l border-[#e9edef] shrink-0 overflow-y-auto">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 border-b border-[#e9edef]">
+        <div className="flex-1">
+          <p className="text-[15px] font-medium text-[#111b21]">Pedido de Delivery</p>
+          <p className="text-[12px] text-[#54656f] truncate">{nicknames?.[jid] || chat?.name || jid}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef]"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Campos */}
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        <Field label="Nome do cliente" value={draft.name} onChange={(v) => update("name", v)} placeholder="Nome" />
+        <Field label="Telefone" value={draft.phone} onChange={(v) => update("phone", v)} placeholder="+55..." />
+
+        <div>
+          <p className="text-[11px] font-medium text-[#54656f] mb-2">Endereço de entrega</p>
+          <div className="flex flex-col gap-2">
+            <Field label="Rua" value={draft.rua} onChange={(v) => update("rua", v)} placeholder="Rua / Av." />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Field label="Número" value={draft.numero} onChange={(v) => update("numero", v)} placeholder="Nº" />
+              </div>
+              <div className="flex-1">
+                <Field label="Bairro" value={draft.bairro} onChange={(v) => update("bairro", v)} placeholder="Bairro" />
+              </div>
+            </div>
+            <Field label="Complemento" value={draft.complemento} onChange={(v) => update("complemento", v)} placeholder="Apto, bloco..." />
+            <Field label="Referência" value={draft.referencia} onChange={(v) => update("referencia", v)} placeholder="Perto de..." />
+          </div>
+        </div>
+
+        <Field label="Itens do pedido" value={draft.itens} onChange={(v) => update("itens", v)} placeholder="Descreva os itens..." multiline />
+
+        <div>
+          <label className="block text-[11px] font-medium text-[#54656f] mb-1">Forma de pagamento</label>
+          <div className="flex gap-2">
+            {PAYMENT_OPTS.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => update("pagamento", opt)}
+                className={cn(
+                  "flex-1 py-2 rounded-lg text-[13px] font-medium border transition-colors",
+                  draft.pagamento === opt
+                    ? "bg-[#25d366] text-white border-[#25d366]"
+                    : "bg-white text-[#54656f] border-[#e9edef] hover:border-[#25d366]"
+                )}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {draft.pagamento === "Dinheiro" && (
+          <Field label="Troco para (R$)" value={draft.troco} onChange={(v) => update("troco", v)} placeholder="0,00" />
+        )}
+
+        <Field label="Observações" value={draft.obs} onChange={(v) => update("obs", v)} placeholder="Observações gerais..." multiline />
+      </div>
+
+      {/* Rodapé */}
+      <div className="p-4 border-t border-[#e9edef] shrink-0">
+        <button
+          onClick={handleConfirm}
+          className="w-full py-2.5 rounded-lg bg-[#25d366] text-white text-[14px] font-medium hover:bg-[#20c55e] transition-colors"
+        >
+          Confirmar pedido
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Empty state ─────────────────────────────────────────────────────────────
 
 function NoChat() {
@@ -906,6 +1579,8 @@ function NoChat() {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function WhatsAppPage() {
+  const router = useRouter();
+
   const [status, setStatus] = useState(null);
   const [user, setUser] = useState(null);
   const [qrSrc, setQrSrc] = useState(null);
@@ -914,8 +1589,27 @@ export default function WhatsAppPage() {
   const [selectedChat, setSelectedChat] = useState(null);
   const [disconnecting, setDisconnecting] = useState(false);
   const [liveMessage, setLiveMessage] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const selectedChatRef = useRef(null);
   const chatsRef = useRef([]);
+
+  // Nicknames do MongoDB
+  const [nicknames, setNicknames] = useState({}); // jid → name
+
+  // Rótulos de marcadores de cor (MongoDB) — { red: "Urgente", ... }
+  const [colorLabels, setColorLabels] = useState({});
+
+  // Ocultar conversas (IDB)
+  const [hiddenChats, setHiddenChats] = useState(new Set());
+
+  // Cores por conversa (IDB)
+  const [chatColors, setChatColors] = useState({}); // jid → colorKey
+
+  // Asides de delivery abertos
+  const [openAsides, setOpenAsides] = useState([]); // array de jids
+
+  // Rascunho existe para o chat selecionado
+  const [draftExists, setDraftExists] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -959,6 +1653,43 @@ export default function WhatsAppPage() {
     fetchChats();
   }, [fetchStatus, fetchChats]);
 
+  // Carrega nicknames, hidden chats, chat colors e marcadores na inicialização
+  useEffect(() => {
+    // Marcadores de cor (MongoDB)
+    fetch("/api/whatsapp/config")
+      .then((r) => r.json())
+      .then((d) => { if (d.colorLabels) setColorLabels(d.colorLabels); })
+      .catch(() => {});
+
+    // Nicknames
+    fetch("/api/whatsapp/nicknames")
+      .then((r) => r.json())
+      .then((list) => {
+        if (Array.isArray(list)) {
+          const map = {};
+          for (const { jid, name } of list) map[jid] = name;
+          setNicknames(map);
+        }
+      })
+      .catch(() => {});
+
+    // Hidden chats do IDB
+    idbGet("hidden_chats").then((list) => {
+      if (Array.isArray(list)) setHiddenChats(new Set(list));
+    });
+
+    // Chat colors do IDB
+    idbGet("chat_colors").then((map) => {
+      if (map && typeof map === "object") setChatColors(map);
+    });
+  }, []);
+
+  // Verifica rascunho de delivery para o chat selecionado
+  useEffect(() => {
+    if (!selectedChat) { setDraftExists(false); return; }
+    idbGet(`delivery_draft_${selectedChat.jid}`).then((d) => setDraftExists(!!d));
+  }, [selectedChat, openAsides]);
+
   // Polling adaptativo: 3s quando desconectado/QR (aguarda reconexão), 30s quando conectado
   useEffect(() => {
     const delay = status === "connected" ? 30000 : 3000;
@@ -975,7 +1706,7 @@ export default function WhatsAppPage() {
       setUser(null);
       setStatus("disconnected");
       toast.success("WhatsApp desconectado — escaneie o QR para reconectar");
-      fetchStatus(); // inicia polling de 3s automaticamente via useEffect de status
+      fetchStatus();
     } catch {
       toast.error("Erro ao desconectar");
     } finally {
@@ -1102,6 +1833,53 @@ export default function WhatsAppPage() {
 
   useEffect(() => () => { socketRef.current?.disconnect(); socketRef.current = null; }, []);
 
+  // ── Callbacks ──────────────────────────────────────────────────────────────
+
+  async function handleSetNickname(jid, name) {
+    try {
+      const res = await fetch("/api/whatsapp/nicknames", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jid, name }),
+      });
+      if (res.ok) {
+        setNicknames((prev) => ({ ...prev, [jid]: name }));
+        setChats((prev) => prev.map((c) => c.jid === jid ? { ...c, name } : c));
+      }
+    } catch {}
+  }
+
+  async function handleHideChat(jid) {
+    const next = new Set(hiddenChats);
+    next.add(jid);
+    setHiddenChats(next);
+    await idbSet("hidden_chats", [...next]);
+    if (selectedChat?.jid === jid) setSelectedChat(null);
+  }
+
+  async function handleSetColor(jid, colorKey) {
+    const next = { ...chatColors };
+    if (colorKey === null) delete next[jid];
+    else next[jid] = colorKey;
+    setChatColors(next);
+    await idbSet("chat_colors", next);
+  }
+
+  function handleMarkRead(jid) {
+    fetch(`/api/whatsapp/chats/${encodeURIComponent(jid)}/read`, { method: "POST" }).catch(() => {});
+    setChats((prev) => prev.map((c) => c.jid === jid ? { ...c, unreadCount: 0 } : c));
+  }
+
+  function openDeliveryAside(jid) {
+    if (!openAsides.includes(jid)) setOpenAsides((prev) => [...prev, jid]);
+  }
+
+  function closeDeliveryAside(jid) {
+    setOpenAsides((prev) => prev.filter((j) => j !== jid));
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   const isConnected = status === "connected";
 
   if (status !== null && !isConnected) {
@@ -1131,43 +1909,67 @@ export default function WhatsAppPage() {
             <Skeleton className="h-3.5 w-24" />
           </div>
         ) : (
-          <ConnectedBar user={user} onDisconnect={handleDisconnect} disconnecting={disconnecting} />
+          <ConnectedBar
+            user={user}
+            onDisconnect={handleDisconnect}
+            disconnecting={disconnecting}
+            onSettings={() => router.push("/whatsapp/configuracoes")}
+          />
         )}
 
         {/* Search bar */}
-        <SearchBar />
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
         {/* Chat list */}
         <div className="flex-1 overflow-y-auto bg-white">
           {chatsLoading ? (
             <ChatListSkeleton />
-          ) : chats.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center px-8">
-              <div className="h-12 w-12 rounded-full bg-[#f0f2f5] flex items-center justify-center mb-3">
-                <MessageCircle className="h-5 w-5 text-[#54656f]" />
+          ) : (() => {
+            const q = searchQuery.trim().toLowerCase();
+            const filtered = q
+              ? chats.filter((c) =>
+                  !hiddenChats.has(c.jid) &&
+                  ((c.name || "").toLowerCase().includes(q) || (c.jid || "").toLowerCase().includes(q))
+                )
+              : chats.filter((c) => !hiddenChats.has(c.jid));
+            if (filtered.length === 0) return (
+              <div className="flex flex-col items-center justify-center py-20 text-center px-8">
+                <div className="h-12 w-12 rounded-full bg-[#f0f2f5] flex items-center justify-center mb-3">
+                  <MessageCircle className="h-5 w-5 text-[#54656f]" />
+                </div>
+                <p className="text-sm text-[#54656f]">
+                  {q ? "Nenhuma conversa encontrada" : "Sem conversas"}
+                </p>
               </div>
-              <p className="text-sm text-[#54656f]">Nenhuma conversa encontrada</p>
-            </div>
-          ) : (
-            <div>
-              {chats.map((chat) => (
-                <ChatItem
-                  key={chat.jid}
-                  chat={chat}
-                  selected={selectedChat?.jid === chat.jid}
-                  onClick={() => {
-                    setSelectedChat(chat);
-                    if (chat.unreadCount > 0) {
-                      setChats((prev) =>
-                        prev.map((c) => c.jid === chat.jid ? { ...c, unreadCount: 0 } : c)
-                      );
-                      fetch(`/api/whatsapp/chats/${encodeURIComponent(chat.jid)}/read`, { method: "POST" }).catch(() => {});
-                    }
-                  }}
-                />
-              ))}
-            </div>
-          )}
+            );
+            return (
+              <div>
+                {filtered.map((chat) => (
+                  <ChatItem
+                    key={chat.jid}
+                    chat={chat}
+                    selected={selectedChat?.jid === chat.jid}
+                    color={chatColors[chat.jid] || null}
+                    nickname={nicknames[chat.jid] || null}
+                    colorLabels={colorLabels}
+                    onClick={() => {
+                      setSelectedChat(chat);
+                      if (chat.unreadCount > 0) {
+                        setChats((prev) =>
+                          prev.map((c) => c.jid === chat.jid ? { ...c, unreadCount: 0 } : c)
+                        );
+                        fetch(`/api/whatsapp/chats/${encodeURIComponent(chat.jid)}/read`, { method: "POST" }).catch(() => {});
+                      }
+                    }}
+                    onMarkRead={() => handleMarkRead(chat.jid)}
+                    onSetNickname={handleSetNickname}
+                    onHide={() => handleHideChat(chat.jid)}
+                    onSetColor={handleSetColor}
+                  />
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -1183,6 +1985,8 @@ export default function WhatsAppPage() {
             chat={selectedChat}
             onBack={() => setSelectedChat(null)}
             liveMessage={liveMessage}
+            hasDraft={draftExists}
+            onOpenDelivery={() => openDeliveryAside(selectedChat.jid)}
             onSent={(msg) => {
               setChats((prev) => {
                 const idx = prev.findIndex((c) => c.jid === msg.jid);
@@ -1198,6 +2002,17 @@ export default function WhatsAppPage() {
           <NoChat />
         )}
       </div>
+
+      {/* Delivery Aside — exibe apenas o do chat selecionado, se estiver aberto */}
+      {selectedChat && openAsides.includes(selectedChat.jid) && (
+        <DeliveryAside
+          key={selectedChat.jid}
+          jid={selectedChat.jid}
+          chat={selectedChat}
+          nicknames={nicknames}
+          onClose={() => closeDeliveryAside(selectedChat.jid)}
+        />
+      )}
     </div>
   );
 }
