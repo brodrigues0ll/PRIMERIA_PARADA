@@ -85,6 +85,26 @@ const COLOR_MAP = {
   brown:  "#92400e",
 };
 
+// Fundo claro da cor (8% opacidade normal, 14% quando selecionado)
+const COLOR_MAP_BG = {
+  red:    [239, 68,  68],
+  orange: [249, 115, 22],
+  yellow: [234, 179, 8],
+  green:  [34,  197, 94],
+  teal:   [20,  184, 166],
+  blue:   [59,  130, 246],
+  purple: [168, 85,  247],
+  pink:   [236, 72,  153],
+  gray:   [107, 114, 128],
+  brown:  [146, 64,  14],
+};
+
+function colorBg(key, selected) {
+  const rgb = COLOR_MAP_BG[key];
+  if (!rgb) return undefined;
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${selected ? 0.14 : 0.08})`;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatTime(ts) {
@@ -403,10 +423,11 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
 
       <button
         onClick={onClick}
+        style={color ? { backgroundColor: colorBg(color, selected) } : undefined}
         className={cn(
           "w-full flex items-center gap-3 py-3 text-left transition-colors border-b border-[#e9edef]",
           color ? "pl-[18px] pr-4" : "px-4",
-          selected ? "bg-[#f0f2f5]" : "bg-white hover:bg-[#f5f6f6]"
+          !color && (selected ? "bg-[#f0f2f5]" : "bg-white hover:bg-[#f5f6f6]")
         )}
       >
         <ChatAvatar jid={chat.jid} name={displayName} size="lg" />
