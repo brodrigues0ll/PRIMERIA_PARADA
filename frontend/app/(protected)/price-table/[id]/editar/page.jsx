@@ -22,6 +22,9 @@ export default function EditarCardapioPage() {
   const [saving, setSaving] = useState(false);
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
+  const [ativo, setAtivo] = useState(true);
+  const [cats, setCats] = useState([]);
+  const [categoriaId, setCategoriaId] = useState("");
   const [produtoRef, setProdutoRef] = useState(null);
 
   const [showImport, setShowImport] = useState(false);
@@ -32,6 +35,10 @@ export default function EditarCardapioPage() {
   const precoNum = parseDecimal(preco);
 
   useEffect(() => {
+    fetch("/api/categorias").then((r) => r.json()).then(setCats).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     async function fetchItem() {
       try {
         const res = await fetch(`/api/cardapio/${id}`);
@@ -40,6 +47,8 @@ export default function EditarCardapioPage() {
           const item = data.data;
           setNome(item.nome || "");
           setPreco(String(item.preco).replace(".", ","));
+          setAtivo(item.ativo !== false);
+          setCategoriaId(item.categoria?._id || "");
           if (item.produtoRef) setProdutoRef(item.produtoRef);
         } else {
           toast.error("Item não encontrado");
@@ -93,6 +102,7 @@ export default function EditarCardapioPage() {
           nome: nome.trim(),
           preco: precoNum,
           produtoRef: produtoRef?._id ?? null,
+          categoria: categoriaId || null,
         }),
       });
       if (!res.ok) {
@@ -106,6 +116,21 @@ export default function EditarCardapioPage() {
       toast.error("Erro ao salvar");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleToggleAtivo() {
+    try {
+      const res = await fetch(`/api/cardapio/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativo: !ativo }),
+      });
+      if (!res.ok) { toast.error("Erro ao atualizar status"); return; }
+      setAtivo((v) => !v);
+      toast.success(ativo ? "Item desativado" : "Item reativado");
+    } catch {
+      toast.error("Erro ao atualizar status");
     }
   }
 
@@ -137,7 +162,14 @@ export default function EditarCardapioPage() {
 
   return (
     <div data-id="price-table-editar-page" className="px-4 pt-6 pb-10">
-      <h2 className="text-lg font-semibold mb-1">Editar item</h2>
+      <div className="flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-semibold">Editar item</h2>
+        {!ativo && (
+          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-semibold">
+            Inativo
+          </span>
+        )}
+      </div>
       <p className="text-sm text-muted-foreground mb-6">Cardápio</p>
 
       <form data-id="price-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -145,6 +177,22 @@ export default function EditarCardapioPage() {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nome">Nome *</Label>
           <Input data-id="price-name-input" id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do item" required />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="categoria">Categoria</Label>
+          <select
+            data-id="price-categoria-select"
+            id="categoria"
+            value={categoriaId}
+            onChange={(e) => setCategoriaId(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Sem categoria</option>
+            {cats.map((c) => (
+              <option key={c._id} value={c._id}>{c.nome}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -247,6 +295,21 @@ export default function EditarCardapioPage() {
         </Button>
 
         <Button data-id="price-editar-cancel-button" type="button" variant="outline" className="w-full" onClick={() => router.back()}>Cancelar</Button>
+
+        <Button
+          data-id="price-editar-toggle-ativo-button"
+          type="button"
+          variant="outline"
+          className={cn(
+            "w-full",
+            ativo
+              ? "border-amber-400 text-amber-600 hover:bg-amber-50"
+              : "border-green-500 text-green-700 hover:bg-green-50"
+          )}
+          onClick={handleToggleAtivo}
+        >
+          {ativo ? "Desativar item" : "Reativar item"}
+        </Button>
 
         <Button data-id="price-editar-delete-button" type="button" variant="destructive" className="w-full" onClick={handleDelete}>
           Remover do cardápio

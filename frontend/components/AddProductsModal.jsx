@@ -14,11 +14,19 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatPrice } from "@/lib/utils";
 
+function NivelBadge({ nivel }) {
+  if (!nivel || nivel === "muito") return null;
+  if (nivel === "pouco") return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Pouco</span>;
+  if (nivel === "esgotado") return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Esgotado</span>;
+  return null;
+}
+
 export default function AddProductsModal({ open, onClose, comandaId, onAdded, isGrupo, pagantes = [] }) {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [usingDailyMenu, setUsingDailyMenu] = useState(false);
 
   // fluxo em 2 etapas para grupo
   const [step, setStep] = useState("items"); // "items" | "pagante"
@@ -29,9 +37,25 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
   useEffect(() => {
     if (!open) { setStep("items"); setPendingItem(null); setNovoPagante(""); return; }
     setLoading(true);
-    fetch("/api/cardapio")
+    fetch("/api/cardapio/hoje")
       .then((r) => r.json())
-      .then((d) => { if (d.data) setItems(d.data); })
+      .then((d) => {
+        if (d.itens && d.itens.length > 0) {
+          setUsingDailyMenu(true);
+          setItems(d.itens.map((i) => ({ ...i.menuItem, nivel: i.nivel })));
+        } else {
+          setUsingDailyMenu(false);
+          return fetch("/api/cardapio")
+            .then((r) => r.json())
+            .then((d2) => { if (d2.data) setItems(d2.data); });
+        }
+      })
+      .catch(() => {
+        setUsingDailyMenu(false);
+        return fetch("/api/cardapio")
+          .then((r) => r.json())
+          .then((d2) => { if (d2.data) setItems(d2.data); });
+      })
       .finally(() => setLoading(false));
   }, [open]);
 
@@ -92,6 +116,16 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
     .filter((i) => i.nome.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
+  // Build grouped structure for daily menu
+  const groupedFiltered = usingDailyMenu
+    ? filtered.reduce((acc, item) => {
+        const cat = item.categoria?.nome ?? "Sem categoria";
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(item);
+        return acc;
+      }, {})
+    : null;
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent data-id="add-products-modal" className="bg-card border-border sm:max-w-md flex flex-col max-h-[85vh]">
@@ -126,7 +160,44 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
                   Nenhum item encontrado
                 </p>
               )}
-              {!loading && filtered.map((item, i) => (
+              {/* Daily menu: grouped by category */}
+              {!loading && usingDailyMenu && groupedFiltered && Object.entries(groupedFiltered).map(([cat, catItems]) => (
+                <div key={cat}>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-4 pb-1">{cat}</p>
+                  {catItems.map((item, i) => {
+                    const esgotado = item.nivel === "esgotado";
+                    return (
+                      <div key={item._id} data-id={`product-option-${item._id}`}>
+                        <div className={cn("flex items-center justify-between py-3", esgotado && "opacity-50")}>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium text-foreground">{item.nome}</p>
+                              <NivelBadge nivel={item.nivel} />
+                            </div>
+                            <p className="text-xs text-muted-foreground tabular-nums">
+                              R$ {formatPrice(item.preco)}
+                            </p>
+                          </div>
+                          <Button
+                            data-id="add-selected-products-button"
+                            size="sm"
+                            className="bg-primary hover:bg-primary/90 gap-1"
+                            onClick={() => handleAdd(item)}
+                            disabled={adding || esgotado}
+                            style={esgotado ? { pointerEvents: "none", cursor: "not-allowed" } : undefined}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add
+                          </Button>
+                        </div>
+                        {i < catItems.length - 1 && <Separator />}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              {/* Fallback: alphabetical list without nivel */}
+              {!loading && !usingDailyMenu && filtered.map((item, i) => (
                 <div key={item._id} data-id={`product-option-${item._id}`}>
                   <div className="flex items-center justify-between py-3">
                     <div>

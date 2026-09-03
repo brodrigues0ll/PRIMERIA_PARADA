@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, Search, X } from "lucide-react";
+import { Plus, UtensilsCrossed, Search, X, Tag, CalendarDays } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,15 +11,23 @@ import MenuItemCard from "@/components/MenuItemCard";
 
 export default function PriceTablePage() {
   const [items, setItems] = useState([]);
+  const [cats, setCats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const router = useRouter();
 
   const fetchItems = useCallback(async () => {
     try {
-      const res = await fetch("/api/cardapio");
-      const data = await res.json();
-      if (res.ok) setItems(data.data);
+      const [resItems, resCats] = await Promise.all([
+        fetch("/api/cardapio"),
+        fetch("/api/categorias"),
+      ]);
+      const [dataItems, dataCats] = await Promise.all([
+        resItems.json(),
+        resCats.json(),
+      ]);
+      if (resItems.ok) setItems(dataItems.data || []);
+      if (resCats.ok) setCats(Array.isArray(dataCats) ? dataCats : []);
     } finally {
       setLoading(false);
     }
@@ -27,26 +36,67 @@ export default function PriceTablePage() {
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const filtered = useMemo(() =>
-    items
-      .filter((i) => i.nome.toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    items.filter((i) => i.nome.toLowerCase().includes(search.toLowerCase())),
     [items, search]
   );
 
+  // Build categoria lookup keyed by _id
+  const catMap = useMemo(() => {
+    const m = {};
+    for (const c of cats) m[c._id] = c;
+    return m;
+  }, [cats]);
+
+  // Group by categoria._id (or "sem-categoria")
   const grouped = useMemo(() => {
     const map = {};
     for (const item of filtered) {
-      const letter = item.nome[0].toUpperCase();
-      if (!map[letter]) map[letter] = [];
-      map[letter].push(item);
+      const catId = item.categoria?._id || "sem-categoria";
+      if (!map[catId]) {
+        map[catId] = { cat: item.categoria || null, items: [] };
+      }
+      map[catId].items.push(item);
     }
-    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+    // Sort each group's items alphabetically
+    for (const key of Object.keys(map)) {
+      map[key].items.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    }
+    // Sort groups by categoria.ordem then nome; sem-categoria last
+    return Object.values(map).sort((a, b) => {
+      if (!a.cat && !b.cat) return 0;
+      if (!a.cat) return 1;
+      if (!b.cat) return -1;
+      const ordDiff = (a.cat.ordem ?? 999) - (b.cat.ordem ?? 999);
+      if (ordDiff !== 0) return ordDiff;
+      return a.cat.nome.localeCompare(b.cat.nome, "pt-BR");
+    });
   }, [filtered]);
 
   return (
     <>
       <div data-id="price-table-page" className="pb-28">
-        <div data-id="price-table-search-bar" className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3">
+        {/* Nav links row */}
+        <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-2 flex items-center gap-2">
+          <Link
+            data-id="nav-categorias-link"
+            href="/price-table/categorias"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium text-[#54656f] border border-border hover:bg-accent hover:text-[#111b21] transition-colors"
+          >
+            <Tag className="h-3.5 w-3.5" />
+            Categorias
+          </Link>
+          <Link
+            data-id="nav-dia-link"
+            href="/price-table/dia"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium text-[#54656f] border border-border hover:bg-accent hover:text-[#111b21] transition-colors"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            Cardápio do Dia
+          </Link>
+        </div>
+
+        {/* Search bar */}
+        <div data-id="price-table-search-bar" className="sticky top-[calc(3.5rem+42px)] z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -103,24 +153,38 @@ export default function PriceTablePage() {
             <p className="text-xs text-muted-foreground px-1">
               {filtered.length} {filtered.length === 1 ? "item" : "itens"}
             </p>
-            {grouped.map(([letter, groupItems]) => (
-              <div data-id={`price-table-group-${letter}`} key={letter}>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">
-                  {letter}
-                </p>
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  {groupItems.map((item, idx) => (
-                    <div data-id={`price-item-${item._id}`} key={item._id}>
-                      <MenuItemCard
-                        item={item}
-                        onClick={() => router.push(`/price-table/${item._id}/editar`)}
+            {grouped.map(({ cat, items: groupItems }) => {
+              const groupKey = cat?._id || "sem-categoria";
+              const groupLabel = cat?.nome || "Sem categoria";
+              return (
+                <div data-id={`price-table-group-${groupKey}`} key={groupKey}>
+                  <div className="flex items-center gap-2 px-1 mb-1.5">
+                    {cat?.cor && (
+                      <div
+                        className="h-3 w-3 rounded-full shrink-0 border border-black/10"
+                        style={{ backgroundColor: cat.cor }}
                       />
-                      {idx < groupItems.length - 1 && <Separator />}
-                    </div>
-                  ))}
+                    )}
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {groupLabel}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                    {groupItems.map((item, idx) => (
+                      <div data-id={`price-item-${item._id}`} key={item._id}>
+                        <MenuItemCard
+                          item={item}
+                          categoria={item.categoria}
+                          ativo={item.ativo !== false}
+                          onClick={() => router.push(`/price-table/${item._id}/editar`)}
+                        />
+                        {idx < groupItems.length - 1 && <Separator />}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -9,6 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { cn, formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
+function NivelBadge({ nivel }) {
+  if (!nivel || nivel === "muito") return null;
+  if (nivel === "pouco") return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Pouco</span>;
+  if (nivel === "esgotado") return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Esgotado</span>;
+  return null;
+}
+
 const FORMAS_PAGAMENTO = [
   { value: "dinheiro", label: "Dinheiro" },
   { value: "pix", label: "Pix" },
@@ -137,6 +144,7 @@ export default function NovoDeliveryPage() {
   const [cardapio, setCardapio] = useState([]);
   const [buscaItem, setBuscaItem] = useState("");
   const [itens, setItens] = useState([]);
+  const [usingDailyMenu, setUsingDailyMenu] = useState(false);
 
   const [formaPagamento, setFormaPagamento] = useState("dinheiro");
   const [trocoPara, setTrocoPara] = useState("");
@@ -164,9 +172,25 @@ export default function NovoDeliveryPage() {
   }
 
   useEffect(() => {
-    fetch("/api/cardapio")
+    fetch("/api/cardapio/hoje")
       .then((r) => r.json())
-      .then((json) => setCardapio(json.data || []));
+      .then((d) => {
+        if (d.itens && d.itens.length > 0) {
+          setUsingDailyMenu(true);
+          setCardapio(d.itens.map((i) => ({ ...i.menuItem, nivel: i.nivel })));
+        } else {
+          setUsingDailyMenu(false);
+          return fetch("/api/cardapio")
+            .then((r) => r.json())
+            .then((json) => setCardapio(json.data || []));
+        }
+      })
+      .catch(() => {
+        setUsingDailyMenu(false);
+        fetch("/api/cardapio")
+          .then((r) => r.json())
+          .then((json) => setCardapio(json.data || []));
+      });
   }, []);
 
   useEffect(() => {
@@ -212,6 +236,7 @@ export default function NovoDeliveryPage() {
   );
 
   function adicionarItem(menuItem) {
+    if (menuItem.nivel === "esgotado") return;
     setItens((prev) => {
       const idx = prev.findIndex((it) => it.menuItem === menuItem._id);
       if (idx >= 0) {
@@ -466,22 +491,32 @@ export default function NovoDeliveryPage() {
 
         {buscaItem && itemsFiltrados.length > 0 && (
           <div className="rounded-xl border border-border bg-card overflow-hidden mb-4">
-            {itemsFiltrados.slice(0, 8).map((item, i) => (
-              <div key={item._id}>
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent/50 transition-colors"
-                  onClick={() => { adicionarItem(item); setBuscaItem(""); }}
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground text-left">{item.nome}</p>
-                    <p className="text-xs text-muted-foreground">R$ {formatPrice(item.preco)}</p>
-                  </div>
-                  <Plus className="h-4 w-4 text-primary shrink-0" />
-                </button>
-                {i < Math.min(itemsFiltrados.length, 8) - 1 && <Separator />}
-              </div>
-            ))}
+            {itemsFiltrados.slice(0, 8).map((item, i) => {
+              const esgotado = item.nivel === "esgotado";
+              return (
+                <div key={item._id}>
+                  <button
+                    type="button"
+                    disabled={esgotado}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3 hover:bg-accent/50 transition-colors",
+                      esgotado && "opacity-50 cursor-not-allowed pointer-events-none"
+                    )}
+                    onClick={() => { adicionarItem(item); setBuscaItem(""); }}
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-foreground text-left">{item.nome}</p>
+                        <NivelBadge nivel={item.nivel} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">R$ {formatPrice(item.preco)}</p>
+                    </div>
+                    <Plus className="h-4 w-4 text-primary shrink-0" />
+                  </button>
+                  {i < Math.min(itemsFiltrados.length, 8) - 1 && <Separator />}
+                </div>
+              );
+            })}
           </div>
         )}
 

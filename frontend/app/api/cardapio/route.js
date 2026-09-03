@@ -19,7 +19,21 @@ export async function GET(request) {
     return NextResponse.json({ data: item || null });
   }
 
-  const items = await MenuItem.find({}).sort({ nome: 1 }).lean();
+  // Filter by ativo: default true, "false" → inactive only, "all" → no filter
+  const ativoParam = searchParams.get("ativo");
+  let filter = {};
+  if (ativoParam === "all") {
+    filter = {};
+  } else if (ativoParam === "false") {
+    filter = { ativo: false };
+  } else {
+    filter = { ativo: true };
+  }
+
+  const items = await MenuItem.find(filter)
+    .populate("categoria", "nome cor ordem")
+    .sort({ nome: 1 })
+    .lean();
   return NextResponse.json({ data: items });
 }
 
@@ -27,7 +41,7 @@ export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const { nome, preco, produtoRef } = await request.json();
+  const { nome, preco, produtoRef, categoria } = await request.json();
 
   if (!nome?.trim() || preco === undefined || preco === null)
     return NextResponse.json({ error: "Nome e preço são obrigatórios" }, { status: 400 });
@@ -38,6 +52,8 @@ export async function POST(request) {
     nome: nome.trim(),
     preco: Number(preco),
     produtoRef: produtoRef || null,
+    categoria: categoria || null,
+    ativo: true,
   });
 
   return NextResponse.json({ data: item }, { status: 201 });

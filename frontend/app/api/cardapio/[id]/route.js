@@ -22,7 +22,7 @@ export async function PUT(request, { params }) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const { id } = await params;
-  const { nome, preco, produtoRef } = await request.json();
+  const { nome, preco, produtoRef, categoria, ativo } = await request.json();
 
   await connectDB();
 
@@ -30,6 +30,8 @@ export async function PUT(request, { params }) {
   if (nome !== undefined) updates.nome = nome.trim();
   if (preco !== undefined) updates.preco = Number(preco);
   if (produtoRef !== undefined) updates.produtoRef = produtoRef || null;
+  if (categoria !== undefined) updates.categoria = categoria || null;
+  if (ativo !== undefined) updates.ativo = ativo;
 
   const item = await MenuItem.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 
@@ -43,10 +45,19 @@ export async function DELETE(request, { params }) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  const hard = searchParams.get("hard") === "true";
+
   await connectDB();
-  const item = await MenuItem.findByIdAndDelete(id);
+
+  let item;
+  if (hard) {
+    item = await MenuItem.findByIdAndDelete(id);
+  } else {
+    item = await MenuItem.findByIdAndUpdate(id, { $set: { ativo: false } }, { new: true });
+  }
 
   if (!item) return NextResponse.json({ error: "Item não encontrado" }, { status: 404 });
 
-  return NextResponse.json({ message: "Item removido com sucesso" });
+  return NextResponse.json({ ok: true });
 }

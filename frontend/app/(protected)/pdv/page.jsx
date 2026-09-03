@@ -123,7 +123,7 @@ function ScanFeedback({ feedback, onDismiss }) {
 }
 
 // ─── Lista de itens ──────────────────────────────────────────────────
-function ItemList({ items, onIncrement, onDecrement, mutating }) {
+function ItemList({ items, onIncrement, onDecrement, mutating, nivelMap }) {
   if (items.length === 0) return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
@@ -143,41 +143,47 @@ function ItemList({ items, onIncrement, onDecrement, mutating }) {
             {items.reduce((a, p) => a + p.quantidade, 0)} itens
           </p>
         </div>
-        {[...items].reverse().map((p, i) => (
-          <div data-id={`pdv-product-${p._id ?? p.produtoId}`} key={p._id ?? p.produtoId}>
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{p.nome}</p>
-                <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                  R$&nbsp;{formatPrice(p.preco)} × {p.quantidade}
-                  <span className="text-foreground/70 font-semibold ml-2">
-                    R$&nbsp;{formatPrice(p.preco * p.quantidade)}
-                  </span>
-                </p>
+        {[...items].reverse().map((p, i) => {
+          const nivel = nivelMap ? nivelMap[p.menuItemId ?? p._id] : undefined;
+          return (
+            <div data-id={`pdv-product-${p._id ?? p.produtoId}`} key={p._id ?? p.produtoId}>
+              <div className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-foreground truncate">{p.nome}</p>
+                    {nivel && <NivelBadge nivel={nivel} />}
+                  </div>
+                  <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
+                    R$&nbsp;{formatPrice(p.preco)} × {p.quantidade}
+                    <span className="text-foreground/70 font-semibold ml-2">
+                      R$&nbsp;{formatPrice(p.preco * p.quantidade)}
+                    </span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    data-id={`pdv-product-decrement-${p._id ?? p.produtoId}`}
+                    onClick={() => onDecrement(p)}
+                    disabled={mutating === (p._id ?? p.produtoId)}
+                    className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-accent disabled:opacity-40 transition-colors"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <span className="text-sm font-bold w-5 text-center tabular-nums">{p.quantidade}</span>
+                  <button
+                    data-id={`pdv-product-increment-${p._id ?? p.produtoId}`}
+                    onClick={() => onIncrement(p)}
+                    disabled={mutating === (p._id ?? p.produtoId)}
+                    className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-accent disabled:opacity-40 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  data-id={`pdv-product-decrement-${p._id ?? p.produtoId}`}
-                  onClick={() => onDecrement(p)}
-                  disabled={mutating === (p._id ?? p.produtoId)}
-                  className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-accent disabled:opacity-40 transition-colors"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <span className="text-sm font-bold w-5 text-center tabular-nums">{p.quantidade}</span>
-                <button
-                  data-id={`pdv-product-increment-${p._id ?? p.produtoId}`}
-                  onClick={() => onIncrement(p)}
-                  disabled={mutating === (p._id ?? p.produtoId)}
-                  className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-accent disabled:opacity-40 transition-colors"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
+              {i < items.length - 1 && <Separator />}
             </div>
-            {i < items.length - 1 && <Separator />}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -294,6 +300,13 @@ function ModoAvulso() {
   );
 }
 
+function NivelBadge({ nivel }) {
+  if (!nivel || nivel === "muito") return null;
+  if (nivel === "pouco") return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Pouco</span>;
+  if (nivel === "esgotado") return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Esgotado</span>;
+  return null;
+}
+
 // ─── Modo COMANDA ────────────────────────────────────────────────────
 function ModoComanda() {
   const [comanda, setComanda] = useState(null);
@@ -303,6 +316,20 @@ function ModoComanda() {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const feedbackTimer = useRef(null);
+  const dailyMenuRef = useRef(null); // map of menuItemId -> nivel
+
+  useEffect(() => {
+    fetch("/api/cardapio/hoje")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.itens && d.itens.length > 0) {
+          const map = {};
+          d.itens.forEach((i) => { map[i.menuItem._id] = i.nivel; });
+          dailyMenuRef.current = map;
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   function showFeedback(f) {
     setFeedback(f);
@@ -337,6 +364,13 @@ function ModoComanda() {
       const menuItem = cardData.data;
       if (!menuItem) {
         showFeedback({ nome: produto.nome, ok: false, erro: "Não está no cardápio" });
+        return;
+      }
+
+      // 2b. Verifica nivel no cardápio do dia
+      const nivel = dailyMenuRef.current ? dailyMenuRef.current[menuItem._id] : undefined;
+      if (nivel === "esgotado") {
+        showFeedback({ nome: menuItem.nome, ok: false, erro: "Item esgotado hoje" });
         return;
       }
 
@@ -418,6 +452,7 @@ function ModoComanda() {
             onIncrement={(p) => handleQty(p, "increment")}
             onDecrement={(p) => handleQty(p, "decrement")}
             mutating={mutating}
+            nivelMap={dailyMenuRef.current}
           />
         </div>
       </div>

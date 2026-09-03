@@ -15,6 +15,8 @@ const PAGE_META = {
   "/orders/fechadas": { title: "Comandas", back: "/home" },
   "/price-table": { title: "Cardápio", back: "/home" },
   "/price-table/novo": { title: "Novo item", back: "/price-table" },
+  "/price-table/categorias": { title: "Categorias do Cardápio", back: "/price-table" },
+  "/price-table/dia": { title: "Cardápio de Hoje", back: "/price-table" },
   "/estoque": { title: "Estoque", back: "/home" },
   "/estoque/adicionar": { title: "Novo produto", back: "/estoque" },
   "/pdv": { title: "PDV", back: "/home" },

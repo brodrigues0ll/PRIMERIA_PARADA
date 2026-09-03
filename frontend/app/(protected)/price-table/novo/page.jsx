@@ -18,6 +18,8 @@ export default function NovoCardapioPage() {
   const router = useRouter();
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
+  const [cats, setCats] = useState([]);
+  const [categoriaId, setCategoriaId] = useState("");
   const [produtoRef, setProdutoRef] = useState(null); // { _id, nome, precoVenda }
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +30,10 @@ export default function NovoCardapioPage() {
   const [searchProduto, setSearchProduto] = useState("");
 
   const precoNum = parseDecimal(preco);
+
+  useEffect(() => {
+    fetch("/api/categorias").then((r) => r.json()).then(setCats).catch(() => {});
+  }, []);
 
   const fetchProdutos = useCallback(async () => {
     setLoadingProdutos(true);
@@ -73,6 +79,7 @@ export default function NovoCardapioPage() {
           nome: nome.trim(),
           preco: precoNum,
           produtoRef: produtoRef?._id || null,
+          categoria: categoriaId || null,
         }),
       });
       if (!res.ok) {
@@ -104,6 +111,22 @@ export default function NovoCardapioPage() {
             placeholder="Ex: Prato do dia, Suco de laranja"
             required
           />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="categoria">Categoria</Label>
+          <select
+            data-id="price-categoria-select"
+            id="categoria"
+            value={categoriaId}
+            onChange={(e) => setCategoriaId(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Sem categoria</option>
+            {cats.map((c) => (
+              <option key={c._id} value={c._id}>{c.nome}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex flex-col gap-1.5">

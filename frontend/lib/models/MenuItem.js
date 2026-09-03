@@ -6,10 +6,13 @@ const MenuItemSchema = new mongoose.Schema(
     preco: { type: Number, required: [true, "Preço é obrigatório"], min: [0, "Preço não pode ser negativo"] },
     // link opcional a um produto do estoque para controle de quantidade ao vender
     produtoRef: { type: mongoose.Schema.Types.ObjectId, ref: "Produto", default: null },
+    categoria: { type: mongoose.Schema.Types.ObjectId, ref: "Categoria", default: null },
+    ativo: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
 MenuItemSchema.index({ nome: 1 });
+MenuItemSchema.index({ ativo: 1 });
 
 export default mongoose.models.MenuItem || mongoose.model("MenuItem", MenuItemSchema);
