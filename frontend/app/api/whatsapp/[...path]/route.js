@@ -184,6 +184,15 @@ async function handleCreateSession() {
   }
 }
 
+async function handleDeleteSession(sid) {
+  try {
+    await owFetch("DELETE", `/sessions/${sid}`);
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ ok: true });
+  }
+}
+
 async function handleStatus(sid) {
   try {
     const { json: sessions } = await owFetch("GET", "/sessions");
@@ -433,6 +442,9 @@ async function adapter(request, paramsPromise) {
 
   // POST /sessions
   if (p0 === "sessions" && !p1 && method === "POST") return handleCreateSession();
+
+  // DELETE /sessions/:sid
+  if (p0 === "sessions" && p1 && method === "DELETE") return handleDeleteSession(p1);
 
   // GET /status
   if (p0 === "status") return handleStatus(querySid);

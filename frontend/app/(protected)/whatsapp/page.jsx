@@ -241,11 +241,11 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
               Contas WhatsApp
             </p>
 
-            {sessions.length === 0 && (
+            {sessions.filter((s) => s.status === "connected").length === 0 && (
               <div className="px-4 py-3 text-[13px] text-[#54656f]">Nenhuma conta conectada</div>
             )}
 
-            {sessions.map((session) => (
+            {sessions.filter((s) => s.status === "connected").map((session) => (
               <button
                 key={session.id}
                 data-id={`whatsapp-account-item-${session.id}`}
@@ -260,7 +260,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-medium text-[#111b21] truncate leading-tight">
-                    {session.user?.name || (session.status === "connected" ? "Conectado" : "Conectando...")}
+                    {session.user?.name || "Conectado"}
                   </p>
                   {session.user?.id && (
                     <p className="text-[12px] text-[#54656f] truncate">+{session.user.id}</p>
@@ -1822,6 +1822,8 @@ export default function WhatsAppPage() {
   const [showConnectNew, setShowConnectNew] = useState(false);
   const activeSessionIdRef = useRef(null);
   useEffect(() => { activeSessionIdRef.current = activeSessionId; }, [activeSessionId]);
+  // Rastreia quando cada sessão "conectando" apareceu pela primeira vez
+  const connectingStartedRef = useRef(new Map());
 
   // Nicknames do MongoDB
   const [nicknames, setNicknames] = useState({}); // jid → name
@@ -1842,16 +1844,44 @@ export default function WhatsAppPage() {
   const [draftExists, setDraftExists] = useState(false);
 
   const fetchSessions = useCallback(async () => {
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos
     try {
       const res = await fetch("/api/whatsapp/sessions");
       if (!res.ok) throw new Error();
       const list = await res.json();
-      setSessions(Array.isArray(list) ? list : []);
-      // Define sessao ativa automaticamente se ainda nao definida
+      if (!Array.isArray(list)) return;
+
+      const now = Date.now();
+      const toCancel = [];
+
+      for (const s of list) {
+        if (s.status === "connecting") {
+          if (!connectingStartedRef.current.has(s.id)) {
+            connectingStartedRef.current.set(s.id, now);
+          } else if (now - connectingStartedRef.current.get(s.id) > TIMEOUT_MS) {
+            toCancel.push(s.id);
+          }
+        } else {
+          connectingStartedRef.current.delete(s.id);
+        }
+      }
+
+      // Cancela sessões que estão conectando há mais de 5 minutos
+      await Promise.all(
+        toCancel.map((sid) =>
+          fetch(`/api/whatsapp/sessions/${sid}`, { method: "DELETE" })
+            .catch(() => {})
+            .finally(() => connectingStartedRef.current.delete(sid))
+        )
+      );
+
+      const active = list.filter((s) => !toCancel.includes(s.id));
+      setSessions(active);
+
       setActiveSessionId((prev) => {
-        if (prev) return prev; // Mantém a atual
-        const ready = list.find((s) => s.status === "connected");
-        return ready?.id ?? list[0]?.id ?? null;
+        if (prev && active.some((s) => s.id === prev)) return prev;
+        const ready = active.find((s) => s.status === "connected");
+        return ready?.id ?? active[0]?.id ?? null;
       });
     } catch {}
   }, []);
