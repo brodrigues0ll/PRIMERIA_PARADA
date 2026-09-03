@@ -136,6 +136,37 @@ function truncate(str, max = 40) {
   return str.length > max ? str.slice(0, max) + "…" : str;
 }
 
+// ─── Avatar de sessão com foto de perfil ────────────────────────────────────
+// Busca a foto do próprio número via endpoint existente de contato
+
+function SessionAvatar({ sessionId, user, iconSize = "h-5 w-5" }) {
+  const [picUrl, setPicUrl] = useState(null);
+  const urlRef = useRef(null);
+
+  useEffect(() => {
+    if (!sessionId || !user?.id) return;
+    let cancelled = false;
+    const jid = `${user.id}@c.us`;
+    fetch(`/api/whatsapp/chats/${encodeURIComponent(jid)}/picture?sid=${sessionId}`)
+      .then((r) => (r.ok ? r.blob() : null))
+      .then((blob) => {
+        if (cancelled || !blob) return;
+        const url = URL.createObjectURL(blob);
+        urlRef.current = url;
+        setPicUrl(url);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (urlRef.current) { URL.revokeObjectURL(urlRef.current); urlRef.current = null; }
+    };
+  }, [sessionId, user?.id]);
+
+  if (picUrl) return <img src={picUrl} alt="" className="h-full w-full object-cover" />;
+  if (user?.name) return <>{getInitial(user.name)}</>;
+  return <WhatsAppIcon className={`${iconSize} text-[#54656f]`} />;
+}
+
 // ─── QR / Disconnected screen ────────────────────────────────────────────────
 
 function NotConnectedScreen({ status, qrSrc, onRefresh }) {
@@ -224,7 +255,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
           className="h-10 w-10 rounded-full bg-[#dfe5e7] flex items-center justify-center text-sm font-semibold text-[#54656f] overflow-hidden hover:ring-2 hover:ring-[#25d366]/40 transition-all"
           title="Gerenciar contas"
         >
-          {user?.name ? getInitial(user.name) : <WhatsAppIcon className="h-5 w-5 text-[#54656f]" />}
+          <SessionAvatar sessionId={activeSessionId} user={user} iconSize="h-5 w-5" />
         </button>
 
         {/* Badge com número de contas quando > 1 */}
@@ -256,7 +287,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
                 )}
               >
                 <div className="h-9 w-9 rounded-full bg-[#dfe5e7] flex items-center justify-center text-sm font-semibold text-[#54656f] shrink-0 overflow-hidden">
-                  {session.user?.name ? getInitial(session.user.name) : <WhatsAppIcon className="h-4 w-4 text-[#54656f]" />}
+                  <SessionAvatar sessionId={session.id} user={session.user} iconSize="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-medium text-[#111b21] truncate leading-tight">
