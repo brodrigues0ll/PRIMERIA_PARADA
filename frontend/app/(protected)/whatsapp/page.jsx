@@ -102,7 +102,7 @@ const COLOR_MAP_BG = {
 function colorBg(key, selected) {
   const rgb = COLOR_MAP_BG[key];
   if (!rgb) return undefined;
-  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${selected ? 0.14 : 0.08})`;
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${selected ? 0.28 : 0.20})`;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
