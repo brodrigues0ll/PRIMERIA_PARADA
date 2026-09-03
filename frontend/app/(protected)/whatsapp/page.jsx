@@ -201,14 +201,89 @@ function NotConnectedScreen({ status, qrSrc, onRefresh }) {
 
 // ─── Status bar (connected) ──────────────────────────────────────────────────
 
-function ConnectedBar({ user, onDisconnect, disconnecting, onSettings }) {
+function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConnectNew, onDisconnect, disconnecting, onSettings }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    function handler(e) { if (!menuRef.current?.contains(e.target)) setShowMenu(false); }
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, [showMenu]);
+
   return (
     <div className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0">
-      {/* Avatar do usuário conectado */}
-      <div className="h-10 w-10 rounded-full bg-[#dfe5e7] flex items-center justify-center shrink-0 text-sm font-semibold text-[#54656f] overflow-hidden">
-        {user?.name ? getInitial(user.name) : <WhatsAppIcon className="h-5 w-5 text-[#54656f]" />}
+      {/* Avatar — abre menu de contas ao clicar */}
+      <div className="relative shrink-0" ref={menuRef}>
+        <button
+          onClick={() => setShowMenu((v) => !v)}
+          className="h-10 w-10 rounded-full bg-[#dfe5e7] flex items-center justify-center text-sm font-semibold text-[#54656f] overflow-hidden hover:ring-2 hover:ring-[#25d366]/40 transition-all"
+          title="Gerenciar contas"
+        >
+          {user?.name ? getInitial(user.name) : <WhatsAppIcon className="h-5 w-5 text-[#54656f]" />}
+        </button>
+
+        {/* Badge com número de contas quando > 1 */}
+        {sessions.filter((s) => s.status === "connected").length > 1 && (
+          <span className="absolute -bottom-0.5 -right-0.5 h-[18px] min-w-[18px] px-0.5 rounded-full bg-[#25d366] text-white text-[9px] font-bold flex items-center justify-center leading-none pointer-events-none">
+            {sessions.filter((s) => s.status === "connected").length}
+          </span>
+        )}
+
+        {/* Dropdown de sessões */}
+        {showMenu && (
+          <div className="absolute top-12 left-0 z-50 bg-white rounded-xl shadow-lg border border-[#e9edef] min-w-[240px] py-2 overflow-hidden">
+            <p className="px-4 py-1.5 text-[11px] font-semibold text-[#54656f] uppercase tracking-wide">
+              Contas WhatsApp
+            </p>
+
+            {sessions.length === 0 && (
+              <div className="px-4 py-3 text-[13px] text-[#54656f]">Nenhuma conta conectada</div>
+            )}
+
+            {sessions.map((session) => (
+              <button
+                key={session.id}
+                onClick={() => { onSwitchSession(session.id); setShowMenu(false); }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f5f6f6] transition-colors",
+                  session.id === activeSessionId && "bg-[#f0f2f5]"
+                )}
+              >
+                <div className="h-9 w-9 rounded-full bg-[#dfe5e7] flex items-center justify-center text-sm font-semibold text-[#54656f] shrink-0 overflow-hidden">
+                  {session.user?.name ? getInitial(session.user.name) : <WhatsAppIcon className="h-4 w-4 text-[#54656f]" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-medium text-[#111b21] truncate leading-tight">
+                    {session.user?.name || (session.status === "connected" ? "Conectado" : "Conectando...")}
+                  </p>
+                  {session.user?.id && (
+                    <p className="text-[12px] text-[#54656f] truncate">+{session.user.id}</p>
+                  )}
+                </div>
+                {session.id === activeSessionId && (
+                  <Check className="h-4 w-4 text-[#25d366] shrink-0" />
+                )}
+              </button>
+            ))}
+
+            <div className="border-t border-[#e9edef] mt-1 pt-1">
+              <button
+                onClick={() => { onConnectNew(); setShowMenu(false); }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f5f6f6] transition-colors"
+              >
+                <div className="h-9 w-9 rounded-full bg-[#e9edef] flex items-center justify-center shrink-0">
+                  <Plus className="h-4 w-4 text-[#54656f]" />
+                </div>
+                <span className="text-[14px] text-[#111b21]">Conectar outra conta</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Nome e status */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[#111b21] leading-none truncate">
           {user?.name || "Conectado"}
@@ -231,7 +306,7 @@ function ConnectedBar({ user, onDisconnect, disconnecting, onSettings }) {
         onClick={onDisconnect}
         disabled={disconnecting}
         className="flex items-center gap-1.5 text-xs text-[#54656f] hover:text-red-500 transition-colors disabled:opacity-50"
-        title="Desconectar"
+        title="Desconectar conta ativa"
       >
         <LogOut className="h-4 w-4" />
         {disconnecting ? "Saindo…" : "Sair"}
@@ -1066,7 +1141,7 @@ function MessagesSkeleton() {
   );
 }
 
-function MessagesPanel({ chat, onBack, liveMessage, onSent, onOpenDelivery, hasDraft }) {
+function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDelivery, hasDraft }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -1076,10 +1151,12 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent, onOpenDelivery, hasD
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const encodedJid = encodeURIComponent(chat.jid);
+  const sidParam = sessionId ? `?sid=${sessionId}` : "";
+  const sidAnd = sessionId ? `&sid=${sessionId}` : "";
 
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages?limit=100`);
+      const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages?limit=100${sidAnd}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       const raw = Array.isArray(data) ? data : [];
@@ -1095,11 +1172,11 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent, onOpenDelivery, hasD
     } finally {
       setLoading(false);
     }
-  }, [encodedJid]);
+  }, [encodedJid, sidAnd]);
 
   useEffect(() => {
-    fetch(`/api/whatsapp/chats/${encodedJid}/read`, { method: "POST" }).catch(() => {});
-  }, [encodedJid]);
+    fetch(`/api/whatsapp/chats/${encodedJid}/read${sidParam}`, { method: "POST" }).catch(() => {});
+  }, [encodedJid, sidParam]);
 
   useEffect(() => {
     setMessages([]);
@@ -1152,7 +1229,7 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent, onOpenDelivery, hasD
     setReplyTo(null);
 
     try {
-      const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages`, {
+      const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages${sidParam}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: trimmed, quotedMessageId: replyTo?.id || null }),
@@ -1211,7 +1288,7 @@ function MessagesPanel({ chat, onBack, liveMessage, onSent, onOpenDelivery, hasD
       setReplyTo(null);
 
       try {
-        const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages/media`, {
+        const res = await fetch(`/api/whatsapp/chats/${encodedJid}/messages/media${sidParam}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1598,6 +1675,102 @@ function NoChat() {
   );
 }
 
+// ─── Connect New Modal ────────────────────────────────────────────────────────
+
+function ConnectNewModal({ onClose, onConnected }) {
+  const [newSessionId, setNewSessionId] = useState(null);
+  const [qrSrc, setQrSrc] = useState(null);
+  const [sessionStatus, setSessionStatus] = useState("connecting");
+
+  // Cria nova sessão ao montar
+  useEffect(() => {
+    fetch("/api/whatsapp/sessions", { method: "POST" })
+      .then((r) => r.json())
+      .then((data) => { if (data?.id) setNewSessionId(data.id); })
+      .catch(() => toast.error("Erro ao iniciar nova sessão"));
+  }, []);
+
+  // Poll QR e status para a nova sessão
+  useEffect(() => {
+    if (!newSessionId) return;
+
+    async function poll() {
+      // Busca QR
+      const qrRes = await fetch(`/api/whatsapp/qr?sid=${newSessionId}`).catch(() => null);
+      if (qrRes?.ok) {
+        const qrData = await qrRes.json().catch(() => null);
+        if (qrData?.qr) setQrSrc(qrData.qr);
+      }
+      // Verifica status
+      const stRes = await fetch(`/api/whatsapp/status?sid=${newSessionId}`).catch(() => null);
+      if (stRes?.ok) {
+        const stData = await stRes.json().catch(() => null);
+        if (stData?.status) {
+          setSessionStatus(stData.status);
+          if (stData.status === "connected") {
+            onConnected(newSessionId);
+          }
+        }
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [newSessionId, onConnected]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e9edef]">
+          <div className="flex items-center gap-2">
+            <WhatsAppIcon className="h-5 w-5 text-[#25d366]" />
+            <h2 className="text-[16px] font-semibold text-[#111b21]">Conectar outra conta</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#f0f2f5]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-6 flex flex-col items-center gap-4">
+          {sessionStatus === "connected" ? (
+            <>
+              <div className="h-16 w-16 rounded-full bg-[#25d366]/10 flex items-center justify-center">
+                <Check className="h-8 w-8 text-[#25d366]" />
+              </div>
+              <p className="text-[15px] font-medium text-[#111b21]">Conta conectada!</p>
+            </>
+          ) : qrSrc ? (
+            <>
+              <p className="text-[13px] text-[#54656f] text-center">
+                Abra o WhatsApp no celular &rarr; <span className="font-medium text-[#111b21]">Dispositivos conectados</span> &rarr; Escanear QR
+              </p>
+              <img
+                src={qrSrc}
+                alt="QR Code"
+                className="h-52 w-52 rounded-xl border border-[#e9edef] shadow-sm"
+              />
+              <p className="text-[11px] text-[#54656f]">Codigo atualiza automaticamente</p>
+            </>
+          ) : (
+            <>
+              <div className="h-10 w-10 rounded-full border-2 border-[#25d366] border-t-transparent animate-spin" />
+              <p className="text-[13px] text-[#54656f]">
+                {!newSessionId ? "Iniciando sessao..." : "Aguardando QR code..."}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function WhatsAppPage() {
@@ -1614,6 +1787,13 @@ export default function WhatsAppPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const selectedChatRef = useRef(null);
   const chatsRef = useRef([]);
+
+  // Multiplas sessoes
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [showConnectNew, setShowConnectNew] = useState(false);
+  const activeSessionIdRef = useRef(null);
+  useEffect(() => { activeSessionIdRef.current = activeSessionId; }, [activeSessionId]);
 
   // Nicknames do MongoDB
   const [nicknames, setNicknames] = useState({}); // jid → name
@@ -1633,15 +1813,31 @@ export default function WhatsAppPage() {
   // Rascunho existe para o chat selecionado
   const [draftExists, setDraftExists] = useState(false);
 
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/whatsapp/sessions");
+      if (!res.ok) throw new Error();
+      const list = await res.json();
+      setSessions(Array.isArray(list) ? list : []);
+      // Define sessao ativa automaticamente se ainda nao definida
+      setActiveSessionId((prev) => {
+        if (prev) return prev; // Mantém a atual
+        const ready = list.find((s) => s.status === "connected");
+        return ready?.id ?? list[0]?.id ?? null;
+      });
+    } catch {}
+  }, []);
+
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/whatsapp/status");
+      const sidParam = activeSessionIdRef.current ? `?sid=${activeSessionIdRef.current}` : "";
+      const res = await fetch(`/api/whatsapp/status${sidParam}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setStatus(data.status ?? "disconnected");
       setUser(data.user ?? null);
       if (data.status === "qr") {
-        const qrRes = await fetch("/api/whatsapp/qr");
+        const qrRes = await fetch(`/api/whatsapp/qr${sidParam}`);
         if (qrRes.ok) {
           const qrData = await qrRes.json();
           setQrSrc(qrData.qr ?? null);
@@ -1655,8 +1851,10 @@ export default function WhatsAppPage() {
   }, []);
 
   const fetchChats = useCallback(async () => {
+    const sid = activeSessionIdRef.current;
+    const sidParam = sid ? `?sid=${sid}` : "";
     try {
-      const res = await fetch("/api/whatsapp/chats");
+      const res = await fetch(`/api/whatsapp/chats${sidParam}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       const raw = Array.isArray(data) ? data : [];
@@ -1673,7 +1871,8 @@ export default function WhatsAppPage() {
   useEffect(() => {
     fetchStatus();
     fetchChats();
-  }, [fetchStatus, fetchChats]);
+    fetchSessions();
+  }, [fetchStatus, fetchChats, fetchSessions]);
 
   // Carrega nicknames, hidden chats, chat colors e marcadores na inicialização
   useEffect(() => {
@@ -1715,26 +1914,54 @@ export default function WhatsAppPage() {
   // Polling adaptativo: 3s quando desconectado/QR (aguarda reconexão), 30s quando conectado
   useEffect(() => {
     const delay = status === "connected" ? 30000 : 3000;
-    const interval = setInterval(fetchStatus, delay);
+    const interval = setInterval(() => {
+      fetchStatus();
+      fetchSessions();
+    }, delay);
     return () => clearInterval(interval);
-  }, [fetchStatus, status]);
+  }, [fetchStatus, fetchSessions, status]);
 
   async function handleDisconnect() {
     setDisconnecting(true);
     try {
-      await fetch("/api/whatsapp/logout", { method: "DELETE" });
+      const sidParam = activeSessionId ? `?sid=${activeSessionId}` : "";
+      await fetch(`/api/whatsapp/logout${sidParam}`, { method: "DELETE" });
+      // Remove sessao ativa da lista
+      setSessions((prev) => prev.filter((s) => s.id !== activeSessionId));
+      // Troca para outra sessao se houver
+      setActiveSessionId((prev) => {
+        const remaining = sessions.filter((s) => s.id !== prev && s.status === "connected");
+        return remaining[0]?.id ?? null;
+      });
       setSelectedChat(null);
       setChats([]);
       setUser(null);
-      setStatus("disconnected");
-      toast.success("WhatsApp desconectado — escaneie o QR para reconectar");
-      fetchStatus();
+      if (sessions.filter((s) => s.status === "connected").length <= 1) {
+        setStatus("disconnected");
+      }
+      toast.success("Conta desconectada");
+      fetchSessions();
     } catch {
       toast.error("Erro ao desconectar");
     } finally {
       setDisconnecting(false);
     }
   }
+
+  function handleSwitchSession(sid) {
+    setActiveSessionId(sid);
+  }
+
+  // Recarrega chats quando sessao ativa muda
+  useEffect(() => {
+    if (activeSessionId) {
+      setSelectedChat(null);
+      setChats([]);
+      setChatsLoading(true);
+      fetchChats();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSessionId]);
 
   // Mantém refs sincronizadas para uso em closures SSE (sem stale closure)
   useEffect(() => { selectedChatRef.current = selectedChat; }, [selectedChat]);
@@ -1811,7 +2038,10 @@ export default function WhatsAppPage() {
         // OpenWA entrega eventos via evento "message" com envelope { type, payload }
         socket.on("message", (data) => {
           if (data.type !== "event") return;
-          const { event, data: eventData } = data.payload;
+          const { event, data: eventData, sessionId: msgSessionId } = data.payload;
+
+          // Ignora eventos de outras sessoes
+          if (msgSessionId && activeSessionIdRef.current && msgSessionId !== activeSessionIdRef.current) return;
 
           if (event === "message.received" || event === "message.sent") {
             const msg = normalizeOwMsg(eventData);
@@ -1933,6 +2163,10 @@ export default function WhatsAppPage() {
         ) : (
           <ConnectedBar
             user={user}
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onSwitchSession={handleSwitchSession}
+            onConnectNew={() => setShowConnectNew(true)}
             onDisconnect={handleDisconnect}
             disconnecting={disconnecting}
             onSettings={() => router.push("/whatsapp/configuracoes")}
@@ -2005,6 +2239,7 @@ export default function WhatsAppPage() {
         {selectedChat ? (
           <MessagesPanel
             chat={selectedChat}
+            sessionId={activeSessionId}
             onBack={() => setSelectedChat(null)}
             liveMessage={liveMessage}
             hasDraft={draftExists}
@@ -2033,6 +2268,18 @@ export default function WhatsAppPage() {
           chat={selectedChat}
           nicknames={nicknames}
           onClose={() => closeDeliveryAside(selectedChat.jid)}
+        />
+      )}
+
+      {/* Modal de conectar nova conta */}
+      {showConnectNew && (
+        <ConnectNewModal
+          onClose={() => setShowConnectNew(false)}
+          onConnected={(sid) => {
+            setShowConnectNew(false);
+            fetchSessions();
+            handleSwitchSession(sid);
+          }}
         />
       )}
     </div>

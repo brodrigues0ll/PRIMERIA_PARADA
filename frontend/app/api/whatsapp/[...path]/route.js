@@ -31,7 +31,20 @@ async function owFetchRaw(method, path) {
 let _sessionId = null;
 let _sessionExpiry = 0;
 
-async function getSession() {
+async function getSession(preferredSid) {
+  if (preferredSid) {
+    // Verifica se existe e inicia o engine se necessário
+    try {
+      const { json: sessions } = await owFetch("GET", "/sessions");
+      const list = Array.isArray(sessions) ? sessions : [];
+      const found = list.find((s) => s.id === preferredSid);
+      if (found && !found.engineLoaded) {
+        await owFetch("POST", `/sessions/${preferredSid}/start`).catch(() => {});
+      }
+    } catch {}
+    return preferredSid;
+  }
+
   if (_sessionId && Date.now() < _sessionExpiry) return _sessionId;
   try {
     const { json: sessions } = await owFetch("GET", "/sessions");
@@ -143,29 +156,56 @@ function normalizeChat(c) {
 
 // ── Route handlers ─────────────────────────────────────────────────────────────
 
-async function handleStatus() {
+async function handleGetSessions() {
   try {
     const { json: sessions } = await owFetch("GET", "/sessions");
     const list = Array.isArray(sessions) ? sessions : [];
-    if (list.length === 0) {
-      return NextResponse.json({ status: "disconnected", user: null });
-    }
-    const session = list.find((s) => s.status === "ready") || list[0];
+    return NextResponse.json(
+      list.map((s) => ({
+        id: s.id,
+        status: OW_STATUS[s.status] ?? "disconnected",
+        user: s.phone ? { id: s.phone, name: s.pushName || s.phone } : null,
+      }))
+    );
+  } catch {
+    return NextResponse.json([]);
+  }
+}
+
+async function handleCreateSession() {
+  try {
+    const name = `account-${Date.now()}`;
+    const { json: created } = await owFetch("POST", "/sessions", { name });
+    if (!created?.id) return NextResponse.json({ error: "Falha ao criar sessão" }, { status: 500 });
+    await owFetch("POST", `/sessions/${created.id}/start`).catch(() => {});
+    return NextResponse.json({ id: created.id, status: "connecting" }, { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+async function handleStatus(sid) {
+  try {
+    const { json: sessions } = await owFetch("GET", "/sessions");
+    const list = Array.isArray(sessions) ? sessions : [];
+    if (list.length === 0) return NextResponse.json({ status: "disconnected", user: null });
+    const session = sid
+      ? (list.find((s) => s.id === sid) ?? null)
+      : (list.find((s) => s.status === "ready") || list[0]);
+    if (!session) return NextResponse.json({ status: "disconnected", user: null });
     const status = OW_STATUS[session.status] ?? "disconnected";
-    const user = session.phone
-      ? { id: session.phone, name: session.pushName || session.phone }
-      : null;
+    const user = session.phone ? { id: session.phone, name: session.pushName || session.phone } : null;
     return NextResponse.json({ status, user });
   } catch {
     return NextResponse.json({ status: "disconnected", user: null });
   }
 }
 
-async function handleQR() {
-  const sid = await getSession();
-  if (!sid) return NextResponse.json({ error: "Sem sessão" }, { status: 503 });
+async function handleQR(sid) {
+  const sessionId = await getSession(sid);
+  if (!sessionId) return NextResponse.json({ error: "Sem sessão" }, { status: 503 });
   try {
-    const { res, json } = await owFetch("GET", `/sessions/${sid}/qr`);
+    const { res, json } = await owFetch("GET", `/sessions/${sessionId}/qr`);
     if (!res.ok) return NextResponse.json({ error: "QR indisponível" }, { status: 404 });
     return NextResponse.json({ qr: json.qrCode });
   } catch {
@@ -173,8 +213,8 @@ async function handleQR() {
   }
 }
 
-async function handleChats() {
-  const sid = await getSession();
+async function handleChats(preferredSid) {
+  const sid = await getSession(preferredSid);
   if (!sid) return NextResponse.json([]);
   try {
     const { json } = await owFetch("GET", `/sessions/${sid}/chats`);
@@ -217,8 +257,8 @@ async function handleChats() {
   }
 }
 
-async function handlePicture(jid) {
-  const sid = await getSession();
+async function handlePicture(jid, preferredSid) {
+  const sid = await getSession(preferredSid);
   if (!sid) return new Response(null, { status: 404 });
   try {
     const { res, json } = await owFetch(
@@ -243,8 +283,8 @@ async function handlePicture(jid) {
   }
 }
 
-async function handleMessages(jid, searchParams) {
-  const sid = await getSession();
+async function handleMessages(jid, searchParams, preferredSid) {
+  const sid = await getSession(preferredSid);
   if (!sid) return NextResponse.json([]);
   const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 200);
   try {
@@ -265,8 +305,8 @@ async function handleMessages(jid, searchParams) {
   }
 }
 
-async function handleSendText(jid, body) {
-  const sid = await getSession();
+async function handleSendText(jid, body, preferredSid) {
+  const sid = await getSession(preferredSid);
   if (!sid) return NextResponse.json({ error: "Sem sessão" }, { status: 503 });
   try {
     const payload = { chatId: jid, text: body.text };
@@ -292,8 +332,8 @@ const MEDIA_ENDPOINT = {
   sticker: "send-sticker",
 };
 
-async function handleSendMedia(jid, body) {
-  const sid = await getSession();
+async function handleSendMedia(jid, body, preferredSid) {
+  const sid = await getSession(preferredSid);
   if (!sid) return NextResponse.json({ error: "Sem sessão" }, { status: 503 });
   const endpoint = MEDIA_ENDPOINT[body.type];
   if (!endpoint) {
@@ -320,8 +360,8 @@ async function handleSendMedia(jid, body) {
   }
 }
 
-async function handleMediaDownload(jid, msgId) {
-  const sid = await getSession();
+async function handleMediaDownload(jid, msgId, preferredSid) {
+  const sid = await getSession(preferredSid);
   if (!sid) return new Response(null, { status: 503 });
   try {
     const raw = await owFetchRaw(
@@ -345,8 +385,8 @@ async function handleMediaDownload(jid, msgId) {
   }
 }
 
-async function handleRead(jid) {
-  const sid = await getSession();
+async function handleRead(jid, preferredSid) {
+  const sid = await getSession(preferredSid);
   if (!sid) return NextResponse.json({ ok: false }, { status: 503 });
   try {
     await owFetch("POST", `/sessions/${sid}/chats/read`, { chatId: jid });
@@ -356,12 +396,12 @@ async function handleRead(jid) {
   }
 }
 
-async function handleLogout() {
-  const sid = await getSession();
-  invalidateSession();
-  if (!sid) return NextResponse.json({ ok: true });
+async function handleLogout(sid) {
+  const sessionId = sid || await getSession();
+  if (!sid) invalidateSession(); // só invalida cache global quando logout sem sid específico
+  if (!sessionId) return NextResponse.json({ ok: true });
   try {
-    await owFetch("POST", `/sessions/${sid}/logout`);
+    await owFetch("POST", `/sessions/${sessionId}/logout`);
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: true });
@@ -386,42 +426,50 @@ async function adapter(request, paramsPromise) {
     try { body = await request.json(); } catch {}
   }
 
+  const querySid = searchParams.get("sid") || null;
+
+  // GET /sessions
+  if (p0 === "sessions" && !p1 && method === "GET") return handleGetSessions();
+
+  // POST /sessions
+  if (p0 === "sessions" && !p1 && method === "POST") return handleCreateSession();
+
   // GET /status
-  if (p0 === "status") return handleStatus();
+  if (p0 === "status") return handleStatus(querySid);
 
   // GET /qr
-  if (p0 === "qr") return handleQR();
+  if (p0 === "qr") return handleQR(querySid);
 
   // DELETE /logout
-  if (p0 === "logout" && method === "DELETE") return handleLogout();
+  if (p0 === "logout" && method === "DELETE") return handleLogout(querySid);
 
   // /chats/*
   if (p0 === "chats") {
     // GET /chats
-    if (!p1 && method === "GET") return handleChats();
+    if (!p1 && method === "GET") return handleChats(querySid);
 
     const jid = p1;
 
     // GET /chats/:jid/picture
-    if (p2 === "picture") return handlePicture(jid);
+    if (p2 === "picture") return handlePicture(jid, querySid);
 
     // POST /chats/:jid/read
-    if (p2 === "read" && method === "POST") return handleRead(jid);
+    if (p2 === "read" && method === "POST") return handleRead(jid, querySid);
 
     // /chats/:jid/messages/*
     if (p2 === "messages") {
       // GET /chats/:jid/messages?limit=N
-      if (!p3 && method === "GET") return handleMessages(jid, searchParams);
+      if (!p3 && method === "GET") return handleMessages(jid, searchParams, querySid);
 
       // POST /chats/:jid/messages  → enviar texto
-      if (!p3 && method === "POST") return handleSendText(jid, body);
+      if (!p3 && method === "POST") return handleSendText(jid, body, querySid);
 
       // POST /chats/:jid/messages/media → enviar mídia
-      if (p3 === "media" && method === "POST") return handleSendMedia(jid, body);
+      if (p3 === "media" && method === "POST") return handleSendMedia(jid, body, querySid);
 
       // GET /chats/:jid/messages/:msgId/media → download mídia
       if (p3 && p4 === "media" && method === "GET")
-        return handleMediaDownload(jid, decodeURIComponent(p3));
+        return handleMediaDownload(jid, decodeURIComponent(p3), querySid);
     }
   }
 
