@@ -66,11 +66,11 @@ export default function PerfilTab({ session }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-id="perfil-form">
       {/* Avatar */}
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-3" data-id="perfil-avatar-section">
         <div className="relative">
-          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center overflow-hidden ring-2 ring-border">
+          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center overflow-hidden ring-2 ring-border" data-id="perfil-avatar-preview">
             {foto ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={foto} alt="Foto" className="h-full w-full object-cover" />
@@ -81,10 +81,11 @@ export default function PerfilTab({ session }) {
           <button
             onClick={() => fileRef.current?.click()}
             className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary flex items-center justify-center ring-2 ring-background"
+            data-id="perfil-avatar-upload-button"
           >
             <Camera className="h-3.5 w-3.5 text-primary-foreground" />
           </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFotoChange} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFotoChange} data-id="perfil-avatar-file-input" />
         </div>
         <p className="text-xs text-muted-foreground">Máximo 500 KB</p>
       </div>
@@ -92,38 +93,38 @@ export default function PerfilTab({ session }) {
       <Separator />
 
       {/* Dados */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-id="perfil-dados-pessoais">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dados pessoais</p>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Nome</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" data-id="perfil-name-input" />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Email</label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" />
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" data-id="perfil-email-input" />
         </div>
       </div>
 
       <Separator />
 
       {/* Senha */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-id="perfil-alterar-senha">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Alterar senha</p>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Senha atual</label>
-          <Input type="password" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} placeholder="••••••" />
+          <Input type="password" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} placeholder="••••••" data-id="perfil-senha-atual-input" />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Nova senha</label>
-          <Input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="••••••" />
+          <Input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="••••••" data-id="perfil-nova-senha-input" />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Confirmar nova senha</label>
-          <Input type="password" value={confirmSenha} onChange={(e) => setConfirmSenha(e.target.value)} placeholder="••••••" />
+          <Input type="password" value={confirmSenha} onChange={(e) => setConfirmSenha(e.target.value)} placeholder="••••••" data-id="perfil-confirmar-senha-input" />
         </div>
       </div>
 
-      <Button onClick={handleSave} disabled={loading} className="w-full">
+      <Button onClick={handleSave} disabled={loading} className="w-full" data-id="save-perfil-button">
         {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Salvar alterações
       </Button>

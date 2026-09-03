@@ -259,7 +259,7 @@ export default function CaixaPage() {
   // Sem caixa hoje
   if (!caixa) {
     return (
-      <div className="max-w-md mx-auto space-y-6">
+      <div data-id="caixa-page" className="max-w-md mx-auto space-y-6">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Caixa do Dia</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -300,6 +300,7 @@ export default function CaixaPage() {
               />
             </div>
             <Button
+              data-id="caixa-open-button"
               type="submit"
               disabled={abrindo}
               className="w-full bg-primary text-primary-foreground"
@@ -313,9 +314,9 @@ export default function CaixaPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div data-id="caixa-page" className="space-y-4">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
+      <div data-id="caixa-header" className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Caixa do Dia</h1>
           <p className="text-sm text-muted-foreground">
@@ -335,7 +336,7 @@ export default function CaixaPage() {
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-2 gap-3">
+      <div data-id="caixa-summary" className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground mb-1">Saldo Inicial</p>
           <p className="font-semibold text-foreground">
@@ -388,6 +389,7 @@ export default function CaixaPage() {
       {caixa.status === "aberto" && (
         <div className="flex gap-3">
           <Button
+            data-id="caixa-add-lancamento-button"
             onClick={() => setModalLancamento(true)}
             className="flex-1 bg-primary text-primary-foreground"
           >
@@ -395,6 +397,7 @@ export default function CaixaPage() {
             Lançamento
           </Button>
           <Button
+            data-id="caixa-close-button"
             variant="outline"
             onClick={() => setModalFechar(true)}
             className="flex-1"
@@ -406,7 +409,7 @@ export default function CaixaPage() {
       )}
 
       {/* Lista de lançamentos */}
-      <div className="space-y-2">
+      <div data-id="caixa-movements-list" className="space-y-2">
         <h2 className="text-sm font-semibold text-foreground">
           Lançamentos ({lancamentos.length})
         </h2>
@@ -422,6 +425,7 @@ export default function CaixaPage() {
         {lancamentos.map((lanc) => (
           <div
             key={lanc._id}
+            data-id={`caixa-movement-${lanc._id}`}
             className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3"
           >
             <div

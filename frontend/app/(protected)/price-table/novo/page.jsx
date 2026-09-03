@@ -90,15 +90,16 @@ export default function NovoCardapioPage() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-10">
+    <div data-id="price-table-novo-page" className="px-4 pt-6 pb-10">
       <h2 className="text-lg font-semibold mb-1">Novo item do cardápio</h2>
       <p className="text-sm text-muted-foreground mb-6">Nome e preço de venda</p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form data-id="price-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nome">Nome *</Label>
           <Input
+            data-id="price-name-input"
             id="nome" value={nome} onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Prato do dia, Suco de laranja"
             required
@@ -108,6 +109,7 @@ export default function NovoCardapioPage() {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="preco">Preço de venda (R$) *</Label>
           <Input
+            data-id="price-value-input"
             id="preco" value={preco} onChange={(e) => setPreco(e.target.value)}
             inputMode="decimal" placeholder="0,00" required
           />
@@ -154,10 +156,11 @@ export default function NovoCardapioPage() {
             </p>
 
             {showImport && (
-              <div className="mt-3 flex flex-col gap-2">
+              <div data-id="price-novo-import-panel" className="mt-3 flex flex-col gap-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
+                    data-id="price-novo-search-produto-input"
                     className="pl-9"
                     placeholder="Buscar produto no estoque..."
                     value={searchProduto}
@@ -166,7 +169,7 @@ export default function NovoCardapioPage() {
                   />
                 </div>
 
-                <div className="rounded-xl border border-border bg-card overflow-hidden max-h-56 overflow-y-auto">
+                <div data-id="price-novo-produto-list" className="rounded-xl border border-border bg-card overflow-hidden max-h-56 overflow-y-auto">
                   {loadingProdutos && (
                     <div className="flex flex-col gap-0">
                       {[...Array(3)].map((_, i) => (
@@ -180,7 +183,7 @@ export default function NovoCardapioPage() {
                     <p className="text-xs text-muted-foreground text-center py-6">Nenhum produto encontrado</p>
                   )}
                   {!loadingProdutos && filteredProdutos.map((produto, idx) => (
-                    <div key={produto._id}>
+                    <div data-id={`price-novo-produto-option-${produto._id}`} key={produto._id}>
                       <button
                         type="button"
                         onClick={() => selectProduto(produto)}
@@ -206,11 +209,11 @@ export default function NovoCardapioPage() {
           </div>
         )}
 
-        <Button type="submit" className="w-full bg-primary" disabled={loading || !nome.trim() || precoNum <= 0}>
+        <Button data-id="save-price-button" type="submit" className="w-full bg-primary" disabled={loading || !nome.trim() || precoNum <= 0}>
           {loading ? "Criando..." : "Adicionar ao cardápio"}
         </Button>
 
-        <Button type="button" variant="outline" className="w-full" onClick={() => router.back()}>
+        <Button data-id="price-novo-cancel-button" type="button" variant="outline" className="w-full" onClick={() => router.back()}>
           Cancelar
         </Button>
       </form>

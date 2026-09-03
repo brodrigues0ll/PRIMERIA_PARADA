@@ -143,7 +143,7 @@ function NotConnectedScreen({ status, qrSrc, onRefresh }) {
   const isConnecting = status === "connecting";
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-8 text-center gap-6 bg-[#f0f2f5]">
+    <div data-id="not-connected-screen" className="flex flex-col items-center justify-center h-full px-8 text-center gap-6 bg-[#f0f2f5]">
       <div className="h-16 w-16 rounded-2xl bg-[#25d366]/10 flex items-center justify-center">
         <WhatsAppIcon className="h-8 w-8 text-[#25d366]" />
       </div>
@@ -159,6 +159,7 @@ function NotConnectedScreen({ status, qrSrc, onRefresh }) {
             </p>
           </div>
           <img
+            data-id="qr-code-image"
             src={qrSrc}
             alt="QR Code WhatsApp"
             className="h-56 w-56 rounded-2xl border border-[#e9edef] shadow-sm"
@@ -187,6 +188,7 @@ function NotConnectedScreen({ status, qrSrc, onRefresh }) {
             </p>
           </div>
           <button
+            data-id="retry-connection-button"
             onClick={onRefresh}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#e9edef] bg-white text-sm text-[#54656f] hover:bg-[#f0f2f5] transition-colors"
           >
@@ -213,10 +215,11 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
   }, [showMenu]);
 
   return (
-    <div className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0">
+    <div data-id="whatsapp-sidebar-header" className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0">
       {/* Avatar — abre menu de contas ao clicar */}
       <div className="relative shrink-0" ref={menuRef}>
         <button
+          data-id="whatsapp-account-menu-button"
           onClick={() => setShowMenu((v) => !v)}
           className="h-10 w-10 rounded-full bg-[#dfe5e7] flex items-center justify-center text-sm font-semibold text-[#54656f] overflow-hidden hover:ring-2 hover:ring-[#25d366]/40 transition-all"
           title="Gerenciar contas"
@@ -226,14 +229,14 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
 
         {/* Badge com número de contas quando > 1 */}
         {sessions.filter((s) => s.status === "connected").length > 1 && (
-          <span className="absolute -bottom-0.5 -right-0.5 h-[18px] min-w-[18px] px-0.5 rounded-full bg-[#25d366] text-white text-[9px] font-bold flex items-center justify-center leading-none pointer-events-none">
+          <span data-id="whatsapp-account-badge" className="absolute -bottom-0.5 -right-0.5 h-[18px] min-w-[18px] px-0.5 rounded-full bg-[#25d366] text-white text-[9px] font-bold flex items-center justify-center leading-none pointer-events-none">
             {sessions.filter((s) => s.status === "connected").length}
           </span>
         )}
 
         {/* Dropdown de sessões */}
         {showMenu && (
-          <div className="absolute top-12 left-0 z-50 bg-white rounded-xl shadow-lg border border-[#e9edef] min-w-[240px] py-2 overflow-hidden">
+          <div data-id="whatsapp-account-menu" className="absolute top-12 left-0 z-50 bg-white rounded-xl shadow-lg border border-[#e9edef] min-w-[240px] py-2 overflow-hidden">
             <p className="px-4 py-1.5 text-[11px] font-semibold text-[#54656f] uppercase tracking-wide">
               Contas WhatsApp
             </p>
@@ -245,6 +248,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
             {sessions.map((session) => (
               <button
                 key={session.id}
+                data-id={`whatsapp-account-item-${session.id}`}
                 onClick={() => { onSwitchSession(session.id); setShowMenu(false); }}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f5f6f6] transition-colors",
@@ -270,6 +274,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
 
             <div className="border-t border-[#e9edef] mt-1 pt-1">
               <button
+                data-id="connect-new-account-button"
                 onClick={() => { onConnectNew(); setShowMenu(false); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f5f6f6] transition-colors"
               >
@@ -284,7 +289,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
       </div>
 
       {/* Nome e status */}
-      <div className="flex-1 min-w-0">
+      <div data-id="whatsapp-user-info" className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[#111b21] leading-none truncate">
           {user?.name || "Conectado"}
         </p>
@@ -295,6 +300,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
       </div>
 
       <button
+        data-id="whatsapp-settings-button"
         onClick={onSettings}
         className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] transition-colors mr-1"
         title="Configurações"
@@ -303,6 +309,7 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
       </button>
 
       <button
+        data-id="whatsapp-disconnect-button"
         onClick={onDisconnect}
         disabled={disconnecting}
         className="flex items-center gap-1.5 text-xs text-[#54656f] hover:text-red-500 transition-colors disabled:opacity-50"
@@ -319,10 +326,11 @@ function ConnectedBar({ user, sessions, activeSessionId, onSwitchSession, onConn
 
 function SearchBar({ value, onChange }) {
   return (
-    <div className="px-3 py-2 bg-[#f0f2f5] shrink-0">
+    <div data-id="chat-search-bar" className="px-3 py-2 bg-[#f0f2f5] shrink-0">
       <div className="flex items-center gap-2 bg-white rounded-full px-3 h-9">
         <Search className="h-4 w-4 text-[#54656f] shrink-0" />
         <input
+          data-id="chat-search-input"
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -330,7 +338,7 @@ function SearchBar({ value, onChange }) {
           className="flex-1 text-[13px] text-[#111b21] placeholder:text-[#54656f] bg-transparent focus:outline-none"
         />
         {value && (
-          <button onClick={() => onChange("")} className="text-[#54656f] hover:text-[#111b21]">
+          <button data-id="chat-search-clear-button" onClick={() => onChange("")} className="text-[#54656f] hover:text-[#111b21]">
             ✕
           </button>
         )}
@@ -401,7 +409,7 @@ async function fetchPicture(jid) {
   return promise
 }
 
-function ChatAvatar({ jid, name, size = "md" }) {
+function ChatAvatar({ jid, name, size = "md", "data-id": dataId }) {
   const [picSrc, setPicSrc] = useState(() => picCache.has(jid) ? picCache.get(jid) : undefined);
 
   useEffect(() => {
@@ -415,6 +423,7 @@ function ChatAvatar({ jid, name, size = "md" }) {
 
   return (
     <div
+      data-id={dataId}
       className={cn(
         "rounded-full bg-[#dfe5e7] text-[#54656f] flex items-center justify-center shrink-0 font-semibold overflow-hidden",
         dim
@@ -487,7 +496,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
   }
 
   return (
-    <div ref={itemRef} className="relative group" onContextMenu={handleContextMenu}>
+    <div data-id={`chat-item-${chat.id}`} ref={itemRef} className="relative group" onContextMenu={handleContextMenu}>
       {/* Barra de cor esquerda */}
       {color && COLOR_MAP[color] && (
         <div
@@ -505,11 +514,12 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
           !color && (selected ? "bg-[#f0f2f5]" : "bg-white hover:bg-[#f5f6f6]")
         )}
       >
-        <ChatAvatar jid={chat.jid} name={displayName} size="lg" />
+        <ChatAvatar data-id={`chat-avatar-${chat.id}`} jid={chat.jid} name={displayName} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-0.5">
             {editingName ? (
               <input
+                data-id="chat-nickname-input"
                 autoFocus
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
@@ -519,7 +529,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
                 className="flex-1 text-[15px] font-normal text-[#111b21] bg-transparent border-b border-[#25d366] focus:outline-none"
               />
             ) : (
-              <span className="text-[15px] font-normal text-[#111b21] truncate">{displayName}</span>
+              <span data-id={`chat-name-${chat.id}`} className="text-[15px] font-normal text-[#111b21] truncate">{displayName}</span>
             )}
             <span className={cn("text-[12px] shrink-0", chat.unreadCount > 0 ? "text-[#25d366]" : "text-[#54656f]")}>
               {time}
@@ -539,6 +549,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
 
       {/* Botão paleta — sobreposição, aparece no hover */}
       <button
+        data-id="chat-color-picker-button"
         onClick={(e) => { e.stopPropagation(); setShowColorPicker(true); setCtxMenu(null); }}
         className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] opacity-0 group-hover:opacity-100 transition-opacity z-10"
         title="Marcar cor"
@@ -549,6 +560,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
       {/* Menu de contexto */}
       {ctxMenu && (
         <div
+          data-id="chat-context-menu"
           className="fixed z-50 bg-white rounded-lg shadow-lg border border-[#e9edef] py-1 min-w-[180px]"
           style={{ top: ctxMenu.y, left: ctxMenu.x }}
           onClick={(e) => e.stopPropagation()}
@@ -566,6 +578,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
             Definir nome
           </button>
           <button
+            data-id="chat-hide-button"
             onClick={() => { onHide?.(); setCtxMenu(null); }}
             className="w-full text-left px-4 py-2 text-[14px] text-red-500 hover:bg-[#f5f6f6]"
           >
@@ -577,6 +590,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
       {/* Seletor de cores */}
       {showColorPicker && (
         <div
+          data-id="chat-color-menu"
           className="fixed z-50 bg-white rounded-lg shadow-lg border border-[#e9edef] p-3 min-w-[160px]"
           style={{
             top: itemRef.current?.getBoundingClientRect().top ?? 0,
@@ -602,6 +616,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
               {Object.entries(colorLabels || {}).map(([key, label]) => (
                 <button
                   key={key}
+                  data-id={`chat-color-option-${key}`}
                   onClick={() => { onSetColor?.(chat.jid, color === key ? null : key); setShowColorPicker(false); }}
                   className={cn(
                     "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-left transition-colors",
@@ -1031,7 +1046,7 @@ function MessageBubble({ msg, onReply }) {
 
   if (isSticker) {
     return (
-      <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
+      <div data-id={`message-${msg.id}`} className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
         <div className="max-w-[65%] relative">
           <MediaContent msg={msg} />
           {timeRow("mt-0.5")}
@@ -1056,7 +1071,7 @@ function MessageBubble({ msg, onReply }) {
   // ── Documento ──────────────────────────────────────────────────────────────
   if (isDoc) {
     return (
-      <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
+      <div data-id={`message-${msg.id}`} className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
         <div className={cn(bubbleBase, "overflow-hidden")}>
           {msg.quotedMessage && <div className="px-3 pt-2 pb-0"><QuotedPreview quoted={msg.quotedMessage} /></div>}
           <DocumentContent msg={msg} />
@@ -1070,7 +1085,7 @@ function MessageBubble({ msg, onReply }) {
   // ── Áudio ──────────────────────────────────────────────────────────────────
   if (isAudio) {
     return (
-      <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
+      <div data-id={`message-${msg.id}`} className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
         <div className={cn(bubbleBase, "overflow-hidden")}>
           {msg.quotedMessage && <div className="px-2 pt-2 pb-0"><QuotedPreview quoted={msg.quotedMessage} /></div>}
           <AudioContent msg={msg} isMine={isMine} />
@@ -1082,7 +1097,7 @@ function MessageBubble({ msg, onReply }) {
   }
 
   return (
-    <div className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
+    <div data-id={`message-${msg.id}`} className={cn("flex group", isMine ? "justify-end" : "justify-start")}>
       <div
         className={cn(
           bubbleBase,
@@ -1321,21 +1336,23 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
   const isEmpty = !text.trim();
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-id="conversation-panel" className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 shadow-sm">
+      <div data-id="conversation-header" className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 shadow-sm">
         <button
+          data-id="conversation-back-button"
           className="h-8 w-8 flex items-center justify-center text-[#54656f] hover:text-[#111b21] md:hidden"
           onClick={onBack}
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <ChatAvatar jid={chat.jid} name={chat.name} size="md" />
+        <ChatAvatar data-id="conversation-contact-avatar" jid={chat.jid} name={chat.name} size="md" />
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          <p className="text-[15px] font-medium text-[#111b21] truncate leading-tight">
+          <p data-id="conversation-contact-name" className="text-[15px] font-medium text-[#111b21] truncate leading-tight">
             {chat.name || chat.jid}
           </p>
           <button
+            data-id="open-delivery-aside-button"
             onClick={() => onOpenDelivery?.()}
             className="relative h-6 w-6 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] transition-colors shrink-0"
             title="Abrir pedido de delivery"
@@ -1358,6 +1375,7 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
 
       {/* Messages area */}
       <div
+        data-id="message-list"
         ref={scrollAreaRef}
         className="flex-1 overflow-y-auto px-[5%] py-4"
         style={{ backgroundColor: "#efeae2" }}
@@ -1399,6 +1417,7 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
 
       {/* Input area */}
       <form
+        data-id="message-composer"
         onSubmit={handleSend}
         className="flex items-end gap-2 px-3 py-3 bg-[#f0f2f5] shrink-0"
         onDragOver={(e) => e.preventDefault()}
@@ -1423,6 +1442,7 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
 
         {/* Emoji icon */}
         <button
+          data-id="emoji-picker-button"
           type="button"
           className="h-9 w-9 flex items-center justify-center text-[#54656f] hover:text-[#111b21] shrink-0 transition-colors mb-[1px]"
         >
@@ -1431,6 +1451,7 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
 
         {/* Paperclip / attach */}
         <button
+          data-id="attachment-button"
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="h-9 w-9 flex items-center justify-center text-[#54656f] hover:text-[#111b21] shrink-0 transition-colors mb-[1px]"
@@ -1440,6 +1461,7 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
 
         {/* Text input */}
         <textarea
+          data-id="message-input"
           ref={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -1457,6 +1479,7 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
         {/* Send / Mic button */}
         {isEmpty ? (
           <button
+            data-id="send-message-button"
             type="button"
             className="h-[42px] w-[42px] flex items-center justify-center rounded-full bg-[#00a884] text-white shrink-0 hover:bg-[#008f72] transition-colors mb-[0px]"
           >
@@ -1464,6 +1487,7 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
           </button>
         ) : (
           <button
+            data-id="send-message-button"
             type="submit"
             disabled={sending}
             className="h-[42px] w-[42px] flex items-center justify-center rounded-full bg-[#00a884] text-white shrink-0 hover:bg-[#008f72] transition-colors disabled:opacity-60 mb-[0px]"
@@ -1564,14 +1588,15 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
   }
 
   return (
-    <div className="flex flex-col h-full w-[420px] bg-white border-l border-[#e9edef] shrink-0 overflow-y-auto">
+    <div data-id="delivery-aside" className="flex flex-col h-full w-[420px] bg-white border-l border-[#e9edef] shrink-0 overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 border-b border-[#e9edef]">
+      <div data-id="delivery-aside-header" className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 border-b border-[#e9edef]">
         <div className="flex-1">
           <p className="text-[15px] font-medium text-[#111b21]">Pedido de Delivery</p>
           <p className="text-[12px] text-[#54656f] truncate">{nicknames?.[jid] || chat?.name || jid}</p>
         </div>
         <button
+          data-id="delivery-aside-close-button"
           onClick={onClose}
           className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef]"
         >
@@ -1580,13 +1605,13 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
       </div>
 
       {/* Campos */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-        <Field label="Nome do cliente" value={draft.name} onChange={(v) => update("name", v)} placeholder="Nome" />
+      <div data-id="delivery-form" className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        <Field label="Nome do cliente" value={draft.name} onChange={(v) => update("name", v)} placeholder="Nome" data-id="delivery-client-input" />
         <Field label="Telefone" value={draft.phone} onChange={(v) => update("phone", v)} placeholder="+55..." />
 
         <div>
           <p className="text-[11px] font-medium text-[#54656f] mb-2">Endereço de entrega</p>
-          <div className="flex flex-col gap-2">
+          <div data-id="delivery-address-input" className="flex flex-col gap-2">
             <Field label="Rua" value={draft.rua} onChange={(v) => update("rua", v)} placeholder="Rua / Av." />
             <div className="flex gap-2">
               <div className="flex-1">
@@ -1601,7 +1626,7 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
           </div>
         </div>
 
-        <Field label="Itens do pedido" value={draft.itens} onChange={(v) => update("itens", v)} placeholder="Descreva os itens..." multiline />
+        <Field label="Itens do pedido" value={draft.itens} onChange={(v) => update("itens", v)} placeholder="Descreva os itens..." multiline data-id="delivery-items-list" />
 
         <div>
           <label className="block text-[11px] font-medium text-[#54656f] mb-1">Forma de pagamento</label>
@@ -1633,6 +1658,7 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
       {/* Rodapé */}
       <div className="p-4 border-t border-[#e9edef] shrink-0">
         <button
+          data-id="delivery-send-button"
           onClick={handleConfirm}
           className="w-full py-2.5 rounded-lg bg-[#25d366] text-white text-[14px] font-medium hover:bg-[#20c55e] transition-colors"
         >
@@ -1720,7 +1746,7 @@ function ConnectNewModal({ onClose, onConnected }) {
   }, [newSessionId, onConnected]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div data-id="connect-new-modal" className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e9edef]">
@@ -1729,6 +1755,7 @@ function ConnectNewModal({ onClose, onConnected }) {
             <h2 className="text-[16px] font-semibold text-[#111b21]">Conectar outra conta</h2>
           </div>
           <button
+            data-id="connect-new-modal-close"
             onClick={onClose}
             className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#f0f2f5]"
           >
@@ -1751,6 +1778,7 @@ function ConnectNewModal({ onClose, onConnected }) {
                 Abra o WhatsApp no celular &rarr; <span className="font-medium text-[#111b21]">Dispositivos conectados</span> &rarr; Escanear QR
               </p>
               <img
+                data-id="new-account-qr-image"
                 src={qrSrc}
                 alt="QR Code"
                 className="h-52 w-52 rounded-xl border border-[#e9edef] shadow-sm"
@@ -2144,11 +2172,13 @@ export default function WhatsAppPage() {
 
   return (
     <div
+      data-id="whatsapp-page"
       className="flex overflow-hidden"
       style={{ height: "calc(100vh - 3.5rem)" }}
     >
       {/* Left panel */}
       <div
+        data-id="whatsapp-sidebar"
         className={cn(
           "flex flex-col w-full md:w-[360px] lg:w-[420px] border-r border-[#e9edef] bg-white shrink-0",
           selectedChat ? "hidden md:flex" : "flex"
@@ -2177,7 +2207,7 @@ export default function WhatsAppPage() {
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
         {/* Chat list */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div data-id="chat-list" className="flex-1 overflow-y-auto bg-white">
           {chatsLoading ? (
             <ChatListSkeleton />
           ) : (() => {
@@ -2231,6 +2261,7 @@ export default function WhatsAppPage() {
 
       {/* Right panel */}
       <div
+        data-id="whatsapp-main"
         className={cn(
           "flex-1 overflow-hidden",
           selectedChat ? "flex flex-col" : "hidden md:flex md:flex-col"

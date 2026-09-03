@@ -96,17 +96,17 @@ export default async function HomePage() {
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-background">
+    <div data-id="home-page" className="min-h-[calc(100vh-3.5rem)] bg-background">
 
       {/* Hero compacto */}
-      <div className="px-5 pt-6 pb-4">
+      <div data-id="home-header" className="px-5 pt-6 pb-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-0.5">Primeira Parada</p>
         <h1 className="text-xl font-bold text-foreground">{greeting}, {firstName}</h1>
       </div>
 
       {/* Stats */}
-      <div className="px-4 mb-5 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-card border border-border px-4 py-3 flex items-center gap-3">
+      <div data-id="home-stats" className="px-4 mb-5 grid grid-cols-2 gap-3">
+        <div data-id="home-stat-comandas-hoje" className="rounded-xl bg-card border border-border px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
             <Clock className="h-4 w-4 text-muted-foreground" />
           </div>
@@ -115,7 +115,7 @@ export default async function HomePage() {
             <p className="text-[11px] text-muted-foreground mt-0.5">comanda{todayOrders !== 1 ? "s" : ""} hoje</p>
           </div>
         </div>
-        <div className="rounded-xl bg-card border border-border px-4 py-3 flex items-center gap-3">
+        <div data-id="home-stat-receita-hoje" className="rounded-xl bg-card border border-border px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </div>
@@ -129,10 +129,10 @@ export default async function HomePage() {
       </div>
 
       {/* Grid de funcionalidades */}
-      <div className="px-4 pb-10 grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div data-id="quick-actions" className="px-4 pb-10 grid grid-cols-2 sm:grid-cols-3 gap-3">
 
         {/* Comandas — destaque */}
-        <Link href="/orders" className="col-span-2 sm:col-span-3 group">
+        <Link data-id="quick-action-comandas" href="/orders" className="col-span-2 sm:col-span-3 group">
           <div className="relative overflow-hidden rounded-2xl bg-primary p-5 transition-all duration-200 active:scale-[0.98] flex items-center justify-between">
             <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 pointer-events-none" />
             <div className="absolute -right-2 -bottom-8 h-32 w-32 rounded-full bg-black/10 pointer-events-none" />
@@ -156,7 +156,7 @@ export default async function HomePage() {
         </Link>
 
         {/* Salão */}
-        <Link href="/salao" className="group">
+        <Link data-id="quick-action-salao" href="/salao" className="group">
           <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
               <LayoutGrid className="h-5 w-5 text-muted-foreground" />
@@ -171,7 +171,7 @@ export default async function HomePage() {
         </Link>
 
         {/* Delivery */}
-        <Link href="/delivery" className="group">
+        <Link data-id="quick-action-delivery" href="/delivery" className="group">
           <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
               <Truck className="h-5 w-5 text-muted-foreground" />
@@ -192,7 +192,7 @@ export default async function HomePage() {
         </Link>
 
         {/* Clientes */}
-        <Link href="/clientes" className="group">
+        <Link data-id="quick-action-clientes" href="/clientes" className="group">
           <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
               <Users className="h-5 w-5 text-muted-foreground" />
@@ -210,7 +210,7 @@ export default async function HomePage() {
         </Link>
 
         {/* PDV */}
-        <Link href="/pdv" className="group">
+        <Link data-id="quick-action-pdv" href="/pdv" className="group">
           <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
               <ScanBarcode className="h-5 w-5 text-muted-foreground" />
@@ -221,7 +221,7 @@ export default async function HomePage() {
         </Link>
 
         {/* Cardápio */}
-        <Link href="/price-table" className="group">
+        <Link data-id="quick-action-cardapio" href="/price-table" className="group">
           <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
               <UtensilsCrossed className="h-5 w-5 text-muted-foreground" />
@@ -232,7 +232,7 @@ export default async function HomePage() {
         </Link>
 
         {/* Estoque */}
-        <Link href="/estoque" className="group">
+        <Link data-id="quick-action-estoque" href="/estoque" className="group">
           <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
               <Package className="h-5 w-5 text-muted-foreground" />
@@ -250,7 +250,7 @@ export default async function HomePage() {
         </Link>
 
         {/* WhatsApp */}
-        <Link href="/whatsapp" className="group col-span-2 sm:col-span-1">
+        <Link data-id="quick-action-whatsapp" href="/whatsapp" className="group col-span-2 sm:col-span-1">
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition-all duration-200 hover:bg-emerald-500/20 active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3">
               <WhatsAppIcon className="h-5 w-5 text-emerald-600" />
@@ -261,7 +261,7 @@ export default async function HomePage() {
         </Link>
 
         {/* Financeiro */}
-        <Link href="/financeiro" className="group">
+        <Link data-id="quick-action-financeiro" href="/financeiro" className="group">
           <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
               <Wallet className="h-5 w-5 text-muted-foreground" />
@@ -273,7 +273,7 @@ export default async function HomePage() {
 
         {/* Configurações — apenas admin */}
         {isAdmin && (
-          <Link href="/configuracoes" className="group">
+          <Link data-id="quick-action-configuracoes" href="/configuracoes" className="group">
             <div className="rounded-2xl bg-card border border-border p-4 transition-all duration-200 hover:bg-accent active:scale-[0.97] h-full flex flex-col">
               <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-3">
                 <Settings className="h-5 w-5 text-muted-foreground" />

@@ -141,8 +141,8 @@ export default function EstoqueConfigTab() {
   }
 
   return (
-    <div className="space-y-8 pb-10">
-      <section className="space-y-4">
+    <div className="space-y-8 pb-10" data-id="estoque-config-form">
+      <section className="space-y-4" data-id="estoque-locais-section">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-foreground">Locais de Estoque</h2>
@@ -154,6 +154,7 @@ export default function EstoqueConfigTab() {
             size="sm"
             className="bg-primary text-primary-foreground gap-1.5"
             onClick={abrirNovo}
+            data-id="add-local-estoque-button"
           >
             <Plus className="h-3.5 w-3.5" />
             Novo local
@@ -177,11 +178,11 @@ export default function EstoqueConfigTab() {
             <p className="text-sm text-muted-foreground">Nenhum local cadastrado</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden" data-id="estoque-locais-list">
             {locais.map((local, idx) => {
               const info = tipoInfo(local.tipo);
               return (
-                <div key={local._id}>
+                <div key={local._id} data-id={`estoque-local-item-${local._id}`}>
                   <div className={cn("flex items-center gap-3 px-4 py-3.5", !local.ativo && "opacity-50")}>
                     <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-xl shrink-0">
                       {info.icon}
@@ -201,6 +202,7 @@ export default function EstoqueConfigTab() {
                         className="h-7 w-7 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
                         onClick={() => abrirEditar(local)}
                         title="Editar"
+                        data-id={`estoque-local-editar-button-${local._id}`}
                       >
                         <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                       </button>
@@ -208,6 +210,7 @@ export default function EstoqueConfigTab() {
                         className="h-7 w-7 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
                         onClick={() => handleToggleAtivo(local)}
                         title={local.ativo ? "Desativar" : "Ativar"}
+                        data-id={`estoque-local-toggle-button-${local._id}`}
                       >
                         {local.ativo ? (
                           <ToggleRight className="h-4 w-4 text-emerald-500" />
@@ -234,7 +237,7 @@ export default function EstoqueConfigTab() {
               {editando ? `Editando: ${editando.nome}` : "Preencha os dados do novo local"}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSalvar} className="space-y-4 mt-2">
+          <form onSubmit={handleSalvar} className="space-y-4 mt-2" data-id="estoque-local-form">
             <div className="space-y-1.5">
               <Label htmlFor="est-nome">Nome</Label>
               <Input
@@ -245,12 +248,13 @@ export default function EstoqueConfigTab() {
                 autoFocus
                 required
                 className="bg-background border-input"
+                data-id="estoque-local-nome-input"
               />
             </div>
             <div className="space-y-1.5">
               <Label>Tipo</Label>
               <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger className="bg-background border-input">
+                <SelectTrigger className="bg-background border-input" data-id="estoque-local-tipo-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -275,6 +279,7 @@ export default function EstoqueConfigTab() {
                 onChange={(e) => setDescricao(e.target.value)}
                 placeholder="Descrição do local"
                 className="bg-background border-input"
+                data-id="estoque-local-descricao-input"
               />
             </div>
             <div className="space-y-1.5">
@@ -289,6 +294,7 @@ export default function EstoqueConfigTab() {
                 onChange={(e) => setOrdem(e.target.value)}
                 placeholder="0"
                 className="bg-background border-input"
+                data-id="estoque-local-ordem-input"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -297,6 +303,7 @@ export default function EstoqueConfigTab() {
                 variant="outline"
                 onClick={() => setModalAberto(false)}
                 disabled={salvando}
+                data-id="estoque-local-cancelar-button"
               >
                 Cancelar
               </Button>
@@ -304,6 +311,7 @@ export default function EstoqueConfigTab() {
                 type="submit"
                 className="bg-primary text-primary-foreground"
                 disabled={salvando || !nome.trim()}
+                data-id="estoque-local-salvar-button"
               >
                 {salvando ? "Salvando..." : editando ? "Salvar" : "Criar local"}
               </Button>

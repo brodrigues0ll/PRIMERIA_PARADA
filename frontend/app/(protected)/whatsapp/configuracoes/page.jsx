@@ -76,18 +76,19 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
   const isEdit = !!initialColor;
 
   return (
-    <div className="px-6 py-4 border-t border-[#e9edef] flex flex-col gap-4">
+    <div data-id="marker-form" className="px-6 py-4 border-t border-[#e9edef] flex flex-col gap-4">
       <div>
         <p className="text-[12px] font-medium text-[#54656f] mb-2">
           {isEdit ? "Alterar cor" : "Escolha uma cor"}
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div data-id="marker-color-picker" className="flex flex-wrap gap-2">
           {COLOR_KEYS.map((key) => {
             const isUsed = usedColors.has(key) && key !== initialColor;
             const isSelected = color === key;
             return (
               <button
                 key={key}
+                data-id={`marker-color-option-${key}`}
                 disabled={isUsed}
                 onClick={() => setColor(key)}
                 className={cn(
@@ -108,6 +109,7 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
       <div>
         <p className="text-[12px] font-medium text-[#54656f] mb-1">Nome do marcador</p>
         <input
+          data-id="marker-label-input"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onKeyDown={(e) => {
@@ -121,7 +123,7 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
       </div>
 
       {color && label.trim() && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-[#f0f2f5] rounded-lg">
+        <div data-id="marker-preview" className="flex items-center gap-2 px-3 py-2 bg-[#f0f2f5] rounded-lg">
           <div className="h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: COLOR_MAP[color] }} />
           <span className="text-[13px] text-[#111b21]">{label.trim()}</span>
         </div>
@@ -129,6 +131,7 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
 
       <div className="flex gap-2">
         <button
+          data-id="save-marker-button"
           onClick={() => onSave(color, label)}
           disabled={!color || !label.trim() || saving}
           className="flex-1 py-2 bg-[#25d366] text-white rounded-lg text-[13px] font-medium hover:bg-[#20c55e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -136,6 +139,7 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
           {saving ? "Salvando..." : isEdit ? "Salvar alterações" : "Salvar marcador"}
         </button>
         <button
+          data-id="cancel-marker-button"
           onClick={onCancel}
           className="px-4 py-2 border border-[#e9edef] text-[#54656f] rounded-lg text-[13px] hover:bg-[#f5f6f6] transition-colors"
         >
@@ -229,10 +233,11 @@ export default function WhatsAppConfigPage() {
   const formOpen = addingMarker || editingKey !== null;
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5]">
+    <div data-id="whatsapp-config-page" className="min-h-screen bg-[#f0f2f5]">
       {/* Header */}
-      <div className="flex items-center gap-4 px-6 h-[60px] bg-white border-b border-[#e9edef] sticky top-0 z-10">
+      <div data-id="whatsapp-config-header" className="flex items-center gap-4 px-6 h-[60px] bg-white border-b border-[#e9edef] sticky top-0 z-10">
         <Link
+          data-id="whatsapp-config-back-button"
           href="/whatsapp"
           className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#f0f2f5] transition-colors"
         >
@@ -244,8 +249,8 @@ export default function WhatsAppConfigPage() {
       <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
 
         {/* Seção A — Marcadores de conversa */}
-        <div className="bg-white rounded-xl border border-[#e9edef] overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e9edef]">
+        <div data-id="markers-section" className="bg-white rounded-xl border border-[#e9edef] overflow-hidden">
+          <div data-id="markers-section-header" className="flex items-center justify-between px-6 py-4 border-b border-[#e9edef]">
             <div>
               <h2 className="text-[15px] font-medium text-[#111b21]">Marcadores de Conversa</h2>
               <p className="text-[13px] text-[#54656f] mt-0.5">
@@ -254,6 +259,7 @@ export default function WhatsAppConfigPage() {
             </div>
             {!formOpen && (
               <button
+                data-id="add-marker-button"
                 onClick={() => setAddingMarker(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-[#25d366] text-white rounded-lg text-[13px] font-medium hover:bg-[#20c55e] transition-colors shrink-0"
               >
@@ -270,18 +276,19 @@ export default function WhatsAppConfigPage() {
           )}
 
           {configuredMarkers.length > 0 && (
-            <div className="divide-y divide-[#e9edef]">
+            <div data-id="markers-list" className="divide-y divide-[#e9edef]">
               {configuredMarkers.map(([key, label]) => (
                 <div key={key}>
                   {/* Linha normal */}
                   {editingKey !== key && (
-                    <div className="flex items-center gap-3 px-6 py-3">
+                    <div data-id={`marker-item-${key}`} className="flex items-center gap-3 px-6 py-3">
                       <div
                         className="h-5 w-5 rounded-full shrink-0"
                         style={{ backgroundColor: COLOR_MAP[key] }}
                       />
                       <span className="flex-1 text-[14px] text-[#111b21]">{label}</span>
                       <button
+                        data-id={`marker-edit-button-${key}`}
                         onClick={() => { setEditingKey(key); setAddingMarker(false); }}
                         className="h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:text-[#111b21] hover:bg-[#f0f2f5] transition-colors"
                         title="Editar marcador"
@@ -289,6 +296,7 @@ export default function WhatsAppConfigPage() {
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
+                        data-id={`marker-delete-button-${key}`}
                         onClick={() => deleteMarker(key)}
                         className="h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:text-red-500 hover:bg-red-50 transition-colors"
                         title="Remover marcador"
@@ -326,7 +334,7 @@ export default function WhatsAppConfigPage() {
         </div>
 
         {/* Seção B — Conversas Ocultas */}
-        <div className="bg-white rounded-xl border border-[#e9edef] overflow-hidden">
+        <div data-id="hidden-chats-section" className="bg-white rounded-xl border border-[#e9edef] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#e9edef]">
             <h2 className="text-[15px] font-medium text-[#111b21]">Conversas Ocultas</h2>
             <p className="text-[13px] text-[#54656f] mt-0.5">
@@ -340,9 +348,9 @@ export default function WhatsAppConfigPage() {
               Nenhuma conversa oculta no momento
             </div>
           ) : (
-            <div className="divide-y divide-[#e9edef]">
+            <div data-id="hidden-chats-list" className="divide-y divide-[#e9edef]">
               {hiddenChats.map((c) => (
-                <div key={c.jid} className="flex items-center gap-4 px-6 py-3">
+                <div key={c.jid} data-id={`hidden-chat-item-${c.jid}`} className="flex items-center gap-4 px-6 py-3">
                   <div className="h-10 w-10 rounded-full bg-[#dfe5e7] flex items-center justify-center text-[14px] font-semibold text-[#54656f] shrink-0">
                     {(c.jid || "?").charAt(0).toUpperCase()}
                   </div>
@@ -350,6 +358,7 @@ export default function WhatsAppConfigPage() {
                     <p className="text-[14px] text-[#111b21] truncate">{c.jid}</p>
                   </div>
                   <button
+                    data-id={`unhide-chat-button-${c.jid}`}
                     onClick={() => unhideChat(c.jid)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] text-[#25d366] border border-[#25d366] hover:bg-[#25d366]/10 transition-colors shrink-0"
                   >

@@ -199,11 +199,11 @@ function ModalEditar({ open, onClose, cliente, onSuccess }) {
         <div className="space-y-3">
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Nome *</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+            <Input data-id="cliente-name-input" value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Telefone</Label>
-            <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+            <Input data-id="cliente-phone-input" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Perfil de pagamento</Label>
@@ -225,7 +225,7 @@ function ModalEditar({ open, onClose, cliente, onSuccess }) {
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
             />
           </div>
-          <Button className="w-full" onClick={salvar} disabled={submitting}>
+          <Button data-id="save-cliente-button" className="w-full" onClick={salvar} disabled={submitting}>
             {submitting ? "Salvando..." : "Salvar"}
           </Button>
         </div>
@@ -289,7 +289,7 @@ export default function ClienteDetailPage() {
 
   return (
     <>
-      <Tabs defaultValue="perfil" className="flex-1">
+      <Tabs data-id="cliente-detail-page" defaultValue="perfil" className="flex-1">
         <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border">
           <TabsList className="w-full rounded-none bg-transparent h-auto p-0">
             {["perfil", "conta"].map((tab) => (
@@ -332,10 +332,11 @@ export default function ClienteDetailPage() {
             <Separator />
 
             <div className="flex gap-2 px-4 py-3">
-              <Button variant="outline" className="flex-1 h-9" onClick={() => setModalEditar(true)}>
+              <Button data-id="edit-cliente-button" variant="outline" className="flex-1 h-9" onClick={() => setModalEditar(true)}>
                 Editar
               </Button>
               <Button
+                data-id="delete-cliente-button"
                 variant="outline"
                 className={cn("flex-1 h-9", cliente.ativo ? "text-destructive border-destructive/30 hover:bg-destructive/10" : "")}
                 onClick={desativar}
@@ -349,9 +350,9 @@ export default function ClienteDetailPage() {
           {cliente.enderecos?.length > 0 && (
             <div>
               <SectionTitle>Endereços</SectionTitle>
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div data-id="cliente-enderecos-list" className="rounded-2xl border border-border bg-card overflow-hidden">
                 {cliente.enderecos.map((end, i) => (
-                  <div key={i}>
+                  <div key={i} data-id={`cliente-endereco-item-${i}`}>
                     <div className="px-4 py-3.5">
                       <p className="text-xs font-semibold text-foreground mb-0.5">{end.label || "Endereço"}</p>
                       <p className="text-sm text-muted-foreground">
@@ -395,13 +396,13 @@ export default function ClienteDetailPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <SectionTitle>Pedidos em aberto</SectionTitle>
-                <Button size="sm" className="h-8 text-xs" onClick={() => setModalPagamento(true)}>
+                <Button data-id="register-payment-button" size="sm" className="h-8 text-xs" onClick={() => setModalPagamento(true)}>
                   Registrar pagamento
                 </Button>
               </div>
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div data-id="pedidos-em-aberto-list" className="rounded-2xl border border-border bg-card overflow-hidden">
                 {pedidosEmAberto.map((p, i) => (
-                  <div key={p._id}>
+                  <div key={p._id} data-id={`pedido-aberto-item-${p._id}`}>
                     <div className="px-4 py-3.5">
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs text-muted-foreground">{formatDataBR(p.createdAt)}</p>
@@ -421,8 +422,9 @@ export default function ClienteDetailPage() {
           )}
 
           {historicoPagamentos.length > 0 && (
-            <div>
+            <div data-id="historico-pagamentos-section">
               <button
+                data-id="historico-pagamentos-toggle"
                 type="button"
                 className="flex items-center gap-2 mb-3 w-full"
                 onClick={() => setHistoricoPago((v) => !v)}

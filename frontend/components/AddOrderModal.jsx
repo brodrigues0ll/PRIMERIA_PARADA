@@ -63,13 +63,13 @@ export default function AddOrderModal({ open, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setNome(""); setMesaSelecionada(null); onClose(); } }}>
-      <DialogContent className="bg-card border-border sm:max-w-md">
+      <DialogContent data-id="add-order-modal" className="bg-card border-border sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nova comanda</DialogTitle>
           <DialogDescription>Selecione a mesa e informe o cliente</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div data-id="add-order-form" className="flex flex-col gap-4">
           {/* Seleção de mesa */}
           <div className="flex flex-col gap-1.5">
             <Label>
@@ -77,7 +77,7 @@ export default function AddOrderModal({ open, onClose }) {
               <span className="text-muted-foreground font-normal">(opcional)</span>
             </Label>
             {loadingMesas ? (
-              <div className="grid grid-cols-3 gap-2">
+              <div data-id="order-table-select-loading" className="grid grid-cols-3 gap-2">
                 {[...Array(6)].map((_, i) => (
                   <Skeleton key={i} className="h-10 rounded-xl" />
                 ))}
@@ -87,12 +87,13 @@ export default function AddOrderModal({ open, onClose }) {
                 Nenhuma mesa livre no momento
               </p>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div data-id="order-table-select" className="grid grid-cols-3 gap-2">
                 {mesasLivres.map((item) => {
                   const selected = mesaSelecionada?.mesa._id === item.mesa._id;
                   return (
                     <button
                       key={item.mesa._id}
+                      data-id={`order-table-option-${item.mesa._id}`}
                       type="button"
                       onClick={() =>
                         setMesaSelecionada(selected ? null : item)
@@ -119,6 +120,7 @@ export default function AddOrderModal({ open, onClose }) {
               <span className="text-muted-foreground font-normal">(opcional)</span>
             </Label>
             <Input
+              data-id="order-customer-input"
               id="nome-comanda"
               className="bg-background border-input"
               value={nome}
@@ -131,8 +133,9 @@ export default function AddOrderModal({ open, onClose }) {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div data-id="add-order-actions" className="flex gap-2">
             <Button
+              data-id="cancel-order-button"
               variant="outline"
               className="flex-1"
               onClick={() => {
@@ -144,6 +147,7 @@ export default function AddOrderModal({ open, onClose }) {
               Cancelar
             </Button>
             <Button
+              data-id="save-order-button"
               className="flex-1 bg-primary hover:bg-primary/90"
               onClick={handleCreate}
               disabled={loading}

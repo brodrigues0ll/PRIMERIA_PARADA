@@ -123,7 +123,7 @@ export default function NovoClientePage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="px-4 pt-6 pb-28 space-y-8">
+    <form data-id="cliente-form" onSubmit={handleSubmit} className="px-4 pt-6 pb-28 space-y-8">
 
       {/* Dados principais */}
       <div>
@@ -134,6 +134,7 @@ export default function NovoClientePage() {
               Nome <span className="text-destructive">*</span>
             </Label>
             <Input
+              data-id="cliente-name-input"
               placeholder="Nome completo"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
@@ -143,6 +144,7 @@ export default function NovoClientePage() {
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Telefone</Label>
             <Input
+              data-id="cliente-phone-input"
               placeholder="(00) 00000-0000"
               type="tel"
               value={telefone}
@@ -151,7 +153,7 @@ export default function NovoClientePage() {
           </div>
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Perfil de pagamento</Label>
-            <Select value={perfil} onValueChange={setPerfil}>
+            <Select data-id="cliente-payment-profile-select" value={perfil} onValueChange={setPerfil}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -165,6 +167,7 @@ export default function NovoClientePage() {
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
             <textarea
+              data-id="cliente-observations-input"
               placeholder="Observações sobre o cliente..."
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
@@ -208,6 +211,7 @@ export default function NovoClientePage() {
         )}
 
         <Button
+          data-id="add-endereco-button"
           type="button"
           variant="outline"
           className="w-full"
@@ -219,7 +223,7 @@ export default function NovoClientePage() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-background/90 backdrop-blur-md border-t border-border px-4 py-4">
-        <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={submitting}>
+        <Button data-id="save-cliente-button" type="submit" className="w-full h-12 text-base font-semibold" disabled={submitting}>
           {submitting ? "Salvando..." : "Cadastrar cliente"}
         </Button>
       </div>

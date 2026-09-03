@@ -471,11 +471,12 @@ export default function EstoquePage() {
 
   return (
     <>
-      <div className="pb-28">
+      <div data-id="estoque-page" className="pb-28">
         {/* Tab bar */}
-        <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border">
+        <div data-id="estoque-header" className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto scrollbar-none">
             <button
+              data-id="estoque-tab-consolidado"
               onClick={() => handleTabChange("consolidado")}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors shrink-0",
@@ -489,6 +490,7 @@ export default function EstoquePage() {
             {locais.map((local) => (
               <button
                 key={local._id}
+                data-id={`estoque-tab-${local._id}`}
                 onClick={() => handleTabChange(local._id)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors shrink-0",
@@ -501,6 +503,7 @@ export default function EstoquePage() {
               </button>
             ))}
             <button
+              data-id="estoque-locais-link"
               onClick={() => router.push("/estoque/locais")}
               className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent flex items-center gap-1"
             >
@@ -512,6 +515,7 @@ export default function EstoquePage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                data-id="estoque-search-input"
                 className="pl-9 pr-9 bg-card border-border h-10"
                 placeholder="Buscar produto..."
                 value={search}
@@ -603,12 +607,12 @@ export default function EstoquePage() {
               <p className="text-xs text-muted-foreground px-1">
                 {filtered.length} {filtered.length === 1 ? "item" : "itens"}
               </p>
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div data-id="estoque-list" className="rounded-2xl border border-border bg-card overflow-hidden">
                 {sorted.map((produto, idx) => {
                   const isExpanded = expandedId === produto._id;
                   const hist = historico[produto._id];
                   return (
-                    <div key={produto._id}>
+                    <div key={produto._id} data-id={`estoque-item-${produto._id}`}>
                       <div className="flex items-center gap-3 px-4 py-3.5">
                         <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
                           {produto.imagem
@@ -618,7 +622,7 @@ export default function EstoquePage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium text-foreground truncate">{produto.nome}</p>
+                            <p data-id="estoque-item-name" className="text-sm font-medium text-foreground truncate">{produto.nome}</p>
                             <StockBadge quantidade={produto.quantidade} minimo={produto.minimo} />
                             {produto.precoVenda > 0 && (
                               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">
@@ -674,7 +678,7 @@ export default function EstoquePage() {
                             </button>
                           )}
                           <button onClick={() => toggleExpand(produto._id)} className="text-right">
-                            <p className={cn(
+                            <p data-id="estoque-item-quantity" className={cn(
                               "text-xl font-bold tabular-nums leading-none",
                               produto.minimo > 0 && produto.quantidade <= 0 ? "text-destructive"
                                 : produto.minimo > 0 && produto.quantidade <= produto.minimo ? "text-amber-500"
@@ -685,6 +689,7 @@ export default function EstoquePage() {
                             <p className="text-xs text-muted-foreground">un.</p>
                           </button>
                           <button
+                            data-id="estoque-item-edit-button"
                             onClick={() => { setSelectedProduto(produto); setModalOpen(true); }}
                             className="h-8 w-8 rounded-lg bg-muted hover:bg-accent flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground text-lg font-light"
                           >
@@ -722,6 +727,7 @@ export default function EstoquePage() {
                             </div>
                           )}
                           <button
+                            data-id="estoque-item-delete-button"
                             onClick={(e) => removerProduto(produto, e)}
                             className="mt-3 flex items-center gap-1.5 text-xs text-destructive/70 hover:text-destructive transition-colors"
                           >
@@ -743,6 +749,7 @@ export default function EstoquePage() {
 
       <div className="fixed bottom-6 right-5 z-30">
         <Button
+          data-id="add-product-button"
           size="icon"
           className="h-14 w-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
           onClick={() => router.push("/estoque/adicionar")}

@@ -63,11 +63,11 @@ export default function EmpresaTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-id="empresa-form">
       {/* Logo */}
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-3" data-id="empresa-logo-section">
         <div className="relative">
-          <div className="h-20 w-20 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden">
+          <div className="h-20 w-20 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden" data-id="empresa-logo-preview">
             {empresa?.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={empresa.logo} alt="Logo" className="h-full w-full object-contain" />
@@ -78,37 +78,39 @@ export default function EmpresaTab() {
           <button
             onClick={() => fileRef.current?.click()}
             className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary flex items-center justify-center ring-2 ring-background"
+            data-id="empresa-logo-upload-button"
           >
             <Camera className="h-3.5 w-3.5 text-primary-foreground" />
           </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} data-id="empresa-logo-file-input" />
         </div>
         <p className="text-xs text-muted-foreground">Logo da empresa (máx. 1 MB)</p>
       </div>
 
       <Separator />
 
-      <div className="space-y-4">
+      <div className="space-y-4" data-id="empresa-informacoes">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Informações</p>
         {[
-          { key: "nome", label: "Nome da empresa", placeholder: "Ex: Primeira Parada" },
-          { key: "slogan", label: "Slogan", placeholder: "Ex: O melhor bar da cidade" },
-          { key: "cnpj", label: "CNPJ", placeholder: "00.000.000/0000-00" },
-          { key: "telefone", label: "Telefone", placeholder: "(00) 00000-0000" },
-          { key: "endereco", label: "Endereço", placeholder: "Rua, número, bairro, cidade" },
-        ].map(({ key, label, placeholder }) => (
+          { key: "nome", label: "Nome da empresa", placeholder: "Ex: Primeira Parada", dataId: "empresa-name-input" },
+          { key: "slogan", label: "Slogan", placeholder: "Ex: O melhor bar da cidade", dataId: "empresa-slogan-input" },
+          { key: "cnpj", label: "CNPJ", placeholder: "00.000.000/0000-00", dataId: "empresa-cnpj-input" },
+          { key: "telefone", label: "Telefone", placeholder: "(00) 00000-0000", dataId: "empresa-telefone-input" },
+          { key: "endereco", label: "Endereço", placeholder: "Rua, número, bairro, cidade", dataId: "empresa-endereco-input" },
+        ].map(({ key, label, placeholder, dataId }) => (
           <div key={key} className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">{label}</label>
             <Input
               value={empresa?.[key] ?? ""}
               onChange={(e) => setEmpresa((p) => ({ ...p, [key]: e.target.value }))}
               placeholder={placeholder}
+              data-id={dataId}
             />
           </div>
         ))}
       </div>
 
-      <Button onClick={handleSave} disabled={saving} className="w-full">
+      <Button onClick={handleSave} disabled={saving} className="w-full" data-id="save-empresa-button">
         {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Salvar empresa
       </Button>

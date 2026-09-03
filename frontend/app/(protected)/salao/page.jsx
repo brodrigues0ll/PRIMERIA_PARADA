@@ -236,15 +236,16 @@ export default function SalaoPage() {
   const mesasGrupo = grupoSelecionado?.mesasDoGrupo ?? [];
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-background pb-32">
+    <div data-id="salao-page" className="min-h-[calc(100vh-3.5rem)] bg-background pb-32">
       {/* Header de ações */}
-      <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border">
+      <div data-id="salao-header" className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border">
         <div className="flex items-center justify-between px-4 py-2.5 gap-2">
-          <span className="text-sm font-semibold text-foreground">
+          <span data-id="salao-mesa-count" className="text-sm font-semibold text-foreground">
             {mesas.length} mesa{mesas.length !== 1 ? "s" : ""}
           </span>
           <div className="flex items-center gap-1">
             <Button
+              data-id="salao-refresh-button"
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
@@ -254,6 +255,7 @@ export default function SalaoPage() {
               <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
             </Button>
             <Button
+              data-id="salao-toggle-juntar-button"
               variant={modoJuntar ? "default" : "ghost"}
               size="icon"
               className={cn(
@@ -269,7 +271,7 @@ export default function SalaoPage() {
           </div>
         </div>
         {modoJuntar && (
-          <div className="px-4 pb-2">
+          <div data-id="salao-juntar-hint" className="px-4 pb-2">
             <p className="text-xs text-muted-foreground">
               Selecione as mesas livres para juntar
             </p>
@@ -278,20 +280,20 @@ export default function SalaoPage() {
       </div>
 
       {/* Grid de mesas */}
-      <div className="px-4 pt-4">
+      <div data-id="salao-grid-wrapper" className="px-4 pt-4">
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div data-id="salao-grid-skeleton" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <MesaCardSkeleton key={i} />
             ))}
           </div>
         ) : mesas.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center gap-2">
+          <div data-id="salao-empty-state" className="flex flex-col items-center justify-center py-20 text-center gap-2">
             <p className="text-base font-semibold text-foreground">Nenhuma mesa cadastrada</p>
             <p className="text-sm text-muted-foreground">Configure o salão em Configurações</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div data-id="mesa-grid" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {displayItems.map((item) => {
               const { mesa, status, comandaNome, nomeDisplay } = item;
               const style = STATUS_STYLES[status] ?? STATUS_STYLES.livre;
@@ -302,6 +304,7 @@ export default function SalaoPage() {
               return (
                 <button
                   key={isGrupoFundido ? item.grupoId : mesa._id}
+                  data-id={isGrupoFundido ? `mesa-card-grupo-${item.grupoId}` : `mesa-card-${mesa._id}`}
                   onClick={() => handleTapMesa(item)}
                   disabled={isDisabledInJoinMode}
                   className={cn(
@@ -352,12 +355,13 @@ export default function SalaoPage() {
 
       {/* Barra inferior — modo juntar */}
       {modoJuntar && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-border px-4 py-4 flex items-center justify-between gap-3">
-          <p className="text-sm text-foreground font-medium">
+        <div data-id="salao-juntar-toolbar" className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-border px-4 py-4 flex items-center justify-between gap-3">
+          <p data-id="salao-juntar-selection-count" className="text-sm text-foreground font-medium">
             {selecionadas.length} mesa{selecionadas.length !== 1 ? "s" : ""} selecionada{selecionadas.length !== 1 ? "s" : ""}
           </p>
           <div className="flex items-center gap-2">
             <Button
+              data-id="salao-juntar-cancel-button"
               variant="outline"
               size="sm"
               onClick={toggleModoJuntar}
@@ -365,6 +369,7 @@ export default function SalaoPage() {
               Cancelar
             </Button>
             <Button
+              data-id="salao-juntar-confirm-button"
               size="sm"
               className="bg-primary text-primary-foreground"
               disabled={selecionadas.length < 2}
@@ -378,17 +383,18 @@ export default function SalaoPage() {
 
       {/* Modal — criar comanda */}
       <Dialog open={modalCriar} onOpenChange={(v) => { if (!criando) setModalCriar(v); }}>
-        <DialogContent>
+        <DialogContent data-id="modal-criar-comanda">
           <DialogHeader>
             <DialogTitle>Nova comanda</DialogTitle>
             <DialogDescription>
               Mesa: {mesaSelecionada?.nome}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCriarComanda} className="space-y-4 mt-2">
+          <form data-id="criar-comanda-form" onSubmit={handleCriarComanda} className="space-y-4 mt-2">
             <div className="space-y-1.5">
               <Label htmlFor="nome-comanda">Nome da comanda</Label>
               <Input
+                data-id="criar-comanda-nome-input"
                 id="nome-comanda"
                 value={nomeComanda}
                 onChange={(e) => setNomeComanda(e.target.value)}
@@ -399,6 +405,7 @@ export default function SalaoPage() {
             </div>
             <div className="flex justify-end gap-2">
               <Button
+                data-id="criar-comanda-cancel-button"
                 type="button"
                 variant="outline"
                 onClick={() => setModalCriar(false)}
@@ -407,6 +414,7 @@ export default function SalaoPage() {
                 Cancelar
               </Button>
               <Button
+                data-id="criar-comanda-submit-button"
                 type="submit"
                 className="bg-primary text-primary-foreground"
                 disabled={criando || !nomeComanda.trim()}
@@ -420,7 +428,7 @@ export default function SalaoPage() {
 
       {/* Modal — grupo de mesas */}
       <Dialog open={modalGrupo} onOpenChange={(v) => { if (!desfazendo) setModalGrupo(v); }}>
-        <DialogContent>
+        <DialogContent data-id="modal-grupo-mesas">
           <DialogHeader>
             <DialogTitle>Grupo de mesas</DialogTitle>
             {grupoSelecionado?.comandaNome && (
@@ -431,13 +439,13 @@ export default function SalaoPage() {
           </DialogHeader>
           <div className="mt-2 space-y-3">
             {mesasGrupo.length > 0 && (
-              <div className="space-y-1.5">
+              <div data-id="grupo-mesas-list" className="space-y-1.5">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Mesas do grupo
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {mesasGrupo.map((m) => (
-                    <Badge key={m.mesa._id} variant="outline" className="text-amber-500 border-amber-500/30">
+                    <Badge data-id={`grupo-mesa-badge-${m.mesa._id}`} key={m.mesa._id} variant="outline" className="text-amber-500 border-amber-500/30">
                       {m.mesa.nome}
                     </Badge>
                   ))}
@@ -448,6 +456,7 @@ export default function SalaoPage() {
             <div className="flex justify-end gap-2">
               {grupoSelecionado?.comandaId && (
                 <Button
+                  data-id="grupo-ver-comanda-button"
                   variant="outline"
                   onClick={() => {
                     setModalGrupo(false);
@@ -458,6 +467,7 @@ export default function SalaoPage() {
                 </Button>
               )}
               <Button
+                data-id="grupo-desfazer-juncao-button"
                 variant="destructive"
                 onClick={handleDesfazerGrupo}
                 disabled={desfazendo}
@@ -473,17 +483,18 @@ export default function SalaoPage() {
 
       {/* Modal — juntar mesas */}
       <Dialog open={modalJuntar} onOpenChange={(v) => { if (!juntando) setModalJuntar(v); }}>
-        <DialogContent>
+        <DialogContent data-id="modal-juntar-mesas">
           <DialogHeader>
             <DialogTitle>Juntar mesas</DialogTitle>
             <DialogDescription>
               {selecionadas.length} mesas selecionadas
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleJuntarMesas} className="space-y-4 mt-2">
+          <form data-id="juntar-mesas-form" onSubmit={handleJuntarMesas} className="space-y-4 mt-2">
             <div className="space-y-1.5">
               <Label htmlFor="nome-grupo">Nome do cliente / grupo</Label>
               <Input
+                data-id="juntar-mesas-nome-input"
                 id="nome-grupo"
                 value={nomeGrupo}
                 onChange={(e) => setNomeGrupo(e.target.value)}
@@ -494,6 +505,7 @@ export default function SalaoPage() {
             </div>
             <div className="flex justify-end gap-2">
               <Button
+                data-id="juntar-mesas-cancel-button"
                 type="button"
                 variant="outline"
                 onClick={() => setModalJuntar(false)}
@@ -502,6 +514,7 @@ export default function SalaoPage() {
                 Cancelar
               </Button>
               <Button
+                data-id="juntar-mesas-submit-button"
                 type="submit"
                 className="bg-primary text-primary-foreground"
                 disabled={juntando || !nomeGrupo.trim()}

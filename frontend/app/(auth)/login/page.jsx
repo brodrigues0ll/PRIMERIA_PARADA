@@ -41,10 +41,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-5">
+    <div data-id="login-page" className="min-h-screen flex flex-col items-center justify-center px-5">
       {/* Logo + marca */}
       <div className="flex flex-col items-center mb-10">
-        <div className="relative h-20 w-20 rounded-3xl overflow-hidden ring-1 ring-white/10 mb-5 shadow-xl shadow-black/40">
+        <div data-id="login-logo" className="relative h-20 w-20 rounded-3xl overflow-hidden ring-1 ring-white/10 mb-5 shadow-xl shadow-black/40">
           <Image
             src="/assets/images/LOGO-2.png"
             alt="Primeira Parada"
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
       {/* Formulário */}
       <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 shadow-2xl shadow-black/50">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form data-id="login-form" onSubmit={handleSubmit} className="flex flex-col gap-3">
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <Label
@@ -73,6 +73,7 @@ export default function LoginPage() {
             </Label>
             <Input
               id="email"
+              data-id="login-email-input"
               type="email"
               className="h-12 bg-card border-border rounded-xl px-4 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
               value={email}
@@ -98,6 +99,7 @@ export default function LoginPage() {
             <div className="relative">
               <Input
                 id="password"
+                data-id="login-password-input"
                 type={showPass ? "text" : "password"}
                 className="h-12 bg-card border-border rounded-xl px-4 pr-11 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                 value={password}
@@ -111,6 +113,7 @@ export default function LoginPage() {
               />
               <button
                 type="button"
+                data-id="login-toggle-password"
                 onClick={() => setShowPass(!showPass)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 tabIndex={-1}
@@ -126,6 +129,7 @@ export default function LoginPage() {
 
           {/* Erro */}
           <div
+            data-id="login-error-message"
             className={cn(
               "overflow-hidden transition-all duration-200",
               error ? "max-h-12 opacity-100" : "max-h-0 opacity-0"
@@ -138,6 +142,7 @@ export default function LoginPage() {
 
           {/* Botão */}
           <Button
+            data-id="login-submit-button"
             type="submit"
             className={cn(
               "h-12 w-full rounded-xl mt-1 text-sm font-semibold",

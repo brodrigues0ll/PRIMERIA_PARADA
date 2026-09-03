@@ -72,7 +72,7 @@ function PedidoCard({ pedido, onUpdate }) {
   const nextAction = NEXT_STATUS[pedido.status];
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+    <div data-id={`delivery-order-${pedido._id}`} className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between gap-2 mb-1">
           <div>
@@ -107,6 +107,7 @@ function PedidoCard({ pedido, onUpdate }) {
       <div className="flex gap-2 px-4 py-3">
         {nextAction && (
           <Button
+            data-id="delivery-advance-status-button"
             size="sm"
             className="flex-1 h-9"
             onClick={avancarStatus}
@@ -116,6 +117,7 @@ function PedidoCard({ pedido, onUpdate }) {
           </Button>
         )}
         <Button
+          data-id="delivery-cancel-button"
           size="sm"
           variant="outline"
           className="h-9 text-destructive border-destructive/30 hover:bg-destructive/10"
@@ -179,14 +181,16 @@ export default function DeliveryPage() {
 
   return (
     <>
-      <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
+      <div data-id="delivery-header" className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
         <input
+          data-id="delivery-date-filter"
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
           className="flex-1 h-9 rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <Button
+          data-id="delivery-refresh-button"
           variant="ghost"
           size="icon"
           className="h-9 w-9 shrink-0"
@@ -197,7 +201,7 @@ export default function DeliveryPage() {
         </Button>
       </div>
 
-      <div className="px-4 pt-4 pb-28">
+      <div data-id="delivery-page" className="px-4 pt-4 pb-28">
         <Tabs defaultValue="recebido">
           <TabsList className="w-full mb-4 grid grid-cols-3 h-auto">
             {STATUS_TABS.map((tab) => {
@@ -239,7 +243,7 @@ export default function DeliveryPage() {
                   <p className="text-xs text-muted-foreground">Sem pedidos neste status para a data selecionada</p>
                 </div>
               ) : (
-                <div className="space-y-3 mt-4">
+                <div data-id="delivery-list" className="space-y-3 mt-4">
                   {byStatus(tab.value).map((pedido) => (
                     <PedidoCard key={pedido._id} pedido={pedido} onUpdate={() => fetchPedidos(true)} />
                   ))}
@@ -252,6 +256,7 @@ export default function DeliveryPage() {
 
       <div className="fixed bottom-6 right-5 z-30">
         <Button
+          data-id="add-delivery-button"
           size="icon"
           className="h-14 w-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
           onClick={() => router.push("/delivery/novo")}

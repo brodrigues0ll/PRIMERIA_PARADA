@@ -500,9 +500,9 @@ export default function SalaoTab() {
   const mesasAtivas = mesas.filter((m) => m.ativa);
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10" data-id="salao-config-form">
       {/* Seção A — Grid de mesas */}
-      <section className="space-y-4">
+      <section className="space-y-4" data-id="salao-mesas-section">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-foreground">Mesas</h2>
@@ -514,6 +514,7 @@ export default function SalaoTab() {
             size="sm"
             className="bg-primary text-primary-foreground gap-1.5"
             onClick={abrirModalNova}
+            data-id="add-mesa-button"
           >
             <Plus className="h-3.5 w-3.5" />
             Nova mesa
@@ -533,10 +534,11 @@ export default function SalaoTab() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-8 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-8 gap-3" data-id="mesas-list">
             {mesas.map((mesa) => (
               <div
                 key={mesa._id}
+                data-id={`mesa-item-${mesa._id}`}
                 className={cn(
                   "aspect-square rounded-2xl border bg-card flex flex-col items-center justify-center gap-1 relative p-2",
                   mesa.ativa ? "border-border" : "border-border/40 opacity-50"
@@ -560,12 +562,14 @@ export default function SalaoTab() {
                   <button
                     className="h-6 w-6 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
                     onClick={() => abrirModalEditar(mesa)}
+                    data-id={`mesa-editar-button-${mesa._id}`}
                   >
                     <Pencil className="h-3 w-3 text-muted-foreground" />
                   </button>
                   <button
                     className="h-6 w-6 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
                     onClick={() => handleToggleAtiva(mesa)}
+                    data-id={`mesa-toggle-button-${mesa._id}`}
                   >
                     {mesa.ativa ? (
                       <ToggleRight className="h-3.5 w-3.5 text-emerald-500" />
@@ -583,7 +587,7 @@ export default function SalaoTab() {
       <Separator />
 
       {/* Seção B — Editor de layout */}
-      <section className="space-y-4">
+      <section className="space-y-4" data-id="salao-layout-section">
         <div>
           <h2 className="text-base font-bold text-foreground">
             Layout do salão
@@ -594,7 +598,7 @@ export default function SalaoTab() {
         </div>
 
         {/* Toggle de modo */}
-        <div className="flex rounded-xl border border-border overflow-hidden w-fit">
+        <div className="flex rounded-xl border border-border overflow-hidden w-fit" data-id="salao-layout-modo-toggle">
           <button
             type="button"
             onClick={() => setModoCanvas("planta")}
@@ -604,6 +608,7 @@ export default function SalaoTab() {
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
+            data-id="salao-layout-modo-planta"
           >
             <Pencil className="h-3.5 w-3.5" />
             Planta baixa
@@ -617,6 +622,7 @@ export default function SalaoTab() {
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
+            data-id="salao-layout-modo-mesas"
           >
             <Move className="h-3.5 w-3.5" />
             Posicionar mesas
@@ -689,7 +695,7 @@ export default function SalaoTab() {
                 : "Preencha os dados da nova mesa"}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSalvar} className="space-y-4 mt-2">
+          <form onSubmit={handleSalvar} className="space-y-4 mt-2" data-id="mesa-form">
             <div className="space-y-1.5">
               <Label htmlFor="nome-mesa">Nome</Label>
               <Input
@@ -699,6 +705,7 @@ export default function SalaoTab() {
                 placeholder="Ex: Mesa 1"
                 autoFocus
                 required
+                data-id="mesa-nome-input"
               />
             </div>
             <div className="space-y-1.5">
@@ -715,6 +722,7 @@ export default function SalaoTab() {
                 value={capacidadeMesa}
                 onChange={(e) => setCapacidadeMesa(e.target.value)}
                 placeholder="Ex: 4"
+                data-id="mesa-capacidade-input"
               />
             </div>
             <div className="flex justify-end gap-2">
@@ -723,6 +731,7 @@ export default function SalaoTab() {
                 variant="outline"
                 onClick={() => setModalAberto(false)}
                 disabled={salvando}
+                data-id="mesa-cancelar-button"
               >
                 Cancelar
               </Button>
@@ -730,6 +739,7 @@ export default function SalaoTab() {
                 type="submit"
                 className="bg-primary text-primary-foreground"
                 disabled={salvando || !nomeMesa.trim()}
+                data-id="mesa-salvar-button"
               >
                 {salvando ? "Salvando..." : editando ? "Salvar" : "Criar mesa"}
               </Button>

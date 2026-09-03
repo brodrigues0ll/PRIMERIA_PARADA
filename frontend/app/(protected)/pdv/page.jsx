@@ -52,7 +52,7 @@ function ComandaSelector({ open, onClose, onSelect }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-card border-border sm:max-w-sm">
+      <DialogContent data-id="pdv-comanda-selector-modal" className="bg-card border-border sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Selecionar comanda</DialogTitle>
         </DialogHeader>
@@ -62,9 +62,9 @@ function ComandaSelector({ open, onClose, onSelect }) {
           </div>
         )}
         {!loading && comandas.length > 0 && (
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div data-id="pdv-comanda-list" className="rounded-xl border border-border overflow-hidden">
             {comandas.map((c, i) => (
-              <div key={c._id}>
+              <div data-id={`pdv-comanda-item-${c._id}`} key={c._id}>
                 <button
                   onClick={() => onSelect(c)}
                   className="w-full text-left px-4 py-3 hover:bg-accent transition-colors"
@@ -76,15 +76,16 @@ function ComandaSelector({ open, onClose, onSelect }) {
             ))}
           </div>
         )}
-        <form onSubmit={handleCreate} className="flex gap-2 pt-1">
+        <form data-id="pdv-create-comanda-form" onSubmit={handleCreate} className="flex gap-2 pt-1">
           <Input
+            data-id="pdv-create-comanda-input"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Nome da nova comanda"
             className="flex-1 bg-background border-border"
             autoFocus
           />
-          <Button type="submit" disabled={creating || !nome.trim()} className="bg-primary hover:bg-primary/90 shrink-0">
+          <Button data-id="pdv-create-comanda-button" type="submit" disabled={creating || !nome.trim()} className="bg-primary hover:bg-primary/90 shrink-0">
             {creating ? "..." : "Criar"}
           </Button>
         </form>
@@ -135,7 +136,7 @@ function ItemList({ items, onIncrement, onDecrement, mutating }) {
 
   return (
     <div className="px-4">
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div data-id="pdv-product-list" className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Carrinho</p>
           <p className="text-xs text-muted-foreground">
@@ -143,7 +144,7 @@ function ItemList({ items, onIncrement, onDecrement, mutating }) {
           </p>
         </div>
         {[...items].reverse().map((p, i) => (
-          <div key={p._id ?? p.produtoId}>
+          <div data-id={`pdv-product-${p._id ?? p.produtoId}`} key={p._id ?? p.produtoId}>
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{p.nome}</p>
@@ -156,6 +157,7 @@ function ItemList({ items, onIncrement, onDecrement, mutating }) {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
+                  data-id={`pdv-product-decrement-${p._id ?? p.produtoId}`}
                   onClick={() => onDecrement(p)}
                   disabled={mutating === (p._id ?? p.produtoId)}
                   className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-accent disabled:opacity-40 transition-colors"
@@ -164,6 +166,7 @@ function ItemList({ items, onIncrement, onDecrement, mutating }) {
                 </button>
                 <span className="text-sm font-bold w-5 text-center tabular-nums">{p.quantidade}</span>
                 <button
+                  data-id={`pdv-product-increment-${p._id ?? p.produtoId}`}
                   onClick={() => onIncrement(p)}
                   disabled={mutating === (p._id ?? p.produtoId)}
                   className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-accent disabled:opacity-40 transition-colors"
@@ -249,23 +252,26 @@ function ModoAvulso() {
 
   return (
     <>
-      <div className="flex flex-col pb-36">
+      <div data-id="pdv-avulso-content" className="flex flex-col pb-36">
         <div className="px-4 pt-4 pb-3">
-          <BarcodeScanner onScan={handleScan} placeholder="Escanear produto..." />
+          <BarcodeScanner data-id="pdv-search-input" onScan={handleScan} placeholder="Escanear produto..." />
         </div>
         <ScanFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        <ItemList items={cart} onIncrement={increment} onDecrement={decrement} mutating={null} />
+        <div data-id="pdv-cart">
+          <ItemList items={cart} onIncrement={increment} onDecrement={decrement} mutating={null} />
+        </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border px-4 pb-6 pt-4">
+      <div data-id="pdv-checkout-bar" className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border px-4 pb-6 pt-4">
         <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-          <div>
+          <div data-id="pdv-cart-summary">
             <p className="text-xs text-muted-foreground">{totalItens} {totalItens === 1 ? "item" : "itens"}</p>
             <p className="text-3xl font-bold tabular-nums leading-tight">R$&nbsp;{formatPrice(total)}</p>
           </div>
           <div className="flex items-center gap-2">
             {cart.length > 0 && (
               <button
+                data-id="pdv-clear-cart-button"
                 onClick={() => setCart([])}
                 className="h-14 w-14 rounded-2xl border border-border flex items-center justify-center hover:bg-accent transition-colors"
                 title="Limpar carrinho"
@@ -274,6 +280,7 @@ function ModoAvulso() {
               </button>
             )}
             <button
+              data-id="pdv-checkout-button"
               onClick={finalizar}
               disabled={!cart.length}
               className="h-14 px-8 rounded-2xl bg-primary text-primary-foreground font-bold text-base transition-all hover:bg-primary/90 active:scale-[0.97] disabled:opacity-40"
@@ -383,10 +390,11 @@ function ModoComanda() {
 
   return (
     <>
-      <div className="flex flex-col pb-36">
+      <div data-id="pdv-comanda-content" className="flex flex-col pb-36">
         {/* Seletor de comanda */}
         <div className="px-4 pt-4 pb-3">
           <button
+            data-id="pdv-comanda-selector-trigger"
             onClick={() => setSelectorOpen(true)}
             className={cn(
               "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors mb-3",
@@ -401,25 +409,28 @@ function ModoComanda() {
             </div>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
-          <BarcodeScanner onScan={handleScan} placeholder="Escanear produto..." />
+          <BarcodeScanner data-id="pdv-search-input" onScan={handleScan} placeholder="Escanear produto..." />
         </div>
         <ScanFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        <ItemList
-          items={pedidos}
-          onIncrement={(p) => handleQty(p, "increment")}
-          onDecrement={(p) => handleQty(p, "decrement")}
-          mutating={mutating}
-        />
+        <div data-id="pdv-cart">
+          <ItemList
+            items={pedidos}
+            onIncrement={(p) => handleQty(p, "increment")}
+            onDecrement={(p) => handleQty(p, "decrement")}
+            mutating={mutating}
+          />
+        </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border px-4 pb-6 pt-4">
+      <div data-id="pdv-checkout-bar" className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border px-4 pb-6 pt-4">
         <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-          <div>
+          <div data-id="pdv-cart-summary">
             <p className="text-xs text-muted-foreground">{totalItens} {totalItens === 1 ? "item" : "itens"}</p>
             <p className="text-3xl font-bold tabular-nums leading-tight">R$&nbsp;{formatPrice(total)}</p>
           </div>
           {pedidos.length > 0 && comanda && (
             <button
+              data-id="pdv-checkout-button"
               onClick={handleClose}
               disabled={closing}
               className="h-14 px-8 rounded-2xl bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.97] disabled:opacity-70 transition-all"
@@ -440,9 +451,9 @@ export default function PDVPage() {
   const [modo, setModo] = useState("avulso");
 
   return (
-    <div>
+    <div data-id="pdv-page">
       {/* Seletor de modo */}
-      <div className="px-4 pt-4">
+      <div data-id="pdv-mode-selector" className="px-4 pt-4">
         <div className="grid grid-cols-2 gap-1.5 bg-muted rounded-xl p-1">
           {[
             { key: "avulso", label: "Venda avulsa" },
@@ -450,6 +461,7 @@ export default function PDVPage() {
           ].map(({ key, label }) => (
             <button
               key={key}
+              data-id={`pdv-mode-${key}`}
               onClick={() => setModo(key)}
               className={cn(
                 "py-2 rounded-lg text-sm font-medium transition-colors",

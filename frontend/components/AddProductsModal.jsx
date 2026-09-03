@@ -94,7 +94,7 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-card border-border sm:max-w-md flex flex-col max-h-[85vh]">
+      <DialogContent data-id="add-products-modal" className="bg-card border-border sm:max-w-md flex flex-col max-h-[85vh]">
 
         {/* ── Etapa 1: selecionar item ── */}
         {step === "items" && (
@@ -105,6 +105,7 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                data-id="products-search-input"
                 className="pl-9 bg-background border-input"
                 placeholder="Buscar produto..."
                 value={search}
@@ -112,7 +113,7 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
                 autoFocus
               />
             </div>
-            <div className="flex flex-col overflow-y-auto flex-1 -mx-6 px-6">
+            <div data-id="products-list" className="flex flex-col overflow-y-auto flex-1 -mx-6 px-6">
               {loading && (
                 <div className="flex flex-col gap-3 py-2">
                   {[...Array(5)].map((_, i) => (
@@ -126,7 +127,7 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
                 </p>
               )}
               {!loading && filtered.map((item, i) => (
-                <div key={item._id}>
+                <div key={item._id} data-id={`product-option-${item._id}`}>
                   <div className="flex items-center justify-between py-3">
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.nome}</p>
@@ -135,6 +136,7 @@ export default function AddProductsModal({ open, onClose, comandaId, onAdded, is
                       </p>
                     </div>
                     <Button
+                      data-id="add-selected-products-button"
                       size="sm"
                       className="bg-primary hover:bg-primary/90 gap-1"
                       onClick={() => handleAdd(item)}

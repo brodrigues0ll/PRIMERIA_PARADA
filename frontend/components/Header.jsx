@@ -65,10 +65,11 @@ export default function Header({ session, empresa }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
+    <header data-id="main-header" className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="flex items-center h-14 px-4 gap-2">
         {back ? (
           <Button
+            data-id="header-back-button"
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
@@ -77,7 +78,7 @@ export default function Header({ session, empresa }) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
         ) : (
-          <div className="flex items-center gap-2.5">
+          <div data-id="header-logo" className="flex items-center gap-2.5">
             <div className="relative h-8 w-8 rounded-lg overflow-hidden ring-1 ring-primary/20">
               <Image
                 src={logoEmpresa || "/assets/images/LOGO-2.png"}
@@ -100,8 +101,9 @@ export default function Header({ session, empresa }) {
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div data-id="header-actions" className="flex items-center gap-1">
           <Button
+            data-id="header-theme-toggle"
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
@@ -114,6 +116,7 @@ export default function Header({ session, empresa }) {
 
           {session && (
             <Button
+              data-id="logout-button"
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-destructive"
@@ -128,7 +131,7 @@ export default function Header({ session, empresa }) {
       {isOrders && (
         <>
           <Separator />
-          <div className="flex">
+          <div data-id="orders-tab-bar" className="flex">
             {[
               { label: "Abertas", href: "/orders" },
               { label: "Fechadas", href: "/orders/fechadas" },
@@ -137,6 +140,7 @@ export default function Header({ session, empresa }) {
               return (
                 <button
                   key={tab.href}
+                  data-id={`orders-tab-${tab.href.split("/").pop()}`}
                   onClick={() => router.push(tab.href)}
                   className={cn(
                     "flex-1 py-2.5 text-sm font-medium transition-colors border-b-2",

@@ -144,11 +144,11 @@ export default function OrderDetailPage() {
 
   return (
     <>
-      <div className="pb-44">
+      <div data-id="order-detail-page" className="pb-44">
 
         {/* Skeletons */}
         {loading && (
-          <div className="mx-4 mt-4 rounded-2xl border border-border overflow-hidden bg-card">
+          <div data-id="order-detail-skeleton" className="mx-4 mt-4 rounded-2xl border border-border overflow-hidden bg-card">
             {[...Array(3)].map((_, i) => (
               <div key={i}>
                 <div className="flex items-center justify-between px-4 py-4">
@@ -166,8 +166,8 @@ export default function OrderDetailPage() {
 
         {/* Pagantes da comanda em grupo */}
         {!loading && isGrupo && pagantes.length > 0 && (
-          <div className="px-4 pt-4">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div data-id="order-pagantes-section" className="px-4 pt-4">
+            <div data-id="order-pagantes-list" className="flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Users className="h-3.5 w-3.5" />
                 Pagantes:
@@ -177,6 +177,7 @@ export default function OrderDetailPage() {
                 return (
                   <span
                     key={nome}
+                    data-id={`order-pagante-badge-${nome}`}
                     className={cn(
                       "px-2.5 py-0.5 rounded-full text-xs font-medium",
                       pago
@@ -194,7 +195,7 @@ export default function OrderDetailPage() {
 
         {/* Empty */}
         {!loading && pedidos.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
+          <div data-id="order-items-empty-state" className="flex flex-col items-center justify-center py-24 px-8 text-center">
             <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <ShoppingBag className="h-6 w-6 text-muted-foreground" />
             </div>
@@ -205,10 +206,10 @@ export default function OrderDetailPage() {
 
         {/* Lista de pedidos — comanda simples */}
         {!loading && !isGrupo && pedidos.length > 0 && (
-          <div className="px-4 pt-4">
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div data-id="order-detail-header" className="px-4 pt-4">
+            <div data-id="order-items-list" className="rounded-2xl border border-border bg-card overflow-hidden">
               {pedidos.map((p, i) => (
-                <div key={p._id}>
+                <div key={p._id} data-id={`order-item-${p._id}`}>
                   <PedidoRow p={p} />
                   {i < pedidos.length - 1 && <Separator />}
                 </div>
@@ -219,16 +220,17 @@ export default function OrderDetailPage() {
 
         {/* Lista de pedidos — comanda em grupo (agrupada por pagante) */}
         {!loading && isGrupo && pedidos.length > 0 && (
-          <div className="px-4 pt-4 space-y-4">
+          <div data-id="order-items-list" className="px-4 pt-4 space-y-4">
             {pagantesComItens.map((nome) => {
               const itens = grupos[nome];
               const subtotal = itens.reduce((a, p) => a + p.preco * p.quantidade, 0);
               const pago = pagantesPagos.includes(nome);
 
               return (
-                <div key={nome}>
-                  <div className="flex items-center justify-between mb-1.5 px-1">
+                <div key={nome} data-id={`order-group-${nome}`}>
+                  <div data-id={`order-group-header-${nome}`} className="flex items-center justify-between mb-1.5 px-1">
                     <button
+                      data-id={`order-group-toggle-pago-${nome}`}
                       onClick={() => handleTogglePago(nome)}
                       className="flex items-center gap-2 group"
                     >
@@ -251,7 +253,7 @@ export default function OrderDetailPage() {
                         {nome}
                       </span>
                     </button>
-                    <span className={cn(
+                    <span data-id={`order-group-subtotal-${nome}`} className={cn(
                       "text-xs tabular-nums font-medium",
                       pago ? "text-emerald-500" : "text-muted-foreground"
                     )}>
@@ -259,13 +261,14 @@ export default function OrderDetailPage() {
                     </span>
                   </div>
                   <div
+                    data-id={`order-group-items-${nome}`}
                     className={cn(
                       "rounded-2xl border bg-card overflow-hidden transition-colors",
                       pago ? "border-emerald-500/30" : "border-border"
                     )}
                   >
                     {itens.map((p, i) => (
-                      <div key={p._id}>
+                      <div key={p._id} data-id={`order-item-${p._id}`}>
                         <PedidoRow p={p} muted={pago} />
                         {i < itens.length - 1 && <Separator />}
                       </div>
@@ -276,18 +279,18 @@ export default function OrderDetailPage() {
             })}
 
             {semPagante.length > 0 && (
-              <div>
+              <div data-id="order-group-sem-pagante">
                 <div className="flex items-center justify-between mb-1.5 px-1">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Sem pagante
                   </span>
-                  <span className="text-xs text-muted-foreground tabular-nums">
+                  <span data-id="order-group-sem-pagante-subtotal" className="text-xs text-muted-foreground tabular-nums">
                     R$&nbsp;{formatPrice(semPagante.reduce((a, p) => a + p.preco * p.quantidade, 0))}
                   </span>
                 </div>
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div data-id="order-group-sem-pagante-items" className="rounded-2xl border border-border bg-card overflow-hidden">
                   {semPagante.map((p, i) => (
-                    <div key={p._id}>
+                    <div key={p._id} data-id={`order-item-${p._id}`}>
                       <PedidoRow p={p} />
                       {i < semPagante.length - 1 && <Separator />}
                     </div>
@@ -300,23 +303,25 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30">
+      <div data-id="order-detail-bottom-bar" className="fixed bottom-0 left-0 right-0 z-30">
         <div className="bg-gradient-to-t from-background via-background to-transparent h-6" />
         <div className="bg-background border-t border-border px-4 pb-6 pt-4">
           <div className="flex items-center gap-3 max-w-md mx-auto">
-            <div className="flex-1 bg-card border border-border rounded-2xl px-4 py-3">
+            <div data-id="order-total" className="flex-1 bg-card border border-border rounded-2xl px-4 py-3">
               <p className="text-xs text-muted-foreground leading-none mb-1">Total</p>
               <p className="text-lg font-bold tabular-nums leading-none">
                 R$&nbsp;{formatPrice(total)}
               </p>
             </div>
             <button
+              data-id="add-items-button"
               onClick={() => setModalOpen(true)}
               className="h-[62px] w-[62px] rounded-2xl border border-border bg-card flex items-center justify-center hover:bg-accent transition-colors shrink-0"
             >
               <Plus className="h-5 w-5 text-foreground" />
             </button>
             <button
+              data-id="close-order-button"
               onClick={handleClose}
               disabled={closing}
               className={cn(

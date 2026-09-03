@@ -7,9 +7,9 @@ export default async function ConfiguracoesLayout({ children }) {
   const isAdmin = session?.user?.role === "admin";
 
   return (
-    <div className="pb-10">
+    <div className="pb-10" data-id="configuracoes-layout">
       <ConfiguracoesNav isAdmin={isAdmin} />
-      <div className="px-4 pt-6">
+      <div className="px-4 pt-6" data-id="configuracoes-content">
         {children}
       </div>
     </div>

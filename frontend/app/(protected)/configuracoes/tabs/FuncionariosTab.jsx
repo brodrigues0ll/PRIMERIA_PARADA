@@ -167,12 +167,12 @@ export default function FuncionariosTab({ currentUserId }) {
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-4" data-id="funcionarios-section">
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             {users.length} funcionário{users.length !== 1 ? "s" : ""}
           </p>
-          <Button size="sm" onClick={openNovo} className="gap-1.5 h-8">
+          <Button size="sm" onClick={openNovo} className="gap-1.5 h-8" data-id="add-funcionario-button">
             <Plus className="h-3.5 w-3.5" />
             Novo
           </Button>
@@ -186,12 +186,12 @@ export default function FuncionariosTab({ currentUserId }) {
         )}
 
         {users.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden" data-id="funcionarios-list">
             {users.map((u, idx) => {
               const initials = (u.name || u.email || "U")
                 .split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
               return (
-                <div key={u._id}>
+                <div key={u._id} data-id={`funcionario-item-${u._id}`}>
                   <div className="flex items-center gap-3 px-4 py-3.5">
                     {/* Avatar */}
                     <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-border">
@@ -234,12 +234,14 @@ export default function FuncionariosTab({ currentUserId }) {
                       <button
                         onClick={() => openSenha(u)}
                         className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        data-id={`funcionario-senha-button-${u._id}`}
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => openEditar(u)}
                         className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        data-id={`funcionario-editar-button-${u._id}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -247,6 +249,7 @@ export default function FuncionariosTab({ currentUserId }) {
                         <button
                           onClick={() => handleDelete(u)}
                           className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          data-id={`funcionario-excluir-button-${u._id}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -263,22 +266,22 @@ export default function FuncionariosTab({ currentUserId }) {
 
       {/* Sheet: Novo funcionário */}
       <BottomSheet open={sheet === "novo"} onClose={() => setSheet(null)} title="Novo funcionário">
-        <div className="space-y-3">
+        <div className="space-y-3" data-id="funcionario-form">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Nome</label>
-            <Input value={formNovo.name} onChange={(e) => setFormNovo((p) => ({ ...p, name: e.target.value }))} placeholder="Nome completo" />
+            <Input value={formNovo.name} onChange={(e) => setFormNovo((p) => ({ ...p, name: e.target.value }))} placeholder="Nome completo" data-id="funcionario-novo-name-input" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Email *</label>
-            <Input type="email" value={formNovo.email} onChange={(e) => setFormNovo((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemplo.com" />
+            <Input type="email" value={formNovo.email} onChange={(e) => setFormNovo((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemplo.com" data-id="funcionario-novo-email-input" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Senha inicial *</label>
-            <Input type="password" value={formNovo.password} onChange={(e) => setFormNovo((p) => ({ ...p, password: e.target.value }))} placeholder="Mínimo 6 caracteres" />
+            <Input type="password" value={formNovo.password} onChange={(e) => setFormNovo((p) => ({ ...p, password: e.target.value }))} placeholder="Mínimo 6 caracteres" data-id="funcionario-novo-password-input" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Cargo</label>
-            <Input value={formNovo.cargo} onChange={(e) => setFormNovo((p) => ({ ...p, cargo: e.target.value }))} placeholder="Ex: Garçom" />
+            <Input value={formNovo.cargo} onChange={(e) => setFormNovo((p) => ({ ...p, cargo: e.target.value }))} placeholder="Ex: Garçom" data-id="funcionario-novo-cargo-input" />
           </div>
           <Separator />
           <div className="space-y-1.5">
@@ -332,8 +335,8 @@ export default function FuncionariosTab({ currentUserId }) {
             </div>
           )}
           <div className="flex gap-2 pt-1">
-            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)}>Cancelar</Button>
-            <Button className="flex-1" disabled={saving} onClick={handleSaveNovo}>
+            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)} data-id="funcionario-novo-cancelar-button">Cancelar</Button>
+            <Button className="flex-1" disabled={saving} onClick={handleSaveNovo} data-id="funcionario-novo-salvar-button">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar
             </Button>
@@ -343,18 +346,18 @@ export default function FuncionariosTab({ currentUserId }) {
 
       {/* Sheet: Editar funcionário */}
       <BottomSheet open={sheet === "editar"} onClose={() => setSheet(null)} title={`Editar: ${selected?.name || selected?.email || ""}`}>
-        <div className="space-y-3">
+        <div className="space-y-3" data-id="funcionario-editar-form">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Nome</label>
-            <Input value={formEditar.name} onChange={(e) => setFormEditar((p) => ({ ...p, name: e.target.value }))} placeholder="Nome completo" />
+            <Input value={formEditar.name} onChange={(e) => setFormEditar((p) => ({ ...p, name: e.target.value }))} placeholder="Nome completo" data-id="funcionario-editar-name-input" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Email</label>
-            <Input type="email" value={formEditar.email} onChange={(e) => setFormEditar((p) => ({ ...p, email: e.target.value }))} />
+            <Input type="email" value={formEditar.email} onChange={(e) => setFormEditar((p) => ({ ...p, email: e.target.value }))} data-id="funcionario-editar-email-input" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Cargo</label>
-            <Input value={formEditar.cargo} onChange={(e) => setFormEditar((p) => ({ ...p, cargo: e.target.value }))} placeholder="Ex: Garçom" />
+            <Input value={formEditar.cargo} onChange={(e) => setFormEditar((p) => ({ ...p, cargo: e.target.value }))} placeholder="Ex: Garçom" data-id="funcionario-editar-cargo-input" />
           </div>
           <Separator />
           <div className="space-y-1.5">
@@ -430,8 +433,8 @@ export default function FuncionariosTab({ currentUserId }) {
             </button>
           </div>
           <div className="flex gap-2 pt-1">
-            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)}>Cancelar</Button>
-            <Button className="flex-1" disabled={saving} onClick={handleSaveEditar}>
+            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)} data-id="funcionario-editar-cancelar-button">Cancelar</Button>
+            <Button className="flex-1" disabled={saving} onClick={handleSaveEditar} data-id="funcionario-editar-salvar-button">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Salvar
             </Button>
@@ -441,7 +444,7 @@ export default function FuncionariosTab({ currentUserId }) {
 
       {/* Sheet: Alterar senha */}
       <BottomSheet open={sheet === "senha"} onClose={() => setSheet(null)} title={`Senha: ${selected?.name || selected?.email || ""}`}>
-        <div className="space-y-3">
+        <div className="space-y-3" data-id="funcionario-senha-form">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Nova senha</label>
             <Input
@@ -450,11 +453,12 @@ export default function FuncionariosTab({ currentUserId }) {
               onChange={(e) => setNovaSenha(e.target.value)}
               placeholder="Mínimo 6 caracteres"
               autoFocus
+              data-id="funcionario-nova-senha-input"
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)}>Cancelar</Button>
-            <Button className="flex-1" disabled={saving} onClick={handleSaveSenha}>
+            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)} data-id="funcionario-senha-cancelar-button">Cancelar</Button>
+            <Button className="flex-1" disabled={saving} onClick={handleSaveSenha} data-id="funcionario-senha-alterar-button">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Alterar
             </Button>

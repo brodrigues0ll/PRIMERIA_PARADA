@@ -71,17 +71,18 @@ export default function MenuItemModal({ open, onClose, item, onSuccess }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-card border-border sm:max-w-sm">
+      <DialogContent data-id="menu-item-modal" className="bg-card border-border sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar item" : "Novo item"}</DialogTitle>
           <DialogDescription>
             {isEdit ? "Atualize as informações" : "Adicione ao cardápio"}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
+        <div data-id="menu-item-form" className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="codigo">Código</Label>
             <Input
+              data-id="menu-item-code-input"
               id="codigo"
               className="bg-background border-input"
               value={codigo}
@@ -92,6 +93,7 @@ export default function MenuItemModal({ open, onClose, item, onSuccess }) {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nome-item">Nome *</Label>
             <Input
+              data-id="menu-item-name-input"
               id="nome-item"
               className="bg-background border-input"
               value={nome}
@@ -103,6 +105,7 @@ export default function MenuItemModal({ open, onClose, item, onSuccess }) {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="preco">Preço (R$) *</Label>
             <Input
+              data-id="menu-item-price-input"
               id="preco"
               className="bg-background border-input"
               value={preco}
@@ -113,9 +116,10 @@ export default function MenuItemModal({ open, onClose, item, onSuccess }) {
             />
           </div>
           {isEdit && <Separator />}
-          <div className="flex gap-2">
+          <div data-id="menu-item-actions" className="flex gap-2">
             {isEdit && (
               <Button
+                data-id="menu-item-delete-button"
                 variant="destructive"
                 size="icon"
                 onClick={handleDelete}
@@ -125,6 +129,7 @@ export default function MenuItemModal({ open, onClose, item, onSuccess }) {
               </Button>
             )}
             <Button
+              data-id="cancel-menu-item-button"
               variant="outline"
               className="flex-1"
               onClick={onClose}
@@ -132,6 +137,7 @@ export default function MenuItemModal({ open, onClose, item, onSuccess }) {
               Cancelar
             </Button>
             <Button
+              data-id="save-menu-item-button"
               className="flex-1 bg-primary hover:bg-primary/90"
               onClick={handleSave}
               disabled={loading || !nome.trim() || !preco}

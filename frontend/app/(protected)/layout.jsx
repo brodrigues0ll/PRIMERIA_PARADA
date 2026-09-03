@@ -22,9 +22,9 @@ export default async function ProtectedLayout({ children }) {
   const empresa = await getEmpresa();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div data-id="protected-layout" className="min-h-screen bg-background">
       <Header session={session} empresa={empresa} />
-      <main>{children}</main>
+      <main data-id="main-content">{children}</main>
     </div>
   );
 }

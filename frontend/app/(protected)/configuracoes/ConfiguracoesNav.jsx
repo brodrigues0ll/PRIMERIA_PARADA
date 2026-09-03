@@ -20,14 +20,16 @@ export default function ConfiguracoesNav({ isAdmin }) {
   ];
 
   return (
-    <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border">
+    <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border" data-id="configuracoes-nav">
       <div className="flex overflow-x-auto scrollbar-none">
         {tabs.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
+          const slug = href.split("/").pop();
           return (
             <Link
               key={href}
               href={href}
+              data-id={`config-nav-${slug}`}
               className={cn(
                 "flex-shrink-0 flex flex-col items-center gap-1 py-3 px-4 text-xs font-medium transition-colors border-b-2 min-w-[64px]",
                 active

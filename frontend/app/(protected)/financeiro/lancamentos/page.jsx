@@ -213,11 +213,12 @@ export default function LancamentosPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div data-id="lancamentos-page" className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-foreground">Lançamentos</h1>
         {caixaAberto && (
           <Button
+            data-id="add-lancamento-button"
             onClick={() => setModalLancamento(true)}
             className="bg-primary text-primary-foreground"
             size="sm"
@@ -288,10 +289,11 @@ export default function LancamentosPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div data-id="lancamentos-list" className="space-y-2">
           {lancamentos.map((lanc) => (
             <div
               key={lanc._id}
+              data-id={`lancamento-item-${lanc._id}`}
               className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3"
             >
               <div
@@ -365,7 +367,7 @@ export default function LancamentosPage() {
           <DialogHeader>
             <DialogTitle>Novo Lançamento</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSalvarLancamento} className="space-y-4 pt-2">
+          <form data-id="lancamento-form" onSubmit={handleSalvarLancamento} className="space-y-4 pt-2">
             {/* Toggle Tipo */}
             <div className="flex rounded-xl overflow-hidden border border-border">
               <button

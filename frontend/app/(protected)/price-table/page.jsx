@@ -45,11 +45,12 @@ export default function PriceTablePage() {
 
   return (
     <>
-      <div className="pb-28">
-        <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3">
+      <div data-id="price-table-page" className="pb-28">
+        <div data-id="price-table-search-bar" className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
+              data-id="price-table-search-input"
               className="pl-9 pr-9 bg-card border-border h-10"
               placeholder="Buscar produto..."
               value={search}
@@ -98,18 +99,18 @@ export default function PriceTablePage() {
         )}
 
         {!loading && grouped.length > 0 && (
-          <div className="px-4 pt-4 flex flex-col gap-4">
+          <div data-id="price-table-list" className="px-4 pt-4 flex flex-col gap-4">
             <p className="text-xs text-muted-foreground px-1">
               {filtered.length} {filtered.length === 1 ? "item" : "itens"}
             </p>
             {grouped.map(([letter, groupItems]) => (
-              <div key={letter}>
+              <div data-id={`price-table-group-${letter}`} key={letter}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">
                   {letter}
                 </p>
                 <div className="rounded-2xl border border-border bg-card overflow-hidden">
                   {groupItems.map((item, idx) => (
-                    <div key={item._id}>
+                    <div data-id={`price-item-${item._id}`} key={item._id}>
                       <MenuItemCard
                         item={item}
                         onClick={() => router.push(`/price-table/${item._id}/editar`)}
@@ -126,6 +127,7 @@ export default function PriceTablePage() {
 
       <div className="fixed bottom-6 right-5 z-30">
         <Button
+          data-id="add-price-button"
           size="icon"
           className="h-14 w-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
           onClick={() => router.push("/price-table/novo")}

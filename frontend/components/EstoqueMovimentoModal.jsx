@@ -62,7 +62,7 @@ export default function EstoqueMovimentoModal({ open, onClose, item, onSuccess }
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-card border-border sm:max-w-sm">
+      <DialogContent data-id="estoque-movimento-modal" className="bg-card border-border sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="truncate">{item?.nome}</DialogTitle>
           <DialogDescription>
@@ -71,12 +71,13 @@ export default function EstoqueMovimentoModal({ open, onClose, item, onSuccess }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-5">
+        <div data-id="movimento-form" className="flex flex-col gap-5">
           {/* Seletor de tipo */}
-          <div className="grid grid-cols-3 gap-1.5 bg-muted rounded-xl p-1">
+          <div data-id="movimento-type-select" className="grid grid-cols-3 gap-1.5 bg-muted rounded-xl p-1">
             {TIPOS.map(({ key, label, icon: Icon, color }) => (
               <button
                 key={key}
+                data-id={`movimento-type-option-${key}`}
                 onClick={() => setTipo(key)}
                 className={cn(
                   "flex flex-col items-center gap-1 py-2.5 rounded-lg text-xs font-medium transition-colors",
@@ -97,6 +98,7 @@ export default function EstoqueMovimentoModal({ open, onClose, item, onSuccess }
               {tipo === "ajuste" ? "Nova quantidade" : "Quantidade"}
             </Label>
             <Input
+              data-id="movimento-quantity-input"
               id="qty"
               type="number"
               inputMode="numeric"
@@ -110,7 +112,7 @@ export default function EstoqueMovimentoModal({ open, onClose, item, onSuccess }
 
           {/* Preview */}
           {previewNovo !== null && quantidade !== "" && (
-            <div className="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
+            <div data-id="movimento-stock-preview" className="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
               <span className="text-sm text-muted-foreground">Novo estoque</span>
               <span className="text-sm font-bold text-foreground">{previewNovo} un.</span>
             </div>
@@ -122,6 +124,7 @@ export default function EstoqueMovimentoModal({ open, onClose, item, onSuccess }
               Observação <span className="text-xs">(opcional)</span>
             </Label>
             <Input
+              data-id="movimento-observation-input"
               id="obs"
               className="bg-background border-border"
               value={observacao}
@@ -131,11 +134,12 @@ export default function EstoqueMovimentoModal({ open, onClose, item, onSuccess }
           </div>
 
           {/* Ações */}
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
+          <div data-id="movimento-actions" className="flex gap-2">
+            <Button data-id="cancel-movimento-button" variant="outline" className="flex-1" onClick={onClose}>
               Cancelar
             </Button>
             <Button
+              data-id="save-movimento-button"
               className="flex-1 bg-primary hover:bg-primary/90"
               onClick={handleSave}
               disabled={loading || quantidade === ""}

@@ -47,20 +47,22 @@ export default function ClientesPage() {
 
   return (
     <>
-      <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 space-y-2">
+      <div data-id="clientes-header" className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 space-y-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
+            data-id="clientes-search-input"
             placeholder="Buscar por nome ou telefone..."
             className="pl-9"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
-        <div className="flex rounded-xl border border-border overflow-hidden h-9">
+        <div data-id="clientes-filter-toggle" className="flex rounded-xl border border-border overflow-hidden h-9">
           {[{ label: "Ativos", value: true }, { label: "Todos", value: false }].map((opt) => (
             <button
               key={String(opt.value)}
+              data-id={`clientes-filter-${opt.value ? "ativos" : "todos"}`}
               onClick={() => setApenasAtivos(opt.value)}
               className={cn(
                 "flex-1 text-xs font-medium transition-colors",
@@ -75,7 +77,7 @@ export default function ClientesPage() {
         </div>
       </div>
 
-      <div className="pb-28">
+      <div data-id="clientes-page" className="pb-28">
         {loading && (
           <div className="mx-4 mt-4 rounded-2xl border border-border overflow-hidden bg-card">
             {[...Array(5)].map((_, i) => (
@@ -111,9 +113,9 @@ export default function ClientesPage() {
             <p className="text-xs text-muted-foreground px-1 mb-2">
               {clientes.length} cliente{clientes.length !== 1 ? "s" : ""}
             </p>
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div data-id="clientes-list" className="rounded-2xl border border-border bg-card overflow-hidden">
               {clientes.map((c, i) => (
-                <div key={c._id}>
+                <div key={c._id} data-id={`cliente-item-${c._id}`}>
                   <button
                     className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors text-left"
                     onClick={() => router.push(`/clientes/${c._id}`)}
@@ -152,6 +154,7 @@ export default function ClientesPage() {
 
       <div className="fixed bottom-6 right-5 z-30">
         <Button
+          data-id="add-cliente-button"
           size="icon"
           className="h-14 w-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
           onClick={() => router.push("/clientes/novo")}

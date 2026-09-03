@@ -97,6 +97,7 @@ function LocalModal({ open, editando, onClose, onSuccess }) {
           <div className="space-y-1.5">
             <Label htmlFor="nome-local">Nome</Label>
             <Input
+              data-id="local-name-input"
               id="nome-local"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
@@ -155,6 +156,7 @@ function LocalModal({ open, editando, onClose, onSuccess }) {
               Cancelar
             </Button>
             <Button
+              data-id="save-local-button"
               type="submit"
               className="bg-primary text-primary-foreground"
               disabled={loading || !nome.trim()}
@@ -205,10 +207,11 @@ export default function LocaisEstoquePage() {
 
   return (
     <>
-      <div className="pb-28">
-        <div className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
+      <div data-id="locais-page" className="pb-28">
+        <div data-id="locais-header" className="sticky top-14 z-20 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
           <h1 className="text-base font-semibold text-foreground">Locais de Estoque</h1>
           <Button
+            data-id="add-local-button"
             size="sm"
             className="bg-primary text-primary-foreground gap-1.5"
             onClick={abrirNovo}
@@ -218,7 +221,7 @@ export default function LocaisEstoquePage() {
           </Button>
         </div>
 
-        <div className="px-4 pt-4 flex flex-col gap-3">
+        <div data-id="locais-list" className="px-4 pt-4 flex flex-col gap-3">
           {loading && (
             <>
               {[...Array(4)].map((_, i) => (
@@ -248,6 +251,7 @@ export default function LocaisEstoquePage() {
             return (
               <div
                 key={local._id}
+                data-id={`local-item-${local._id}`}
                 className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3"
               >
                 <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-xl shrink-0">

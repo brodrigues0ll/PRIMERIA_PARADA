@@ -8,7 +8,7 @@ export default async function FinanceiroLayout({ children }) {
   if (!session) redirect("/login");
 
   return (
-    <div className="pb-10">
+    <div data-id="financeiro-layout" className="pb-10">
       <FinanceiroNav />
       <div className="px-4 pt-6">
         {children}

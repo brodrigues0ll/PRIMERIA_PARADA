@@ -123,12 +123,12 @@ export default function PermissoesTab() {
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-4" data-id="permissoes-section">
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             {groups.length} grupo{groups.length !== 1 ? "s" : ""}
           </p>
-          <Button size="sm" onClick={openNovo} className="gap-1.5 h-8">
+          <Button size="sm" onClick={openNovo} className="gap-1.5 h-8" data-id="add-permissao-button">
             <Plus className="h-3.5 w-3.5" />
             Novo grupo
           </Button>
@@ -142,9 +142,9 @@ export default function PermissoesTab() {
         )}
 
         {groups.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden" data-id="permissoes-list">
             {groups.map((g, idx) => (
-              <div key={g._id}>
+              <div key={g._id} data-id={`permissao-group-${g._id}`}>
                 <div className="px-4 py-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -170,12 +170,14 @@ export default function PermissoesTab() {
                       <button
                         onClick={() => openEditar(g)}
                         className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        data-id={`permissao-editar-button-${g._id}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(g)}
                         className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        data-id={`permissao-excluir-button-${g._id}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -195,7 +197,7 @@ export default function PermissoesTab() {
         onClose={() => setSheet(null)}
         title={sheet === "novo" ? "Novo grupo" : `Editar: ${selected?.nome ?? ""}`}
       >
-        <div className="space-y-4">
+        <div className="space-y-4" data-id="permissao-form">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Nome do grupo</label>
             <Input
@@ -203,6 +205,7 @@ export default function PermissoesTab() {
               onChange={(e) => setForm((p) => ({ ...p, nome: e.target.value }))}
               placeholder="Ex: Caixa"
               autoFocus
+              data-id="permissao-nome-input"
             />
           </div>
           <div className="space-y-1.5">
@@ -211,6 +214,7 @@ export default function PermissoesTab() {
               value={form.descricao}
               onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))}
               placeholder="Ex: Acesso ao caixa e PDV"
+              data-id="permissao-descricao-input"
             />
           </div>
 
@@ -245,8 +249,8 @@ export default function PermissoesTab() {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)}>Cancelar</Button>
-            <Button className="flex-1" disabled={saving} onClick={handleSave}>
+            <Button variant="outline" className="flex-1" onClick={() => setSheet(null)} data-id="permissao-cancelar-button">Cancelar</Button>
+            <Button className="flex-1" disabled={saving} onClick={handleSave} data-id="permissao-salvar-button">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {sheet === "novo" ? "Criar grupo" : "Salvar"}
             </Button>

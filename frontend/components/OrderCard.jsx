@@ -10,10 +10,10 @@ export default function OrderCard({ comanda, href }) {
 
   return (
     <Link href={href} className="block group">
-      <div className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-accent/40 active:bg-accent transition-colors">
+      <div data-id={`order-card-${comanda._id || comanda.id}`} className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-accent/40 active:bg-accent transition-colors">
 
         {/* Avatar */}
-        <div className={cn(
+        <div data-id="order-card-avatar" className={cn(
           "h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold",
           isClosed
             ? "bg-muted text-muted-foreground"
@@ -22,26 +22,26 @@ export default function OrderCard({ comanda, href }) {
           {initial}
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div data-id="order-card-header" className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate leading-snug">
             {comanda.nome}
           </p>
-          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <div data-id="order-card-meta" className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <span className={cn(
               "h-1.5 w-1.5 rounded-full shrink-0",
               isClosed ? "bg-muted-foreground/40" : "bg-emerald-500"
             )} />
-            <span className="text-xs text-muted-foreground">{time}</span>
+            <span data-id="order-card-time" className="text-xs text-muted-foreground">{time}</span>
             {mesaNome && (
               <>
                 <span className="text-muted-foreground/40 text-xs">·</span>
-                <span className="text-xs text-muted-foreground truncate">{mesaNome}</span>
+                <span data-id="order-card-table" className="text-xs text-muted-foreground truncate">{mesaNome}</span>
               </>
             )}
           </div>
         </div>
 
-        <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform shrink-0" />
+        <ChevronRight data-id="order-card-chevron" className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform shrink-0" />
       </div>
     </Link>
   );

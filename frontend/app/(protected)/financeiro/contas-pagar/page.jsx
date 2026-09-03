@@ -207,10 +207,11 @@ export default function ContasPagarPage() {
     .reduce((acc, c) => acc + c.valor, 0);
 
   return (
-    <div className="space-y-4">
+    <div data-id="contas-pagar-page" className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-foreground">Contas a Pagar</h1>
         <Button
+          data-id="add-conta-button"
           onClick={() => setModalNova(true)}
           className="bg-primary text-primary-foreground"
           size="sm"
@@ -274,12 +275,13 @@ export default function ContasPagarPage() {
           <p className="text-sm text-muted-foreground">Nenhuma conta encontrada</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div data-id="contas-list" className="space-y-2">
           {contas.map((conta) => {
             const vencida = conta.status === "pendente" && isVencida(conta.vencimento);
             return (
               <div
                 key={conta._id}
+                data-id={`conta-item-${conta._id}`}
                 className={`rounded-2xl border bg-card p-4 ${
                   vencida ? "border-red-500/40" : "border-border"
                 }`}
@@ -346,6 +348,7 @@ export default function ContasPagarPage() {
                   {conta.status === "pendente" && (
                     <>
                       <Button
+                        data-id="conta-pay-button"
                         size="sm"
                         variant="outline"
                         className="flex-1 text-green-600 border-green-500/30 hover:bg-green-500/10"

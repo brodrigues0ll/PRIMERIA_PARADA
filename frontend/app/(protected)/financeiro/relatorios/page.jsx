@@ -94,11 +94,11 @@ export default function RelatoriosPage() {
   const resultado = dre?.resultado ?? 0;
 
   return (
-    <div className="space-y-4">
+    <div data-id="relatorios-page" className="space-y-4">
       <h1 className="text-xl font-semibold text-foreground">Relatórios</h1>
 
       {/* Filtros de período */}
-      <div className="space-y-3">
+      <div data-id="relatorios-date-filter" className="space-y-3">
         <div className="flex gap-2 flex-wrap">
           {PERIODOS.map((p) => (
             <button
@@ -152,7 +152,7 @@ export default function RelatoriosPage() {
       ) : dre ? (
         <div className="space-y-4">
           {/* Cards principais */}
-          <div className="grid grid-cols-3 gap-3">
+          <div data-id="relatorios-summary" className="grid grid-cols-3 gap-3">
             <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-3">
               <div className="flex items-center gap-1 mb-1">
                 <TrendingUp className="h-3 w-3 text-green-600" />
@@ -206,7 +206,7 @@ export default function RelatoriosPage() {
 
           {/* Receitas por categoria */}
           {dre.receitas.porCategoria.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div data-id="relatorios-receitas-chart" className="rounded-2xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-green-600" />
                 <h2 className="text-sm font-semibold text-foreground">
@@ -249,7 +249,7 @@ export default function RelatoriosPage() {
 
           {/* Despesas por categoria */}
           {dre.despesas.porCategoria.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div data-id="relatorios-despesas-chart" className="rounded-2xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-red-500" />
                 <h2 className="text-sm font-semibold text-foreground">
@@ -292,7 +292,7 @@ export default function RelatoriosPage() {
 
           {/* Consumo familiar */}
           {dre.consumoFamiliar.total > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div data-id="relatorios-consumo-familiar" className="rounded-2xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />

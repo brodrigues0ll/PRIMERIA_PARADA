@@ -59,7 +59,7 @@ export default function AdicionarAoEstoqueModal({ open, onClose, trackedIds, onS
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-card border-border sm:max-w-md flex flex-col max-h-[85vh]">
+      <DialogContent data-id="add-to-estoque-modal" className="bg-card border-border sm:max-w-md flex flex-col max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Adicionar ao estoque</DialogTitle>
           <DialogDescription>
@@ -70,6 +70,7 @@ export default function AdicionarAoEstoqueModal({ open, onClose, trackedIds, onS
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
+            data-id="estoque-product-search"
             className="pl-9 bg-background border-border"
             placeholder="Buscar produto..."
             value={search}
@@ -78,7 +79,7 @@ export default function AdicionarAoEstoqueModal({ open, onClose, trackedIds, onS
           />
         </div>
 
-        <div className="flex flex-col overflow-y-auto flex-1 -mx-6 px-6">
+        <div data-id="estoque-products-list" className="flex flex-col overflow-y-auto flex-1 -mx-6 px-6">
           {loading && (
             <div className="flex flex-col gap-3 py-2">
               {[...Array(5)].map((_, i) => (
@@ -94,7 +95,7 @@ export default function AdicionarAoEstoqueModal({ open, onClose, trackedIds, onS
           )}
 
           {!loading && available.map((item, i) => (
-            <div key={item._id}>
+            <div key={item._id} data-id={`estoque-product-option-${item._id}`}>
               <div className="flex items-center justify-between py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{item.nome}</p>
@@ -103,6 +104,7 @@ export default function AdicionarAoEstoqueModal({ open, onClose, trackedIds, onS
                   </p>
                 </div>
                 <button
+                  data-id="save-estoque-button"
                   onClick={() => handleAdd(item)}
                   disabled={adding === item._id}
                   className="h-8 w-8 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors shrink-0 disabled:opacity-50"

@@ -9,7 +9,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body>
+      <body data-id="app-body">
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -159,13 +159,13 @@ export default function NovoProdutoEstoquePage() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-10">
+    <div data-id="add-product-page" className="px-4 pt-6 pb-10">
       <h2 className="text-lg font-semibold mb-1">Novo produto</h2>
       <p className="text-sm text-muted-foreground mb-6">
         Adicione um produto ao controle de estoque
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form data-id="add-product-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
 
         <BarcodeScanner onScan={handleScan} placeholder="Escanear código de barras" />
 
@@ -173,6 +173,7 @@ export default function NovoProdutoEstoquePage() {
           <Label htmlFor="codigo">Código de barras</Label>
           <div className="relative">
             <Input
+              data-id="product-code-input"
               id="codigo"
               value={codigo}
               onChange={(e) => { setCodigo(e.target.value); setLookupDone(false); }}
@@ -227,6 +228,7 @@ export default function NovoProdutoEstoquePage() {
 
             <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
               <input
+                data-id="product-image-upload"
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -260,6 +262,7 @@ export default function NovoProdutoEstoquePage() {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nome">Nome *</Label>
           <Input
+            data-id="product-name-input"
             id="nome"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
@@ -275,7 +278,7 @@ export default function NovoProdutoEstoquePage() {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="precoCompra">Custo (R$)</Label>
-              <Input id="precoCompra" value={precoCompra} onChange={(e) => setPrecoCompra(e.target.value)} inputMode="decimal" placeholder="0,00" />
+              <Input data-id="product-price-input" id="precoCompra" value={precoCompra} onChange={(e) => setPrecoCompra(e.target.value)} inputMode="decimal" placeholder="0,00" />
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1">
@@ -323,7 +326,7 @@ export default function NovoProdutoEstoquePage() {
               <Label htmlFor="qtdInicial">Qtd. inicial</Label>
               <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">opcional</span>
             </div>
-            <Input id="qtdInicial" type="number" min="0" step="1" value={qtdInicial} onChange={(e) => setQtdInicial(e.target.value)} placeholder="0" />
+            <Input data-id="product-quantity-input" id="qtdInicial" type="number" min="0" step="1" value={qtdInicial} onChange={(e) => setQtdInicial(e.target.value)} placeholder="0" />
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1">
@@ -334,12 +337,12 @@ export default function NovoProdutoEstoquePage() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full bg-primary" disabled={loading || !nome.trim()}>
+        <Button data-id="save-product-button" type="submit" className="w-full bg-primary" disabled={loading || !nome.trim()}>
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           {loading ? "Criando..." : "Criar produto"}
         </Button>
 
-        <Button type="button" variant="outline" className="w-full" onClick={() => router.back()}>
+        <Button data-id="cancel-product-button" type="button" variant="outline" className="w-full" onClick={() => router.back()}>
           Cancelar
         </Button>
       </form>

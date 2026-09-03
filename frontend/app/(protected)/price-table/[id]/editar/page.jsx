@@ -136,20 +136,20 @@ export default function EditarCardapioPage() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-10">
+    <div data-id="price-table-editar-page" className="px-4 pt-6 pb-10">
       <h2 className="text-lg font-semibold mb-1">Editar item</h2>
       <p className="text-sm text-muted-foreground mb-6">Cardápio</p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form data-id="price-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nome">Nome *</Label>
-          <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do item" required />
+          <Input data-id="price-name-input" id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do item" required />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="preco">Preço de venda (R$) *</Label>
-          <Input id="preco" value={preco} onChange={(e) => setPreco(e.target.value)} inputMode="decimal" placeholder="0,00" required />
+          <Input data-id="price-value-input" id="preco" value={preco} onChange={(e) => setPreco(e.target.value)} inputMode="decimal" placeholder="0,00" required />
         </div>
 
         <Separator />
@@ -199,10 +199,11 @@ export default function EditarCardapioPage() {
             </button>
 
             {showImport && (
-              <div className="mt-3 flex flex-col gap-2">
+              <div data-id="price-editar-import-panel" className="mt-3 flex flex-col gap-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
+                    data-id="price-editar-search-produto-input"
                     className="pl-9"
                     placeholder="Buscar produto no estoque..."
                     value={searchProduto}
@@ -210,7 +211,7 @@ export default function EditarCardapioPage() {
                     autoFocus
                   />
                 </div>
-                <div className="rounded-xl border border-border bg-card overflow-hidden max-h-56 overflow-y-auto">
+                <div data-id="price-editar-produto-list" className="rounded-xl border border-border bg-card overflow-hidden max-h-56 overflow-y-auto">
                   {loadingProdutos && (
                     <div className="p-4 text-xs text-muted-foreground text-center">Carregando...</div>
                   )}
@@ -218,7 +219,7 @@ export default function EditarCardapioPage() {
                     <p className="text-xs text-muted-foreground text-center py-6">Nenhum produto encontrado</p>
                   )}
                   {!loadingProdutos && filteredProdutos.map((produto, idx) => (
-                    <div key={produto._id}>
+                    <div data-id={`price-editar-produto-option-${produto._id}`} key={produto._id}>
                       <button
                         type="button"
                         onClick={() => selectProduto(produto)}
@@ -241,13 +242,13 @@ export default function EditarCardapioPage() {
           </div>
         )}
 
-        <Button type="submit" className="w-full bg-primary" disabled={saving || !nome.trim() || precoNum <= 0}>
+        <Button data-id="save-price-button" type="submit" className="w-full bg-primary" disabled={saving || !nome.trim() || precoNum <= 0}>
           {saving ? "Salvando..." : "Salvar"}
         </Button>
 
-        <Button type="button" variant="outline" className="w-full" onClick={() => router.back()}>Cancelar</Button>
+        <Button data-id="price-editar-cancel-button" type="button" variant="outline" className="w-full" onClick={() => router.back()}>Cancelar</Button>
 
-        <Button type="button" variant="destructive" className="w-full" onClick={handleDelete}>
+        <Button data-id="price-editar-delete-button" type="button" variant="destructive" className="w-full" onClick={handleDelete}>
           Remover do cardápio
         </Button>
       </form>

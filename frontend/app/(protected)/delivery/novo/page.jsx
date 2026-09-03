@@ -74,6 +74,7 @@ function EnderecoFields({ values, onChange }) {
         <div className="col-span-2 relative" ref={containerRef}>
           <Label className="text-xs text-muted-foreground mb-1.5 block">Rua</Label>
           <Input
+            data-id="delivery-address-rua-input"
             placeholder="Rua, Av..."
             value={values.rua || ""}
             onChange={handleRuaChange}
@@ -299,13 +300,13 @@ export default function NovoDeliveryPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="px-4 pt-6 pb-28 space-y-8">
+    <form data-id="delivery-form" onSubmit={handleSubmit} className="px-4 pt-6 pb-28 space-y-8">
 
       {/* Seção: Cliente */}
-      <div>
+      <div data-id="new-delivery-page">
         <SectionTitle>Cliente</SectionTitle>
 
-        <div className="flex rounded-xl border border-border overflow-hidden mb-4">
+        <div data-id="delivery-client-type-toggle" className="flex rounded-xl border border-border overflow-hidden mb-4">
           {["cadastrado", "avulso"].map((tipo) => (
             <button
               key={tipo}
@@ -333,6 +334,7 @@ export default function NovoDeliveryPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                data-id="delivery-client-search"
                 placeholder="Buscar por nome ou telefone..."
                 className="pl-9"
                 value={buscaCliente}
@@ -344,9 +346,9 @@ export default function NovoDeliveryPage() {
             </div>
 
             {resultadosCliente.length > 0 && (
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div data-id="delivery-client-results" className="rounded-xl border border-border bg-card overflow-hidden">
                 {resultadosCliente.map((c, i) => (
-                  <div key={c._id}>
+                  <div key={c._id} data-id={`delivery-client-result-${c._id}`}>
                     <button
                       type="button"
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors text-left"
@@ -440,7 +442,7 @@ export default function NovoDeliveryPage() {
       <Separator />
 
       {/* Seção: Endereço */}
-      <div>
+      <div data-id="delivery-address-section">
         <SectionTitle>Endereço de entrega</SectionTitle>
         <EnderecoFields values={endereco} onChange={setEndereco} />
       </div>
@@ -448,12 +450,13 @@ export default function NovoDeliveryPage() {
       <Separator />
 
       {/* Seção: Itens */}
-      <div>
+      <div data-id="delivery-items-section">
         <SectionTitle>Itens do pedido</SectionTitle>
 
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
+            data-id="delivery-item-search"
             placeholder="Buscar no cardápio..."
             className="pl-9"
             value={buscaItem}
@@ -485,7 +488,7 @@ export default function NovoDeliveryPage() {
         {itens.length > 0 ? (
           <div className="space-y-2">
             {itens.map((item, idx) => (
-              <div key={idx} className="rounded-xl border border-border bg-card overflow-hidden">
+              <div key={idx} data-id={`delivery-item-${idx}`} className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="flex items-center gap-3 px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{item.nome}</p>
@@ -515,7 +518,7 @@ export default function NovoDeliveryPage() {
               </div>
             ))}
 
-            <div className="flex items-center justify-between px-1 pt-1">
+            <div data-id="delivery-total" className="flex items-center justify-between px-1 pt-1">
               <p className="text-xs text-muted-foreground">{itens.reduce((a, it) => a + it.quantidade, 0)} itens</p>
               <p className="text-sm font-bold text-foreground">Total: R$ {formatPrice(total)}</p>
             </div>
@@ -528,10 +531,10 @@ export default function NovoDeliveryPage() {
       <Separator />
 
       {/* Seção: Pagamento */}
-      <div>
+      <div data-id="delivery-payment-section">
         <SectionTitle>Pagamento</SectionTitle>
 
-        <div className="flex rounded-xl border border-border overflow-hidden mb-4">
+        <div data-id="delivery-payment-method-toggle" className="flex rounded-xl border border-border overflow-hidden mb-4">
           {FORMAS_PAGAMENTO.map((fp) => (
             <button
               key={fp.value}
@@ -553,6 +556,7 @@ export default function NovoDeliveryPage() {
           <div className="space-y-2 mb-4">
             <Label className="text-xs text-muted-foreground block">Troco para R$</Label>
             <Input
+              data-id="delivery-troco-input"
               type="number"
               placeholder="0,00"
               step="0.01"
@@ -570,6 +574,7 @@ export default function NovoDeliveryPage() {
 
         {podeNaConta && (
           <button
+            data-id="delivery-na-conta-toggle"
             type="button"
             onClick={() => setNaConta((v) => !v)}
             className={cn(
@@ -593,7 +598,7 @@ export default function NovoDeliveryPage() {
 
       {/* Botão enviar */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-background/90 backdrop-blur-md border-t border-border px-4 py-4">
-        <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={submitting}>
+        <Button data-id="save-delivery-button" type="submit" className="w-full h-12 text-base font-semibold" disabled={submitting}>
           {submitting ? "Criando pedido..." : `Criar pedido${total > 0 ? ` · R$ ${formatPrice(total)}` : ""}`}
         </Button>
       </div>

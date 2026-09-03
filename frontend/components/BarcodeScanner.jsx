@@ -112,8 +112,9 @@ export default function BarcodeScanner({ onScan, className, placeholder = "Códi
 
   if (mode === "camera") {
     return (
-      <div className={cn("relative rounded-xl overflow-hidden bg-black", className)}>
+      <div data-id="barcode-scanner" className={cn("relative rounded-xl overflow-hidden bg-black", className)}>
         <video
+          data-id="barcode-scanner-video"
           ref={videoRef}
           className="w-full h-48 object-cover"
           autoPlay
@@ -123,7 +124,7 @@ export default function BarcodeScanner({ onScan, className, placeholder = "Códi
 
         {/* Mira de leitura */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="relative w-52 h-28">
+          <div data-id="barcode-scanner-reticle" className="relative w-52 h-28">
             <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-primary" />
             <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-primary" />
             <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-primary" />
@@ -135,6 +136,7 @@ export default function BarcodeScanner({ onScan, className, placeholder = "Códi
 
         {/* Botão voltar ao teclado */}
         <button
+          data-id="barcode-scanner-close"
           type="button"
           onClick={() => { stopCamera(); setMode("input"); }}
           className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
@@ -150,13 +152,14 @@ export default function BarcodeScanner({ onScan, className, placeholder = "Códi
   }
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
+    <div data-id="barcode-scanner" className={cn("flex flex-col gap-1", className)}>
       {cameraError && (
         <p className="text-xs text-destructive">{cameraError}</p>
       )}
       <div className="relative flex items-center">
         <ScanBarcode className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
         <input
+          data-id="barcode-scanner-input"
           ref={inputRef}
           type="text"
           value={inputValue}
@@ -166,6 +169,7 @@ export default function BarcodeScanner({ onScan, className, placeholder = "Códi
           className="w-full h-10 pl-9 pr-10 rounded-md border border-input bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <button
+          data-id="barcode-scanner-camera-toggle"
           type="button"
           onClick={() => { setCameraError(""); setMode("camera"); }}
           className="absolute right-2 h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
