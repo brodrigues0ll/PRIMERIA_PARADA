@@ -460,14 +460,15 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
           </div>
         </div>
 
-        {/* Botão paleta — aparece no hover */}
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowColorPicker(true); setCtxMenu(null); }}
-          className="h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-          title="Marcar cor"
-        >
-          <Palette className="h-4 w-4" />
-        </button>
+      </button>
+
+      {/* Botão paleta — sobreposição, aparece no hover */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowColorPicker(true); setCtxMenu(null); }}
+        className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        title="Marcar cor"
+      >
+        <Palette className="h-4 w-4" />
       </button>
 
       {/* Menu de contexto */}
