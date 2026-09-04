@@ -24,6 +24,16 @@ const CaixaDiarioSchema = new mongoose.Schema(
       enum: ["aberto", "fechado"],
       default: "aberto",
     },
+    abertoPor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    fechadoPor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );

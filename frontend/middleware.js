@@ -7,6 +7,11 @@ const ROUTE_PERMISSION_MAP = [
   { prefix: "/estoque", permission: "estoque" },
   { prefix: "/price-table", permission: "price-table" },
   { prefix: "/configuracoes", permission: "configuracoes" },
+  { prefix: "/delivery", permission: "delivery" },
+  { prefix: "/clientes", permission: "clientes" },
+  { prefix: "/salao", permission: "salao" },
+  { prefix: "/financeiro", permission: "financeiro" },
+  { prefix: "/whatsapp", permission: "whatsapp" },
 ];
 
 export default withAuth(
@@ -38,5 +43,10 @@ export const config = {
     "/estoque/:path*",
     "/pdv/:path*",
     "/configuracoes/:path*",
+    "/delivery/:path*",
+    "/clientes/:path*",
+    "/salao/:path*",
+    "/financeiro/:path*",
+    "/whatsapp/:path*",
   ],
 };

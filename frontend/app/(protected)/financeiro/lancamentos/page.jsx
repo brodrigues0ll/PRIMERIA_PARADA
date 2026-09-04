@@ -15,16 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/utils";
-
-const CATEGORIAS_ENTRADA = ["Vendas salão", "Vendas delivery", "Outros"];
-const CATEGORIAS_SAIDA = [
-  "Compra de insumos",
-  "Despesa fixa",
-  "Folha de pagamento",
-  "Retirada",
-  "Consumo familiar",
-  "Outros",
-];
+import { FORMAS_PAGAMENTO } from "@/lib/constants/financeiro";
 
 function formatDataBR(date) {
   if (!date) return "—";
@@ -61,6 +52,7 @@ export default function LancamentosPage() {
     membro_familiar: "",
   });
   const [membros, setMembros] = useState([]);
+  const [categorias, setCategorias] = useState({ entrada: [], saida: [] });
   const [salvandoLanc, setSalvandoLanc] = useState(false);
 
   // Confirmação deletar
@@ -108,10 +100,26 @@ export default function LancamentosPage() {
     }
   }, []);
 
+  const fetchCategorias = useCallback(async () => {
+    try {
+      const res = await fetch("/api/plano-contas");
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setCategorias({
+          entrada: json.data.filter((c) => c.tipo === "entrada").map((c) => c.nome),
+          saida: json.data.filter((c) => c.tipo === "saida").map((c) => c.nome),
+        });
+      }
+    } catch {
+      // silencioso — mantém vazio
+    }
+  }, []);
+
   useEffect(() => {
     fetchCaixas();
     fetchMembros();
-  }, [fetchCaixas, fetchMembros]);
+    fetchCategorias();
+  }, [fetchCaixas, fetchMembros, fetchCategorias]);
 
   useEffect(() => {
     if (caixaSelecionado) {
@@ -191,7 +199,7 @@ export default function LancamentosPage() {
     .reduce((acc, l) => acc + l.valor, 0);
 
   const categoriasDisponiveis =
-    lancForm.tipo === "entrada" ? CATEGORIAS_ENTRADA : CATEGORIAS_SAIDA;
+    lancForm.tipo === "entrada" ? categorias.entrada : categorias.saida;
 
   const caixaAberto = caixaSelecionado?.status === "aberto";
 
@@ -461,9 +469,9 @@ export default function LancamentosPage() {
                 className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Nenhuma</option>
-                <option value="dinheiro">Dinheiro</option>
-                <option value="pix">Pix</option>
-                <option value="cartao">Cartão</option>
+                {FORMAS_PAGAMENTO.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </div>
 

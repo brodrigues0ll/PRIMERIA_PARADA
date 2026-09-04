@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requirePermission } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import CaixaDiario from "@/lib/models/CaixaDiario";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const { session, error } = await requirePermission("financeiro");
+  if (error) return error;
 
   await connectDB();
 
@@ -23,8 +22,8 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const { session, error } = await requirePermission("financeiro");
+  if (error) return error;
 
   await connectDB();
 
@@ -57,6 +56,7 @@ export async function POST(request) {
   const caixa = await CaixaDiario.create({
     data: new Date(),
     saldo_inicial: Number(saldo_inicial),
+    abertoPor: session.user.id,
   });
 
   return NextResponse.json({ data: caixa }, { status: 201 });

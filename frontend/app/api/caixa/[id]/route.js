@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requirePermission } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import CaixaDiario from "@/lib/models/CaixaDiario";
 import LancamentoFinanceiro from "@/lib/models/LancamentoFinanceiro";
 
 export async function GET(request, { params }) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const { session, error } = await requirePermission("financeiro");
+  if (error) return error;
 
   await connectDB();
 
@@ -26,8 +25,8 @@ export async function GET(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const { session, error } = await requirePermission("financeiro");
+  if (error) return error;
 
   await connectDB();
 
@@ -57,6 +56,7 @@ export async function PATCH(request, { params }) {
 
     caixa.status = "fechado";
     caixa.saldo_final = Number(saldo_final);
+    caixa.fechadoPor = session.user.id;
     await caixa.save();
 
     return NextResponse.json({ data: caixa });

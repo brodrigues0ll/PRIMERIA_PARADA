@@ -1,3 +1,4 @@
+// Estoque.js removido — model legado não usado em nenhuma rota ativa
 export { default as User } from "./User";
 export { default as MenuItem } from "./MenuItem";
 export { default as Pedido } from "./Pedido";
@@ -22,3 +23,6 @@ export { default as ContaAPagar } from "./ContaAPagar";
 export { default as MembroFamiliar } from "./MembroFamiliar";
 export { default as WaContactNickname } from "./WaContactNickname";
 export { default as WaConfig } from "./WaConfig";
+export { default as AuditLog } from "./AuditLog";
+export { default as Fornecedor } from "./Fornecedor";
+export { default as PlanoContas } from "./PlanoContas";

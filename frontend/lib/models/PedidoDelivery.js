@@ -48,5 +48,7 @@ const PedidoDeliverySchema = new mongoose.Schema(
 PedidoDeliverySchema.index({ status: 1 });
 PedidoDeliverySchema.index({ cliente: 1 });
 PedidoDeliverySchema.index({ createdAt: -1 });
+// Index composto para query de saldo do cliente (elimina collection scan)
+PedidoDeliverySchema.index({ cliente: 1, na_conta: 1, status: 1 });
 
 export default mongoose.models.PedidoDelivery || mongoose.model("PedidoDelivery", PedidoDeliverySchema);

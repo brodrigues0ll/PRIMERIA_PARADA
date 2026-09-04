@@ -24,6 +24,17 @@ const ComandaSchema = new mongoose.Schema(
     grupo: { type: mongoose.Schema.Types.ObjectId, ref: "GrupoMesas", default: null },
     pagantes: { type: [String], default: [] },
     pagantesPagos: { type: [String], default: [] },
+    fechadaPor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    totalFechamento: { type: Number, default: null },
+    formaPagamentoFechamento: {
+      type: String,
+      enum: ["dinheiro", "pix", "credito", "debito", "conta", "misto", null],
+      default: null,
+    },
   },
   {
     timestamps: true,

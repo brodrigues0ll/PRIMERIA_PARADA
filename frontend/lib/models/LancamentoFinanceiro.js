@@ -33,7 +33,7 @@ const LancamentoFinanceiroSchema = new mongoose.Schema(
     },
     forma_pagamento: {
       type: String,
-      enum: ["dinheiro", "pix", "cartao", null],
+      enum: ["dinheiro", "pix", "cartao", "credito", "debito", "conta", "misto", null],
       default: null,
     },
     membro_familiar: {
@@ -43,6 +43,16 @@ const LancamentoFinanceiroSchema = new mongoose.Schema(
     referencia: {
       type: String,
       default: null,
+    },
+    criadoPor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    origem: {
+      type: String,
+      enum: ["manual", "comanda", "delivery", "pdv"],
+      default: "manual",
     },
   },
   { timestamps: true }

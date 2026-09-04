@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Building2, Users, Shield, LayoutGrid } from "lucide-react";
+import { User, Building2, Users, Shield, LayoutGrid, Truck, BookOpen, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS_ADMIN = [
@@ -9,6 +9,9 @@ const TABS_ADMIN = [
   { href: "/configuracoes/equipe", label: "Equipe", icon: Users },
   { href: "/configuracoes/acesso", label: "Acesso", icon: Shield },
   { href: "/configuracoes/salao", label: "Salão", icon: LayoutGrid },
+  { href: "/configuracoes/fornecedores", label: "Fornecedores", icon: Truck },
+  { href: "/configuracoes/plano-contas", label: "Plano de Contas", icon: BookOpen },
+  { href: "/configuracoes/auditoria", label: "Auditoria", icon: ClipboardList },
 ];
 
 export default function ConfiguracoesNav({ isAdmin }) {

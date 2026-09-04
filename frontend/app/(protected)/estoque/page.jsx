@@ -55,10 +55,21 @@ function MovimentoModal({ open, produto, onClose, onSuccess }) {
   const [tipo, setTipo] = useState("entrada");
   const [quantidade, setQuantidade] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [fornecedorId, setFornecedorId] = useState("");
+  const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (open) { setTipo("entrada"); setQuantidade(""); setObservacao(""); }
+    if (open) {
+      setTipo("entrada");
+      setQuantidade("");
+      setObservacao("");
+      setFornecedorId("");
+      fetch("/api/fornecedores?ativo=true")
+        .then((r) => r.json())
+        .then((d) => setFornecedores(Array.isArray(d.data) ? d.data : []))
+        .catch(() => {});
+    }
   }, [open]);
 
   const atual = produto?.quantidade ?? 0;
@@ -76,7 +87,12 @@ function MovimentoModal({ open, produto, onClose, onSuccess }) {
       const res = await fetch(`/api/produtos/${produto._id}/movimento`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo, quantidade: qty, observacao }),
+        body: JSON.stringify({
+          tipo,
+          quantidade: qty,
+          observacao,
+          fornecedor: tipo === "entrada" && fornecedorId ? fornecedorId : undefined,
+        }),
       });
       if (!res.ok) { toast.error("Erro ao salvar"); return; }
       toast.success("Estoque atualizado");
@@ -89,9 +105,9 @@ function MovimentoModal({ open, produto, onClose, onSuccess }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-sm bg-card border border-border rounded-t-2xl sm:rounded-2xl p-6 flex flex-col gap-5">
+      <div className="relative w-full max-w-sm bg-card border border-border rounded-2xl p-6 flex flex-col gap-5 shadow-xl">
         <div>
           <p className="text-base font-semibold text-foreground truncate">{produto?.nome}</p>
           <p className="text-sm text-muted-foreground">Estoque atual: <span className="font-semibold text-foreground">{atual} un.</span></p>
@@ -133,6 +149,22 @@ function MovimentoModal({ open, produto, onClose, onSuccess }) {
           <div className="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
             <span className="text-sm text-muted-foreground">Novo estoque</span>
             <span className="text-sm font-bold text-foreground">{preview} un.</span>
+          </div>
+        )}
+
+        {tipo === "entrada" && fornecedores.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm text-muted-foreground">Fornecedor <span className="text-xs">(opcional)</span></label>
+            <select
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              value={fornecedorId}
+              onChange={(e) => setFornecedorId(e.target.value)}
+            >
+              <option value="">Selecionar fornecedor...</option>
+              {fornecedores.map((f) => (
+                <option key={f._id} value={f._id}>{f.nome}</option>
+              ))}
+            </select>
           </div>
         )}
 

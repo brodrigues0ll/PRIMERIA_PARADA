@@ -8,22 +8,70 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X, Check } from "lucide-react";
 
-const PERMISSOES_LABELS = {
+export const PERMISSOES_LABELS = {
   pdv: "PDV",
   orders: "Comandas",
+  delivery: "Delivery",
   estoque: "Estoque",
+  financeiro: "Financeiro",
   "price-table": "Cardápio",
+  clientes: "Clientes",
+  salao: "Salão",
+  whatsapp: "WhatsApp",
   configuracoes: "Configurações",
+  "orders.close": "Fechar comanda",
+  "orders.reopen": "Reabrir comanda",
+  "delivery.cancel": "Cancelar pedido",
+  "financeiro.caixa": "Operar caixa",
+  "financeiro.relatorios": "Ver relatórios",
+  "estoque.entrada": "Registrar entrada",
+  "config.equipe": "Gerenciar equipe",
 };
 
-const ALL_PERMISSOES = Object.keys(PERMISSOES_LABELS);
+const PERMISSOES_GRUPOS = [
+  {
+    label: "Módulos",
+    permissoes: [
+      "pdv",
+      "orders",
+      "delivery",
+      "estoque",
+      "financeiro",
+      "price-table",
+      "clientes",
+      "salao",
+      "whatsapp",
+      "configuracoes",
+    ],
+  },
+  {
+    label: "Ações — Comandas",
+    permissoes: ["orders.close", "orders.reopen"],
+  },
+  {
+    label: "Ações — Delivery",
+    permissoes: ["delivery.cancel"],
+  },
+  {
+    label: "Ações — Financeiro",
+    permissoes: ["financeiro.caixa", "financeiro.relatorios"],
+  },
+  {
+    label: "Ações — Estoque",
+    permissoes: ["estoque.entrada"],
+  },
+  {
+    label: "Ações — Configurações",
+    permissoes: ["config.equipe"],
+  },
+];
 
 function BottomSheet({ open, onClose, title, children }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-card border-t border-border rounded-t-2xl p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-card border border-border rounded-2xl p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto shadow-xl">
         <div className="flex items-center justify-between">
           <p className="text-base font-semibold text-foreground">{title}</p>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -223,26 +271,40 @@ export default function PermissoesTab() {
           <div className="space-y-2">
             <p className="text-sm font-medium text-foreground">Permissões</p>
             <div className="rounded-xl border border-border bg-card overflow-hidden">
-              {ALL_PERMISSOES.map((p, i) => {
-                const active = form.permissoes.includes(p);
+              {PERMISSOES_GRUPOS.map((grupo, gi) => {
+                const isLastGroup = gi === PERMISSOES_GRUPOS.length - 1;
                 return (
-                  <button
-                    key={p}
-                    onClick={() => togglePerm(p)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-4 py-3 text-sm transition-colors",
-                      i < ALL_PERMISSOES.length - 1 && "border-b border-border",
-                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  <div key={grupo.label}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1">
+                      {grupo.label}
+                    </p>
+                    {grupo.permissoes.map((p, i) => {
+                      const active = form.permissoes.includes(p);
+                      const isLastInGroup = i === grupo.permissoes.length - 1;
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => togglePerm(p)}
+                          className={cn(
+                            "w-full flex items-center justify-between px-4 py-3 text-sm transition-colors",
+                            (!isLastInGroup || !isLastGroup) && "border-b border-border",
+                            active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {PERMISSOES_LABELS[p]}
+                          <div className={cn(
+                            "h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
+                            active ? "bg-primary border-primary" : "border-border bg-background"
+                          )}>
+                            {active && <Check className="h-3 w-3 text-primary-foreground" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {!isLastGroup && (
+                      <div className="border-b border-border/60 mx-4" />
                     )}
-                  >
-                    {PERMISSOES_LABELS[p]}
-                    <div className={cn(
-                      "h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
-                      active ? "bg-primary border-primary" : "border-border bg-background"
-                    )}>
-                      {active && <Check className="h-3 w-3 text-primary-foreground" />}
-                    </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

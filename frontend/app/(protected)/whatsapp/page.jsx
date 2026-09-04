@@ -1865,6 +1865,9 @@ export default function WhatsAppPage() {
   // Ocultar conversas (IDB)
   const [hiddenChats, setHiddenChats] = useState(new Set());
 
+  // Filtro de período
+  const [chatFilter, setChatFilter] = useState("todas"); // "hoje" | "todas"
+
   // Cores por conversa (IDB)
   const [chatColors, setChatColors] = useState({}); // jid → colorKey
 
@@ -1965,10 +1968,21 @@ export default function WhatsAppPage() {
 
   // Carrega nicknames, hidden chats, chat colors e marcadores na inicialização
   useEffect(() => {
-    // Marcadores de cor (MongoDB)
+    // Marcadores de cor (MongoDB) + verificar lastResetAt para auto-clear do IDB
     fetch("/api/whatsapp/config")
       .then((r) => r.json())
-      .then((d) => { if (d.colorLabels) setColorLabels(d.colorLabels); })
+      .then(async (d) => {
+        if (d.colorLabels) setColorLabels(d.colorLabels);
+        if (d.lastResetAt) {
+          const lastResetTs = new Date(d.lastResetAt).getTime();
+          const clearedAt = (await idbGet("chat_colors_cleared_at")) || 0;
+          if (lastResetTs > clearedAt) {
+            await idbSet("chat_colors", {});
+            await idbSet("chat_colors_cleared_at", lastResetTs);
+            setChatColors({});
+          }
+        }
+      })
       .catch(() => {});
 
     // Nicknames
@@ -1988,9 +2002,10 @@ export default function WhatsAppPage() {
       if (Array.isArray(list)) setHiddenChats(new Set(list));
     });
 
-    // Chat colors do IDB
+    // Chat colors do IDB — carregado depois do check de lastResetAt (no fetch acima)
+    // Lemos aqui como fallback caso o fetch falhe
     idbGet("chat_colors").then((map) => {
-      if (map && typeof map === "object") setChatColors(map);
+      if (map && typeof map === "object") setChatColors((prev) => Object.keys(prev).length ? prev : map);
     });
   }, []);
 
@@ -2267,25 +2282,58 @@ export default function WhatsAppPage() {
         {/* Search bar */}
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
+        {/* Filtro Hoje / Todas */}
+        <div data-id="chat-period-filter" className="flex px-3 pb-2 pt-1 gap-1.5 bg-[#f0f2f5] shrink-0">
+          {[
+            { key: "hoje", label: "Hoje" },
+            { key: "todas", label: "Todas" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              data-id={`chat-filter-${key}`}
+              onClick={() => setChatFilter(key)}
+              className={cn(
+                "flex-1 py-1.5 rounded-full text-[12px] font-medium transition-colors",
+                chatFilter === key
+                  ? "bg-[#25d366] text-white"
+                  : "bg-white text-[#54656f] border border-[#e9edef] hover:border-[#25d366]/50"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Chat list */}
         <div data-id="chat-list" className="flex-1 overflow-y-auto bg-white">
           {chatsLoading ? (
             <ChatListSkeleton />
           ) : (() => {
             const q = searchQuery.trim().toLowerCase();
+            const todayMidnight = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime() / 1000; })();
+            const passesTodayFilter = (c) => {
+              if (chatFilter !== "hoje") return true;
+              const ts = c.lastMessage?.timestamp || c.timestamp || 0;
+              return ts >= todayMidnight;
+            };
             const filtered = q
               ? chats.filter((c) =>
                   !hiddenChats.has(c.jid) &&
+                  passesTodayFilter(c) &&
                   ((c.name || "").toLowerCase().includes(q) || (c.jid || "").toLowerCase().includes(q))
                 )
-              : chats.filter((c) => !hiddenChats.has(c.jid));
+              : chats.filter((c) => !hiddenChats.has(c.jid) && passesTodayFilter(c));
             if (filtered.length === 0) return (
               <div className="flex flex-col items-center justify-center py-20 text-center px-8">
                 <div className="h-12 w-12 rounded-full bg-[#f0f2f5] flex items-center justify-center mb-3">
                   <MessageCircle className="h-5 w-5 text-[#54656f]" />
                 </div>
                 <p className="text-sm text-[#54656f]">
-                  {q ? "Nenhuma conversa encontrada" : "Sem conversas"}
+                  {q
+                    ? "Nenhuma conversa encontrada"
+                    : chatFilter === "hoje"
+                    ? "Nenhuma conversa hoje"
+                    : "Sem conversas"}
                 </p>
               </div>
             );

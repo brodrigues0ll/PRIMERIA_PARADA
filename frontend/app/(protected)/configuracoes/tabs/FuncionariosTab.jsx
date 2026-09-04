@@ -14,9 +14,9 @@ const BLANK_EDITAR = { name: "", email: "", cargo: "", role: "employee", permiss
 function BottomSheet({ open, onClose, title, children }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-card border-t border-border rounded-t-2xl p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-card border border-border rounded-2xl p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto shadow-xl">
         <div className="flex items-center justify-between">
           <p className="text-base font-semibold text-foreground">{title}</p>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -38,6 +38,7 @@ export default function FuncionariosTab({ currentUserId }) {
   const [formNovo, setFormNovo] = useState(BLANK_NOVO);
   const [formEditar, setFormEditar] = useState(BLANK_EDITAR);
   const [novaSenha, setNovaSenha] = useState("");
+  const [senhaAdmin, setSenhaAdmin] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -73,6 +74,7 @@ export default function FuncionariosTab({ currentUserId }) {
   function openSenha(u) {
     setSelected(u);
     setNovaSenha("");
+    setSenhaAdmin("");
     setSheet("senha");
   }
 
@@ -127,14 +129,19 @@ export default function FuncionariosTab({ currentUserId }) {
       toast.error("Senha deve ter pelo menos 6 caracteres");
       return;
     }
+    if (!senhaAdmin) {
+      toast.error("Confirme sua senha de administrador");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/funcionarios/${selected._id}/senha`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ novaSenha }),
+        body: JSON.stringify({ novaSenha, senhaAdmin }),
       });
-      if (!res.ok) throw new Error("Erro ao alterar senha");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao alterar senha");
       toast.success("Senha alterada");
       setSheet(null);
     } catch (err) {
@@ -303,35 +310,23 @@ export default function FuncionariosTab({ currentUserId }) {
               ))}
             </div>
           </div>
-          {formNovo.role === "employee" && groups.length > 0 && (
+          {formNovo.role === "employee" && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Grupo de permissões</label>
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <button
-                  onClick={() => setFormNovo((p) => ({ ...p, permissionGroup: "" }))}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors border-b border-border",
-                    !formNovo.permissionGroup ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Sem grupo
-                  {!formNovo.permissionGroup && <span className="text-primary text-xs">✓</span>}
-                </button>
-                {groups.map((g, i) => (
-                  <button
-                    key={g._id}
-                    onClick={() => setFormNovo((p) => ({ ...p, permissionGroup: g._id }))}
-                    className={cn(
-                      "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors",
-                      i < groups.length - 1 && "border-b border-border",
-                      formNovo.permissionGroup === g._id ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {g.nome}
-                    {formNovo.permissionGroup === g._id && <span className="text-primary text-xs">✓</span>}
-                  </button>
+              <label className="text-sm font-medium text-foreground">Grupo de acesso</label>
+              <select
+                data-id="funcionario-novo-grupo-select"
+                value={formNovo.permissionGroup}
+                onChange={(e) => setFormNovo((p) => ({ ...p, permissionGroup: e.target.value }))}
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Sem grupo (sem acesso)</option>
+                {groups.map((g) => (
+                  <option key={g._id} value={g._id}>{g.nome}</option>
                 ))}
-              </div>
+              </select>
+              {groups.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum grupo cadastrado ainda.</p>
+              )}
             </div>
           )}
           <div className="flex gap-2 pt-1">
@@ -379,35 +374,23 @@ export default function FuncionariosTab({ currentUserId }) {
               ))}
             </div>
           </div>
-          {formEditar.role === "employee" && groups.length > 0 && (
+          {formEditar.role === "employee" && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Grupo de permissões</label>
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <button
-                  onClick={() => setFormEditar((p) => ({ ...p, permissionGroup: "" }))}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors border-b border-border",
-                    !formEditar.permissionGroup ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Sem grupo
-                  {!formEditar.permissionGroup && <span className="text-primary text-xs">✓</span>}
-                </button>
-                {groups.map((g, i) => (
-                  <button
-                    key={g._id}
-                    onClick={() => setFormEditar((p) => ({ ...p, permissionGroup: g._id }))}
-                    className={cn(
-                      "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors",
-                      i < groups.length - 1 && "border-b border-border",
-                      formEditar.permissionGroup === g._id ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {g.nome}
-                    {formEditar.permissionGroup === g._id && <span className="text-primary text-xs">✓</span>}
-                  </button>
+              <label className="text-sm font-medium text-foreground">Grupo de acesso</label>
+              <select
+                data-id="funcionario-editar-grupo-select"
+                value={formEditar.permissionGroup}
+                onChange={(e) => setFormEditar((p) => ({ ...p, permissionGroup: e.target.value }))}
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Sem grupo (sem acesso)</option>
+                {groups.map((g) => (
+                  <option key={g._id} value={g._id}>{g.nome}</option>
                 ))}
-              </div>
+              </select>
+              {groups.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum grupo cadastrado ainda.</p>
+              )}
             </div>
           )}
           <Separator />
@@ -443,7 +426,7 @@ export default function FuncionariosTab({ currentUserId }) {
       </BottomSheet>
 
       {/* Sheet: Alterar senha */}
-      <BottomSheet open={sheet === "senha"} onClose={() => setSheet(null)} title={`Senha: ${selected?.name || selected?.email || ""}`}>
+      <BottomSheet open={sheet === "senha"} onClose={() => setSheet(null)} title={`Alterar senha: ${selected?.name || selected?.email || ""}`}>
         <div className="space-y-3" data-id="funcionario-senha-form">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Nova senha</label>
@@ -455,6 +438,18 @@ export default function FuncionariosTab({ currentUserId }) {
               autoFocus
               data-id="funcionario-nova-senha-input"
             />
+          </div>
+          <Separator />
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Sua senha (confirmação)</label>
+            <Input
+              type="password"
+              value={senhaAdmin}
+              onChange={(e) => setSenhaAdmin(e.target.value)}
+              placeholder="Sua senha de administrador"
+              data-id="funcionario-senha-admin-input"
+            />
+            <p className="text-xs text-muted-foreground">Confirme sua própria senha para autorizar a alteração.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setSheet(null)} data-id="funcionario-senha-cancelar-button">Cancelar</Button>

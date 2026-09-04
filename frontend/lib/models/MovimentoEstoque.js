@@ -22,6 +22,11 @@ const MovimentoEstoqueSchema = new mongoose.Schema(
       ref: "LocalEstoque",
       default: null,
     },
+    fornecedor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Fornecedor",
+      default: null,
+    },
   },
   { timestamps: true }
 );

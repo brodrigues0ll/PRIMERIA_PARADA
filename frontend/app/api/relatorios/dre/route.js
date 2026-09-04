@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requirePermission } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import LancamentoFinanceiro from "@/lib/models/LancamentoFinanceiro";
 
 export async function GET(request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const { error } = await requirePermission("financeiro.relatorios");
+  if (error) return error;
 
   await connectDB();
 
@@ -30,57 +29,44 @@ export async function GET(request) {
     { $match: { data: { $gte: inicio, $lte: fim } } },
     {
       $group: {
-        _id: { tipo: "$tipo", categoria: "$categoria", membro: "$membro_familiar" },
+        _id: { tipo: "$tipo", categoria: "$categoria", membro: "$membro_familiar", origem: "$origem" },
         total: { $sum: "$valor" },
       },
     },
   ]);
 
-  const receitas = { total: 0, porCategoria: [] };
+  const receitas = { total: 0, porCategoria: [], porCanal: {} };
   const despesas = { total: 0, porCategoria: [] };
   const consumoFamiliarMap = {};
-
   const receitasCatMap = {};
   const despesasCatMap = {};
 
   for (const item of lancamentos) {
-    const { tipo, categoria, membro } = item._id;
+    const { tipo, categoria, membro, origem } = item._id;
     const { total } = item;
 
     if (tipo === "entrada") {
       receitas.total += total;
       receitasCatMap[categoria] = (receitasCatMap[categoria] || 0) + total;
+      if (origem) {
+        receitas.porCanal[origem] = (receitas.porCanal[origem] || 0) + total;
+      }
     } else {
       despesas.total += total;
       despesasCatMap[categoria] = (despesasCatMap[categoria] || 0) + total;
-
       if (categoria === "Consumo familiar" && membro) {
         consumoFamiliarMap[membro] = (consumoFamiliarMap[membro] || 0) + total;
       }
     }
   }
 
-  receitas.porCategoria = Object.entries(receitasCatMap).map(([categoria, total]) => ({
-    categoria,
-    total,
-  }));
+  receitas.porCategoria = Object.entries(receitasCatMap).map(([categoria, total]) => ({ categoria, total }));
+  despesas.porCategoria = Object.entries(despesasCatMap).map(([categoria, total]) => ({ categoria, total }));
 
-  despesas.porCategoria = Object.entries(despesasCatMap).map(([categoria, total]) => ({
-    categoria,
-    total,
-  }));
-
-  const consumoFamiliarTotal = Object.values(consumoFamiliarMap).reduce(
-    (acc, v) => acc + v,
-    0
-  );
-
+  const consumoFamiliarTotal = Object.values(consumoFamiliarMap).reduce((acc, v) => acc + v, 0);
   const consumoFamiliar = {
     total: consumoFamiliarTotal,
-    porMembro: Object.entries(consumoFamiliarMap).map(([membro, total]) => ({
-      membro,
-      total,
-    })),
+    porMembro: Object.entries(consumoFamiliarMap).map(([membro, total]) => ({ membro, total })),
   };
 
   return NextResponse.json({

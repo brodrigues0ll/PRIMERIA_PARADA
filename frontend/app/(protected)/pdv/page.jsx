@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, Minus, ChevronDown, ShoppingCart, X, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
+import { Plus, Minus, ChevronDown, ShoppingCart, X, CheckCircle2, AlertCircle, Trash2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { formatPrice, cn } from "@/lib/utils";
+import { FORMAS_PAGAMENTO } from "@/lib/constants/financeiro";
 
 // ─── Seletor de comanda ──────────────────────────────────────────────
 function ComandaSelector({ open, onClose, onSelect }) {
@@ -189,10 +191,55 @@ function ItemList({ items, onIncrement, onDecrement, mutating, nivelMap }) {
   );
 }
 
+// ─── Dialog de forma de pagamento (reutilizável) ────────────────────
+function PagamentoDialog({ open, onClose, total, onConfirm, loading }) {
+  const [forma, setForma] = useState("dinheiro");
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent data-id="pdv-pagamento-dialog" className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Forma de pagamento</DialogTitle>
+        </DialogHeader>
+        <div className="py-2">
+          <p className="text-sm text-muted-foreground mb-4">
+            Total: <span className="font-bold text-foreground">R$&nbsp;{formatPrice(total)}</span>
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {FORMAS_PAGAMENTO.map(({ value, label }) => (
+              <button
+                key={value}
+                data-id={`pdv-payment-option-${value}`}
+                onClick={() => setForma(value)}
+                className={cn(
+                  "px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors text-left",
+                  forma === value
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card hover:bg-accent"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onConfirm(forma)} disabled={loading}>
+            <CheckCircle className="h-4 w-4 mr-1.5" />
+            Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Modo AVULSO ─────────────────────────────────────────────────────
 function ModoAvulso() {
   const [cart, setCart] = useState([]);
   const [feedback, setFeedback] = useState(null);
+  const [pagamentoOpen, setPagamentoOpen] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
   const feedbackTimer = useRef(null);
 
   function showFeedback(f) {
@@ -238,19 +285,26 @@ function ModoAvulso() {
     );
   }
 
-  async function finalizar() {
-    await Promise.allSettled(
-      cart.map((item) =>
-        fetch(`/api/produtos/${item.produtoId}/movimento`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tipo: "saida", quantidade: item.quantidade, observacao: "Venda avulsa" }),
-        })
-      )
-    );
-    setCart([]);
-    setFeedback(null);
-    toast.success("Venda finalizada!");
+  async function handleConfirmarVenda(forma_pagamento) {
+    setFinalizando(true);
+    try {
+      const res = await fetch("/api/pdv/venda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itens: cart.map((i) => ({ produtoId: i.produtoId, quantidade: i.quantidade, preco: i.preco })),
+          forma_pagamento,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Erro ao finalizar venda"); return; }
+      setPagamentoOpen(false);
+      setCart([]);
+      setFeedback(null);
+      toast.success("Venda finalizada!");
+    } finally {
+      setFinalizando(false);
+    }
   }
 
   const total = cart.reduce((a, p) => a + p.preco * p.quantidade, 0);
@@ -287,7 +341,7 @@ function ModoAvulso() {
             )}
             <button
               data-id="pdv-checkout-button"
-              onClick={finalizar}
+              onClick={() => { if (cart.length) setPagamentoOpen(true); }}
               disabled={!cart.length}
               className="h-14 px-8 rounded-2xl bg-primary text-primary-foreground font-bold text-base transition-all hover:bg-primary/90 active:scale-[0.97] disabled:opacity-40"
             >
@@ -296,6 +350,14 @@ function ModoAvulso() {
           </div>
         </div>
       </div>
+
+      <PagamentoDialog
+        open={pagamentoOpen}
+        onClose={() => setPagamentoOpen(false)}
+        total={total}
+        onConfirm={handleConfirmarVenda}
+        loading={finalizando}
+      />
     </>
   );
 }
@@ -313,6 +375,7 @@ function ModoComanda() {
   const [pedidos, setPedidos] = useState([]);
   const [mutating, setMutating] = useState(null);
   const [closing, setClosing] = useState(false);
+  const [pagamentoOpen, setPagamentoOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const feedbackTimer = useRef(null);
@@ -399,15 +462,22 @@ function ModoComanda() {
     setMutating(null);
   }
 
-  async function handleClose() {
+  function handleClose() {
     if (!pedidos.length) { toast.warning("Adicione itens antes de fechar"); return; }
+    setPagamentoOpen(true);
+  }
+
+  async function handleConfirmarFechamento(forma_pagamento) {
     setClosing(true);
+    setPagamentoOpen(false);
     try {
-      await fetch(`/api/comandas/${comanda._id}`, {
+      const res = await fetch(`/api/comandas/${comanda._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "fechar" }),
+        body: JSON.stringify({ action: "fechar", forma_pagamento }),
       });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Erro ao fechar comanda"); return; }
       toast.success("Comanda fechada!");
       setComanda(null);
       setPedidos([]);
@@ -477,6 +547,13 @@ function ModoComanda() {
       </div>
 
       <ComandaSelector open={selectorOpen} onClose={() => setSelectorOpen(false)} onSelect={selectComanda} />
+      <PagamentoDialog
+        open={pagamentoOpen}
+        onClose={() => setPagamentoOpen(false)}
+        total={pedidos.reduce((a, p) => a + p.preco * p.quantidade, 0)}
+        onConfirm={handleConfirmarFechamento}
+        loading={closing}
+      />
     </>
   );
 }

@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import connectDB from "@/lib/mongodb";
 import PedidoDelivery from "@/lib/models/PedidoDelivery";
 import MenuItem from "@/lib/models/MenuItem";
+import CardapioDoDia from "@/lib/models/CardapioDoDia";
 import EnderecoSalvo from "@/lib/models/EnderecoSalvo";
 import NomeAvulso from "@/lib/models/NomeAvulso";
 
@@ -68,6 +69,24 @@ export async function POST(request) {
     );
 
   await connectDB();
+
+  // Verificar itens esgotados no cardápio do dia
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const cardapio = await CardapioDoDia.findOne({ data: hoje }).lean();
+  if (cardapio) {
+    const esgotados = new Set(
+      cardapio.itens.filter((i) => i.nivel === "esgotado").map((i) => String(i.menuItem))
+    );
+    const itemEsgotado = itens.find((i) => esgotados.has(String(i.menuItemId)));
+    if (itemEsgotado) {
+      const mi = await MenuItem.findById(itemEsgotado.menuItemId).select("nome").lean();
+      return NextResponse.json(
+        { error: `"${mi?.nome ?? "Item"}" está esgotado no cardápio do dia` },
+        { status: 400 }
+      );
+    }
+  }
 
   let itensDesnormalizados;
   try {

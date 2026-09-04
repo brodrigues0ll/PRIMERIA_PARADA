@@ -6,9 +6,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import AddProductsModal from "@/components/AddProductsModal";
 import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { FORMAS_PAGAMENTO } from "@/lib/constants/financeiro";
+import { usePermissao } from "@/hooks/usePermissao";
 
 export default function OrderDetailPage() {
   const [comanda, setComanda] = useState(null);
@@ -17,6 +26,8 @@ export default function OrderDetailPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [mutating, setMutating] = useState(null);
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [formaPagamento, setFormaPagamento] = useState("dinheiro");
 
   const router = useRouter();
   const { id } = useParams();
@@ -66,15 +77,23 @@ export default function OrderDetailPage() {
     }
   }
 
-  async function handleClose() {
+  function handleClose() {
     if (!pedidos.length) { toast.warning("Adicione itens antes de fechar"); return; }
+    setFormaPagamento("dinheiro");
+    setCloseDialogOpen(true);
+  }
+
+  async function handleConfirmClose() {
     setClosing(true);
+    setCloseDialogOpen(false);
     try {
-      await fetch(`/api/comandas/${id}`, {
+      const res = await fetch(`/api/comandas/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "fechar" }),
+        body: JSON.stringify({ action: "fechar", forma_pagamento: formaPagamento }),
       });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Erro ao fechar comanda"); setClosing(false); return; }
       toast.success("Comanda fechada!");
       router.push("/orders");
     } catch {
@@ -82,6 +101,8 @@ export default function OrderDetailPage() {
       setClosing(false);
     }
   }
+
+  const podeFechar = usePermissao("orders.close");
 
   const isGrupo = !!comanda?.grupo;
   const pagantes = comanda?.pagantes ?? [];
@@ -320,22 +341,65 @@ export default function OrderDetailPage() {
             >
               <Plus className="h-5 w-5 text-foreground" />
             </button>
-            <button
-              data-id="close-order-button"
-              onClick={handleClose}
-              disabled={closing}
-              className={cn(
-                "h-[62px] px-5 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-2 shrink-0 transition-all",
-                "hover:bg-primary/90 active:scale-[0.98]",
-                closing && "opacity-70"
-              )}
-            >
-              <CheckCircle className="h-4 w-4" />
-              {closing ? "..." : "Fechar"}
-            </button>
+            {podeFechar && (
+              <button
+                data-id="close-order-button"
+                onClick={handleClose}
+                disabled={closing}
+                className={cn(
+                  "h-[62px] px-5 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-2 shrink-0 transition-all",
+                  "hover:bg-primary/90 active:scale-[0.98]",
+                  closing && "opacity-70"
+                )}
+              >
+                <CheckCircle className="h-4 w-4" />
+                {closing ? "..." : "Fechar"}
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Dialog fechamento */}
+      <Dialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
+        <DialogContent data-id="close-comanda-dialog" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Fechar comanda</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-sm text-muted-foreground mb-4">
+              Total: <span className="font-bold text-foreground">R$&nbsp;{formatPrice(total)}</span>
+            </p>
+            <p className="text-sm font-medium mb-3">Forma de pagamento</p>
+            <div className="grid grid-cols-2 gap-2">
+              {FORMAS_PAGAMENTO.map(({ value, label }) => (
+                <button
+                  key={value}
+                  data-id={`payment-option-${value}`}
+                  onClick={() => setFormaPagamento(value)}
+                  className={cn(
+                    "px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors text-left",
+                    formaPagamento === value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card hover:bg-accent"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCloseDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmClose} disabled={closing}>
+              <CheckCircle className="h-4 w-4 mr-1.5" />
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AddProductsModal
         open={modalOpen}
