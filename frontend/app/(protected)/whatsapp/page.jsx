@@ -1866,7 +1866,7 @@ export default function WhatsAppPage() {
   const [hiddenChats, setHiddenChats] = useState(new Set());
 
   // Filtro de período
-  const [chatFilter, setChatFilter] = useState("todas"); // "hoje" | "todas"
+  const [chatFilter, setChatFilter] = useState("hoje"); // "hoje" | "todas"
 
   // Cores por conversa (IDB)
   const [chatColors, setChatColors] = useState({}); // jid → colorKey
