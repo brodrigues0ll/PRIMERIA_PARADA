@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Plus, Trash2, Check, Eye, Pencil, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, Eye, Pencil, X, RotateCcw, Clock } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -77,7 +77,7 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
 
   return (
     <div data-id="marker-form" className="px-6 py-4 border-t border-[#e9edef] flex flex-col gap-4">
-      <div>
+      <div data-id="marker-color-section">
         <p className="text-[12px] font-medium text-[#54656f] mb-2">
           {isEdit ? "Alterar cor" : "Escolha uma cor"}
         </p>
@@ -106,7 +106,7 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
         </div>
       </div>
 
-      <div>
+      <div data-id="marker-label-section">
         <p className="text-[12px] font-medium text-[#54656f] mb-1">Nome do marcador</p>
         <input
           data-id="marker-label-input"
@@ -129,7 +129,7 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div data-id="marker-form-actions" className="flex gap-2">
         <button
           data-id="save-marker-button"
           onClick={() => onSave(color, label)}
@@ -153,6 +153,10 @@ function MarkerForm({ initialColor, initialLabel, usedColors, onSave, onCancel, 
 export default function WhatsAppConfigPage() {
   const [colorLabels, setColorLabels] = useState({});
   const [hiddenChats, setHiddenChats] = useState([]);
+  const [chatColorsCount, setChatColorsCount] = useState(0);
+  const [resetting, setResetting] = useState(false);
+  const [resetHorario, setResetHorario] = useState(""); // "HH:MM" ou ""
+  const [resetHorarioSaving, setResetHorarioSaving] = useState(false);
 
   const [addingMarker, setAddingMarker] = useState(false);
   const [editingKey, setEditingKey] = useState(null); // chave do marcador sendo editado
@@ -161,11 +165,19 @@ export default function WhatsAppConfigPage() {
   useEffect(() => {
     fetch("/api/whatsapp/config")
       .then((r) => r.json())
-      .then((d) => { if (d.colorLabels) setColorLabels(d.colorLabels); })
+      .then((d) => {
+        if (d.colorLabels) setColorLabels(d.colorLabels);
+        // Sempre atualiza — null/undefined vira "" (desativado), string vira o horário
+        setResetHorario(typeof d.resetHorario === "string" ? d.resetHorario : "");
+      })
       .catch(() => {});
 
     idbGet("hidden_chats").then((list) => {
       if (Array.isArray(list)) setHiddenChats(list.map((jid) => ({ jid })));
+    });
+
+    idbGet("chat_colors").then((map) => {
+      if (map && typeof map === "object") setChatColorsCount(Object.keys(map).length);
     });
   }, []);
 
@@ -224,6 +236,41 @@ export default function WhatsAppConfigPage() {
     }
   }
 
+  async function handleSaveResetHorario(horario) {
+    setResetHorarioSaving(true);
+    try {
+      const res = await fetch("/api/whatsapp/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetHorario: horario || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar");
+      // Usa o valor confirmado pelo servidor, não o local
+      const confirmed = typeof data.resetHorario === "string" ? data.resetHorario : "";
+      setResetHorario(confirmed);
+      toast.success(confirmed ? `Reset automático configurado para ${confirmed}` : "Reset automático desativado");
+    } catch (e) {
+      toast.error(e.message || "Erro ao salvar");
+    } finally {
+      setResetHorarioSaving(false);
+    }
+  }
+
+  async function handleResetColors() {
+    if (!confirm(`Remover as cores de ${chatColorsCount} conversa(s)? Você poderá remarcar no próximo dia.`)) return;
+    setResetting(true);
+    try {
+      await idbSet("chat_colors", {});
+      setChatColorsCount(0);
+      toast.success("Cores removidas de todas as conversas");
+    } catch {
+      toast.error("Erro ao resetar cores");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   async function unhideChat(jid) {
     const next = hiddenChats.filter((c) => c.jid !== jid);
     setHiddenChats(next);
@@ -246,12 +293,12 @@ export default function WhatsAppConfigPage() {
         <h1 className="text-[17px] font-medium text-[#111b21]">Configurações do WhatsApp</h1>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
+      <div data-id="config-content" className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
 
         {/* Seção A — Marcadores de conversa */}
         <div data-id="markers-section" className="bg-white rounded-xl border border-[#e9edef] overflow-hidden">
           <div data-id="markers-section-header" className="flex items-center justify-between px-6 py-4 border-b border-[#e9edef]">
-            <div>
+            <div data-id="markers-section-title">
               <h2 className="text-[15px] font-medium text-[#111b21]">Marcadores de Conversa</h2>
               <p className="text-[13px] text-[#54656f] mt-0.5">
                 Crie rótulos coloridos para organizar suas conversas
@@ -335,7 +382,7 @@ export default function WhatsAppConfigPage() {
 
         {/* Seção B — Conversas Ocultas */}
         <div data-id="hidden-chats-section" className="bg-white rounded-xl border border-[#e9edef] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#e9edef]">
+          <div data-id="hidden-chats-section-header" className="px-6 py-4 border-b border-[#e9edef]">
             <h2 className="text-[15px] font-medium text-[#111b21]">Conversas Ocultas</h2>
             <p className="text-[13px] text-[#54656f] mt-0.5">
               {hiddenChats.length === 0
@@ -351,10 +398,10 @@ export default function WhatsAppConfigPage() {
             <div data-id="hidden-chats-list" className="divide-y divide-[#e9edef]">
               {hiddenChats.map((c) => (
                 <div key={c.jid} data-id={`hidden-chat-item-${c.jid}`} className="flex items-center gap-4 px-6 py-3">
-                  <div className="h-10 w-10 rounded-full bg-[#dfe5e7] flex items-center justify-center text-[14px] font-semibold text-[#54656f] shrink-0">
+                  <div data-id={`hidden-chat-avatar-${c.jid}`} className="h-10 w-10 rounded-full bg-[#dfe5e7] flex items-center justify-center text-[14px] font-semibold text-[#54656f] shrink-0">
                     {(c.jid || "?").charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div data-id={`hidden-chat-info-${c.jid}`} className="flex-1 min-w-0">
                     <p className="text-[14px] text-[#111b21] truncate">{c.jid}</p>
                   </div>
                   <button
@@ -369,6 +416,80 @@ export default function WhatsAppConfigPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Seção C — Resetar cores das conversas */}
+        <div data-id="reset-colors-section" className="bg-white rounded-xl border border-[#e9edef] overflow-hidden">
+          <div data-id="reset-colors-section-header" className="px-6 py-4 border-b border-[#e9edef]">
+            <h2 className="text-[15px] font-medium text-[#111b21]">Cores das Conversas</h2>
+            <p className="text-[13px] text-[#54656f] mt-0.5">
+              {chatColorsCount === 0
+                ? "Nenhuma conversa marcada com cor no momento"
+                : `${chatColorsCount} conversa(s) com cor atribuída`}
+            </p>
+          </div>
+          <div data-id="reset-colors-body" className="px-6 py-5 flex flex-col gap-5">
+            <p className="text-[13px] text-[#54656f]">
+              Remove as cores de todas as conversas para que você possa remarcar do zero no próximo dia.
+              Os marcadores definidos (nomes e cores) não serão afetados.
+            </p>
+
+            {/* Reset manual */}
+            <button
+              data-id="reset-chat-colors-button"
+              onClick={handleResetColors}
+              disabled={resetting || chatColorsCount === 0}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-200 text-red-600 text-[13px] font-medium hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed w-fit"
+            >
+              <RotateCcw className="h-4 w-4" />
+              {resetting ? "Removendo..." : "Resetar agora"}
+            </button>
+
+            {/* Reset automático */}
+            <div data-id="auto-reset-section" className="border-t border-[#e9edef] pt-4 flex flex-col gap-3">
+              <div data-id="auto-reset-title" className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-[#54656f]" />
+                <p className="text-[14px] font-medium text-[#111b21]">Reset automático diário</p>
+              </div>
+              <p className="text-[13px] text-[#54656f]">
+                Configure um horário para o sistema remover automaticamente as cores de todas as conversas todo dia.
+                Deixe em branco para desativar.
+              </p>
+              <div data-id="auto-reset-input-row" className="flex items-center gap-2">
+                <input
+                  data-id="reset-horario-input"
+                  type="time"
+                  value={resetHorario}
+                  onChange={(e) => setResetHorario(e.target.value)}
+                  className="rounded-lg border border-[#e9edef] px-3 py-2 text-[13px] text-[#111b21] focus:outline-none focus:border-[#25d366] bg-white"
+                />
+                <button
+                  data-id="save-reset-horario-button"
+                  onClick={() => handleSaveResetHorario(resetHorario)}
+                  disabled={resetHorarioSaving}
+                  className="px-4 py-2 bg-[#25d366] text-white rounded-lg text-[13px] font-medium hover:bg-[#20c55e] transition-colors disabled:opacity-50"
+                >
+                  {resetHorarioSaving ? "Salvando..." : "Salvar"}
+                </button>
+                {resetHorario && (
+                  <button
+                    data-id="clear-reset-horario-button"
+                    onClick={() => handleSaveResetHorario("")}
+                    disabled={resetHorarioSaving}
+                    className="px-3 py-2 border border-[#e9edef] text-[#54656f] rounded-lg text-[13px] hover:bg-[#f5f6f6] transition-colors"
+                    title="Desativar reset automático"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {resetHorario && (
+                <p className="text-[12px] text-[#25d366] flex items-center gap-1">
+                  <span>●</span> Ativo — cores serão removidas todo dia às {resetHorario}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
       </div>

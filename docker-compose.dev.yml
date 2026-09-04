@@ -13,6 +13,8 @@ services:
       - /app/node_modules
       - /app/.next
     env_file: .env.local
+    environment:
+      - TZ=America/Sao_Paulo
     depends_on:
       - backend
     restart: unless-stopped
@@ -32,6 +34,7 @@ services:
     env_file: .env.local
     environment:
       - PORT=4000
+      - TZ=America/Sao_Paulo
     depends_on:
       - minio
     restart: unless-stopped
@@ -43,7 +46,7 @@ services:
     image: primeira-parada-openwa-dev
     container_name: primeira-parada-openwa
     security_opt:
-      - 'no-new-privileges:true'
+      - "no-new-privileges:true"
     cap_drop:
       - ALL
     cap_add:
@@ -66,11 +69,12 @@ services:
       - HOME=/tmp
       - XDG_CONFIG_HOME=/tmp/.config
       - XDG_CACHE_HOME=/tmp/.cache
+      - TZ=America/Sao_Paulo
     volumes:
       - ./OpenWA/data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:2785/api/health/ready']
+      test: ["CMD", "curl", "-f", "http://localhost:2785/api/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -83,8 +87,27 @@ services:
       - "9000:9000"
       - "9001:9001"
     env_file: .env.local
+    environment:
+      - TZ=America/Sao_Paulo
     volumes:
       - minio_data:/data
+    restart: unless-stopped
+
+  cron:
+    image: alpine:3.19
+    entrypoint: /bin/sh
+    command: >
+      -c "apk add --no-cache wget > /dev/null 2>&1 &&
+          while true; do
+            wget -qO- \"http://frontend:3000/api/whatsapp/auto-reset?key=$${CRON_SECRET}\" > /dev/null 2>&1 || true;
+            sleep 60;
+          done"
+    env_file: .env.local
+    environment:
+      - CRON_SECRET=${CRON_SECRET:-primeria-cron-secret}
+      - TZ=America/Sao_Paulo
+    depends_on:
+      - frontend
     restart: unless-stopped
 
 volumes:
