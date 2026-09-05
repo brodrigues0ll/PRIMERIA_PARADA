@@ -22,7 +22,6 @@ import {
   Settings,
   Plus,
   Minus,
-  Palette,
   Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -490,7 +489,6 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
   const time = formatTime(chat.lastMessage?.timestamp || chat.timestamp);
 
   const [ctxMenu, setCtxMenu] = useState(null); // { x, y }
-  const [showColorPicker, setShowColorPicker] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(displayName);
   const itemRef = useRef(null);
@@ -503,22 +501,10 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
   // fecha menu ao clicar fora
   useEffect(() => {
     if (!ctxMenu) return;
-    function handler() {
-      setCtxMenu(null);
-    }
+    function handler() { setCtxMenu(null); }
     window.addEventListener("click", handler);
     return () => window.removeEventListener("click", handler);
   }, [ctxMenu]);
-
-  // fecha color picker ao clicar fora
-  useEffect(() => {
-    if (!showColorPicker) return;
-    function handler() {
-      setShowColorPicker(false);
-    }
-    window.addEventListener("click", handler);
-    return () => window.removeEventListener("click", handler);
-  }, [showColorPicker]);
 
   async function confirmName() {
     if (nameInput.trim() && nameInput.trim() !== displayName) {
@@ -579,17 +565,7 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
 
       </button>
 
-      {/* Botão paleta — sobreposição, aparece no hover */}
-      <button
-        data-id="chat-color-picker-button"
-        onClick={(e) => { e.stopPropagation(); setShowColorPicker(true); setCtxMenu(null); }}
-        className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef] opacity-0 group-hover:opacity-100 transition-opacity z-10"
-        title="Marcar cor"
-      >
-        <Palette className="h-4 w-4" />
-      </button>
-
-      {/* Menu de contexto */}
+      {/* Menu de contexto com seletor de cores integrado */}
       {ctxMenu && (
         <div
           data-id="chat-context-menu"
@@ -616,63 +592,43 @@ function ChatItem({ chat, selected, onClick, color, nickname, colorLabels, onMar
           >
             Ocultar conversa
           </button>
-        </div>
-      )}
 
-      {/* Seletor de cores */}
-      {showColorPicker && (
-        <div
-          data-id="chat-color-menu"
-          className="fixed z-50 bg-white rounded-lg shadow-lg border border-[#e9edef] p-3 min-w-[160px]"
-          style={{
-            top: itemRef.current?.getBoundingClientRect().top ?? 0,
-            left: (itemRef.current?.getBoundingClientRect().right ?? 0) + 4,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[11px] text-[#54656f] font-medium">Marcadores</p>
-            <button
-              onClick={() => setShowColorPicker(false)}
-              className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] text-[#54656f]"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-          {Object.keys(colorLabels || {}).length === 0 ? (
-            <p className="text-[12px] text-[#54656f] text-center py-2 leading-snug">
-              Nenhum marcador configurado
-            </p>
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              {Object.entries(colorLabels || {}).map(([key, label]) => (
-                <button
-                  key={key}
-                  data-id={`chat-color-option-${key}`}
-                  onClick={() => { onSetColor?.(chat.jid, color === key ? null : key); setShowColorPicker(false); }}
-                  className={cn(
-                    "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-left transition-colors",
-                    color === key ? "bg-[#f0f2f5]" : "hover:bg-[#f5f6f6]"
-                  )}
-                >
-                  <div
-                    className="h-4 w-4 rounded-full shrink-0 flex items-center justify-center"
-                    style={{ backgroundColor: COLOR_MAP[key] }}
+          {/* Seletor de cores — rodapé do menu */}
+          {Object.keys(colorLabels || {}).length > 0 && (
+            <div data-id="chat-color-menu" className="border-t border-[#e9edef] mt-1 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-[#54656f] font-medium">Marcadores</p>
+                {color && (
+                  <button
+                    onClick={() => { onSetColor?.(chat.jid, null); setCtxMenu(null); }}
+                    className="text-[10px] text-[#54656f] hover:text-red-500"
                   >
-                    {color === key && <Check className="h-2.5 w-2.5 text-white" />}
-                  </div>
-                  <span className="text-[13px] text-[#111b21] truncate">{label}</span>
-                </button>
-              ))}
+                    Remover
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-0.5">
+                {Object.entries(colorLabels || {}).map(([key, label]) => (
+                  <button
+                    key={key}
+                    data-id={`chat-color-option-${key}`}
+                    onClick={() => { onSetColor?.(chat.jid, color === key ? null : key); setCtxMenu(null); }}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1 px-2 py-1.5 rounded-md text-center transition-colors",
+                      color === key ? "bg-[#f0f2f5]" : "hover:bg-[#f5f6f6]"
+                    )}
+                  >
+                    <div
+                      className="h-4 w-4 rounded-full shrink-0 flex items-center justify-center"
+                      style={{ backgroundColor: COLOR_MAP[key] }}
+                    >
+                      {color === key && <Check className="h-2.5 w-2.5 text-white" />}
+                    </div>
+                    <span className="text-[10px] text-[#111b21] leading-tight max-w-[48px] text-center break-words">{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
-          {color && (
-            <button
-              onClick={() => { onSetColor?.(chat.jid, null); setShowColorPicker(false); }}
-              className="mt-2 pt-2 border-t border-[#e9edef] w-full text-[11px] text-[#54656f] hover:text-[#111b21] text-center"
-            >
-              Remover marcador
-            </button>
           )}
         </div>
       )}
