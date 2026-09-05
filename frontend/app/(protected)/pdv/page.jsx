@@ -155,6 +155,11 @@ function ItemList({ items, onIncrement, onDecrement, mutating, nivelMap }) {
                     <p className="text-sm font-medium text-foreground truncate">{p.nome}</p>
                     {nivel && <NivelBadge nivel={nivel} />}
                   </div>
+                  {(p.observacao || p.obs) && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 truncate">
+                      {p.observacao || p.obs}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
                     R$&nbsp;{formatPrice(p.preco)} × {p.quantidade}
                     <span className="text-foreground/70 font-semibold ml-2">
@@ -234,10 +239,73 @@ function PagamentoDialog({ open, onClose, total, onConfirm, loading }) {
   );
 }
 
+// ─── Personalização de prato ─────────────────────────────────────────
+function PersonalizarPratoDialog({ item, chips, onConfirm, onCancel }) {
+  const [selected, setSelected] = useState(new Set());
+  const [custom, setCustom] = useState("");
+
+  function toggleChip(chip) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(chip)) next.delete(chip); else next.add(chip);
+      return next;
+    });
+  }
+
+  function handleConfirm() {
+    const parts = [...selected];
+    if (custom.trim()) parts.push(custom.trim());
+    onConfirm(item, parts.join(", "));
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent data-id="personalizar-prato-dialog" className="bg-card border-border sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Personalizar {item.nome}</DialogTitle>
+        </DialogHeader>
+        <div data-id="personalizar-chips" className="flex flex-wrap gap-2 py-1">
+          {(chips || []).map((chip) => (
+            <button
+              key={chip}
+              data-id={`obs-chip-${chip.toLowerCase().replace(/\s+/g, "-")}`}
+              onClick={() => toggleChip(chip)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-[13px] border transition-colors",
+                selected.has(chip)
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border text-foreground hover:bg-accent"
+              )}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+        <Input
+          data-id="personalizar-custom-input"
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          placeholder="Outra observação..."
+          className="bg-background border-border"
+          onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+        />
+        <DialogFooter className="gap-2">
+          <Button data-id="personalizar-cancel-button" variant="ghost" onClick={onCancel}>Pular</Button>
+          <Button data-id="personalizar-confirm-button" onClick={handleConfirm} className="bg-primary hover:bg-primary/90">
+            Adicionar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Grid de itens vendáveis ─────────────────────────────────────────
 function ItensVendaveisGrid({ onSelect }) {
   const [itens, setItens] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [personalizando, setPersonalizando] = useState(null);
+  const [obsChips, setObsChips] = useState([]);
 
   useEffect(() => {
     fetch("/api/cardapio?vendavel=true")
@@ -245,6 +313,18 @@ function ItensVendaveisGrid({ onSelect }) {
       .then((d) => setItens(Array.isArray(d.data) ? d.data : []))
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    fetch("/api/cardapio/hoje")
+      .then((r) => r.json())
+      .then((data) => {
+        const nomes = (data?.itens || [])
+          .filter((i) => i.menuItem?.vendavel === false)
+          .map((i) => i.menuItem.nome);
+        if (nomes.length > 0) {
+          setObsChips(nomes.flatMap((n) => [`Sem ${n}`, `Menos ${n}`]));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Separa pratos (sem categoria ou categoria que não seja "bebida") de bebidas
@@ -308,7 +388,7 @@ function ItensVendaveisGrid({ onSelect }) {
                     data-id={`pdv-quick-item-${item._id}`}
                     key={item._id}
                     type="button"
-                    onClick={() => onSelect(item)}
+                    onClick={() => bebida ? onSelect(item, "") : setPersonalizando(item)}
                     className={cn(
                       "flex flex-col items-start rounded-xl border transition-all active:scale-[0.97] text-left",
                       bebida
@@ -335,6 +415,14 @@ function ItensVendaveisGrid({ onSelect }) {
           );
         })}
       </div>
+      {personalizando && (
+        <PersonalizarPratoDialog
+          item={personalizando}
+          chips={obsChips}
+          onConfirm={(item, obs) => { onSelect(item, obs); setPersonalizando(null); }}
+          onCancel={() => setPersonalizando(null)}
+        />
+      )}
     </div>
   );
 }
@@ -415,15 +503,15 @@ function ModoAvulso() {
   const total = cart.reduce((a, p) => a + p.preco * p.quantidade, 0);
   const totalItens = cart.reduce((a, p) => a + p.quantidade, 0);
 
-  function handleQuickSelect(item) {
+  function handleQuickSelect(item, obs = "") {
     setCart((prev) => {
-      const idx = prev.findIndex((p) => p.menuItemId === item._id);
+      const idx = prev.findIndex((p) => p.menuItemId === item._id && (p.obs ?? "") === obs);
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = { ...next[idx], quantidade: next[idx].quantidade + 1 };
         return next;
       }
-      return [...prev, { menuItemId: item._id, produtoId: item._id, nome: item.nome, preco: item.preco, quantidade: 1 }];
+      return [...prev, { menuItemId: item._id, produtoId: item._id, nome: item.nome, preco: item.preco, quantidade: 1, obs }];
     });
     showFeedback({ nome: item.nome, preco: item.preco, ok: true });
   }
@@ -608,7 +696,7 @@ function ModoComanda() {
     }
   }
 
-  async function handleQuickSelectComanda(item) {
+  async function handleQuickSelectComanda(item, obs = "") {
     if (!comanda) { setSelectorOpen(true); return; }
     const nivel = dailyMenuRef.current ? dailyMenuRef.current[item._id] : undefined;
     if (nivel === "esgotado") {
@@ -619,7 +707,7 @@ function ModoComanda() {
       const addRes = await fetch(`/api/comandas/${comanda._id}/pedidos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ menuItemId: item._id }),
+        body: JSON.stringify({ menuItemId: item._id, observacao: obs }),
       });
       if (!addRes.ok) { showFeedback({ nome: item.nome, ok: false }); return; }
       showFeedback({ nome: item.nome, preco: item.preco, ok: true });

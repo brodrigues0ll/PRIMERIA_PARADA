@@ -19,6 +19,7 @@ const WaConfigSchema = new mongoose.Schema({
   },
   resetHorario: { type: String, default: null },
   lastResetAt: { type: Date, default: null },
+  chatColors: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 }, { timestamps: true });
 
 // Força recriação em hot-reload (dev) para que novos campos do schema

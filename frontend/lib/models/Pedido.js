@@ -27,6 +27,7 @@ const PedidoSchema = new mongoose.Schema(
       default: 1,
     },
     pagante: { type: String, default: null },
+    observacao: { type: String, default: "" },
   },
   {
     timestamps: true,

@@ -1546,19 +1546,22 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
   const [draft, setDraft] = useState({
     name: "",
     phone: "",
-    modalidade: "entrega", // "entrega" | "retirada"
+    modalidade: "entrega",
     rua: "",
     numero: "",
     bairro: "",
     complemento: "",
     referencia: "",
-    pratos: { pf: 0, quentiG: 0, quentiP: 0 },
-    bebidas: "",
+    pratos: { pf: { qty: 0, obs: "" }, quentiG: { qty: 0, obs: "" }, quentiP: { qty: 0, obs: "" } },
+    bebidasCart: {}, // { [itemId]: { nome, qty, preco } }
     pagamento: "Pix",
     troco: "",
     obs: "",
   });
   const [loaded, setLoaded] = useState(false);
+  const [bebidasModalOpen, setBebidasModalOpen] = useState(false);
+  const [bebidasItens, setBebidasItens] = useState([]);
+  const [bebidasSearch, setBebidasSearch] = useState("");
 
   const draftKey = `delivery_draft_${jid}`;
 
@@ -1587,16 +1590,67 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
   function updatePrato(key, delta) {
     setDraft((d) => ({
       ...d,
-      pratos: { ...d.pratos, [key]: Math.max(0, (d.pratos[key] || 0) + delta) },
+      pratos: {
+        ...d.pratos,
+        [key]: { ...d.pratos[key], qty: Math.max(0, (d.pratos[key]?.qty || 0) + delta) },
+      },
     }));
   }
 
-  const total = PRATOS_DEF.reduce((s, p) => s + (draft.pratos[p.key] || 0) * p.preco, 0);
+  function updatePratoObs(key, obs) {
+    setDraft((d) => ({
+      ...d,
+      pratos: { ...d.pratos, [key]: { ...d.pratos[key], obs } },
+    }));
+  }
+
+  const [obsChips, setObsChips] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/cardapio/hoje")
+      .then((r) => r.json())
+      .then((data) => {
+        const itens = Array.isArray(data?.itens) ? data.itens : [];
+        const nomes = itens
+          .filter((i) => i.menuItem?.vendavel === false)
+          .map((i) => i.menuItem.nome);
+        if (nomes.length > 0) {
+          setObsChips(nomes.flatMap((n) => [`Sem ${n}`, `Menos ${n}`]));
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/cardapio?vendavel=true")
+      .then((r) => r.json())
+      .then((d) => {
+        const all = Array.isArray(d.data) ? d.data : [];
+        setBebidasItens(all.filter((i) => /bebida/i.test(i.categoria?.nome || "")));
+      })
+      .catch(() => {});
+  }, []);
+
+  const bebidasCartArr = Object.values(draft.bebidasCart || {}).filter((b) => b.qty > 0);
+  const bebidasStr = bebidasCartArr.map((b) => `${b.qty}x ${b.nome}`).join(", ");
+  const totalBebidas = bebidasCartArr.reduce((s, b) => s + b.qty * b.preco, 0);
+  const total = PRATOS_DEF.reduce((s, p) => s + (draft.pratos[p.key]?.qty || 0) * p.preco, 0) + totalBebidas;
+
+  function updateBebida(item, delta) {
+    setDraft((d) => {
+      const prev = d.bebidasCart?.[item._id] || { nome: item.nome, qty: 0, preco: item.preco };
+      const qty = Math.max(0, prev.qty + delta);
+      const next = { ...d.bebidasCart };
+      if (qty === 0) delete next[item._id]; else next[item._id] = { ...prev, qty };
+      return { ...d, bebidasCart: next };
+    });
+  }
 
   function handleConfirm() {
     const pratosStr = PRATOS_DEF
-      .filter((p) => (draft.pratos[p.key] || 0) > 0)
-      .map((p) => `${draft.pratos[p.key]}x ${p.label}`)
+      .filter((p) => (draft.pratos[p.key]?.qty || 0) > 0)
+      .map((p) => {
+        const obs = draft.pratos[p.key]?.obs;
+        return `${draft.pratos[p.key].qty}x ${p.label}${obs ? ` (${obs})` : ""}`;
+      })
       .join(", ") || "—";
 
     const lines = [
@@ -1608,7 +1662,7 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
         : null,
       draft.modalidade === "entrega" && draft.referencia ? `📌 Referência: ${draft.referencia}` : null,
       `🍽️ Pratos: ${pratosStr}`,
-      draft.bebidas ? `🥤 Bebidas: ${draft.bebidas}` : null,
+      bebidasStr ? `🥤 Bebidas: ${bebidasStr}` : null,
       total > 0 ? `💰 Total: R$ ${total.toFixed(2).replace(".", ",")}` : null,
       `💳 Pagamento: ${draft.pagamento}`,
       draft.pagamento === "Dinheiro" && draft.troco ? `💵 Troco para: R$ ${draft.troco}` : null,
@@ -1647,8 +1701,12 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
     );
   }
 
+  const bebidasFiltradas = bebidasItens.filter((i) =>
+    !bebidasSearch || i.nome.toLowerCase().includes(bebidasSearch.toLowerCase())
+  );
+
   return (
-    <div data-id="delivery-aside" className="flex flex-col h-full w-[420px] bg-white border-l border-[#e9edef] shrink-0 overflow-y-auto">
+    <div data-id="delivery-aside" className="relative flex flex-col h-full w-[420px] bg-white border-l border-[#e9edef] shrink-0 overflow-hidden">
       {/* Header */}
       <div data-id="delivery-aside-header" className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 border-b border-[#e9edef]">
         <div className="flex-1">
@@ -1665,7 +1723,7 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
       </div>
 
       {/* Campos */}
-      <div data-id="delivery-form" className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      <div data-id="delivery-form" className="flex-1 overflow-y-auto p-4 flex flex-col gap-4" style={{ display: bebidasModalOpen ? "none" : undefined }}>
 
         {/* Cliente */}
         <div data-id="delivery-client-section" className="flex flex-col gap-2">
@@ -1722,50 +1780,88 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
         <div data-id="delivery-pratos-section">
           <p className="text-[11px] font-medium text-[#54656f] mb-2">Pratos</p>
           <div className="flex flex-col gap-2">
-            {PRATOS_DEF.map((p) => (
-              <div
-                key={p.key}
-                data-id={`delivery-prato-${p.key}`}
-                className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[#e9edef] bg-[#f9fafb]"
-              >
-                <div>
-                  <p className="text-[13px] font-medium text-[#111b21]">{p.label}</p>
-                  <p className="text-[11px] text-[#54656f]">R$ {p.preco},00</p>
+            {PRATOS_DEF.map((p) => {
+              const qty = draft.pratos[p.key]?.qty || 0;
+              const obs = draft.pratos[p.key]?.obs || "";
+              return (
+                <div key={p.key} data-id={`delivery-prato-${p.key}`} className="rounded-lg border border-[#e9edef] bg-[#f9fafb]">
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <div>
+                      <p className="text-[13px] font-medium text-[#111b21]">{p.label}</p>
+                      <p className="text-[11px] text-[#54656f]">R$ {p.preco},00</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        data-id={`delivery-prato-${p.key}-decrement`}
+                        onClick={() => updatePrato(p.key, -1)}
+                        disabled={qty === 0}
+                        className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] disabled:opacity-30 transition-colors"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span data-id={`delivery-prato-${p.key}-qty`} className="w-5 text-center text-[14px] font-semibold text-[#111b21]">
+                        {qty}
+                      </span>
+                      <button
+                        data-id={`delivery-prato-${p.key}-increment`}
+                        onClick={() => updatePrato(p.key, 1)}
+                        className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  {qty > 0 && (
+                    <div className="px-3 pb-3 flex flex-col gap-1.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        {obsChips.map((chip) => {
+                          const active = obs.split(",").map((s) => s.trim()).includes(chip);
+                          return (
+                            <button
+                              key={chip}
+                              data-id={`delivery-prato-${p.key}-chip-${chip}`}
+                              onClick={() => {
+                                const parts = obs ? obs.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                                const next = active ? parts.filter((c) => c !== chip) : [...parts, chip];
+                                updatePratoObs(p.key, next.join(", "));
+                              }}
+                              className={cn(
+                                "px-2 py-0.5 rounded-full text-[11px] border transition-colors",
+                                active
+                                  ? "bg-[#25d366] text-white border-[#25d366]"
+                                  : "bg-white text-[#54656f] border-[#e9edef] hover:border-[#25d366]"
+                              )}
+                            >
+                              {chip}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {obs && (
+                        <p className="text-[11px] text-amber-600 truncate">{obs}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    data-id={`delivery-prato-${p.key}-decrement`}
-                    onClick={() => updatePrato(p.key, -1)}
-                    disabled={(draft.pratos[p.key] || 0) === 0}
-                    className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] disabled:opacity-30 transition-colors"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                  <span data-id={`delivery-prato-${p.key}-qty`} className="w-5 text-center text-[14px] font-semibold text-[#111b21]">
-                    {draft.pratos[p.key] || 0}
-                  </span>
-                  <button
-                    data-id={`delivery-prato-${p.key}-increment`}
-                    onClick={() => updatePrato(p.key, 1)}
-                    className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] transition-colors"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Bebidas */}
-        <Field
-          data-id="delivery-bebidas-input"
-          label="Bebidas (opcional)"
-          value={draft.bebidas}
-          onChange={(v) => update("bebidas", v)}
-          placeholder="Ex: 2 Coca-Cola lata, 1 suco..."
-          multiline
-        />
+        <div data-id="delivery-bebidas-section">
+          <label className="block text-[11px] font-medium text-[#54656f] mb-1">Bebidas</label>
+          <button
+            data-id="delivery-bebidas-input"
+            onClick={() => { setBebidasSearch(""); setBebidasModalOpen(true); }}
+            className="w-full rounded-lg border border-[#e9edef] px-3 py-2 text-[13px] text-left transition-colors hover:border-[#25d366]"
+          >
+            {bebidasStr
+              ? <span className="text-[#111b21]">{bebidasStr}</span>
+              : <span className="text-[#54656f]">Selecionar bebidas…</span>
+            }
+          </button>
+        </div>
 
         {/* Pagamento */}
         <div data-id="delivery-pagamento-section">
@@ -1796,11 +1892,73 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
         <Field data-id="delivery-obs-input" label="Observações" value={draft.obs} onChange={(v) => update("obs", v)} placeholder="Sem cebola, sem pimenta..." multiline />
       </div>
 
+      {/* Modal de bebidas */}
+      {bebidasModalOpen && (
+        <div data-id="delivery-bebidas-modal" className="absolute inset-0 bg-white z-10 flex flex-col">
+          <div className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 border-b border-[#e9edef]">
+            <button onClick={() => setBebidasModalOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-full text-[#54656f] hover:bg-[#e9edef]">
+              <X className="h-4 w-4" />
+            </button>
+            <p className="text-[15px] font-medium text-[#111b21] flex-1">Bebidas</p>
+            {bebidasCartArr.length > 0 && (
+              <button
+                onClick={() => setDraft((d) => ({ ...d, bebidasCart: {} }))}
+                className="text-[12px] text-red-500 hover:text-red-700"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          <div className="px-4 py-3 shrink-0">
+            <input
+              data-id="delivery-bebidas-search"
+              value={bebidasSearch}
+              onChange={(e) => setBebidasSearch(e.target.value)}
+              placeholder="Buscar bebida..."
+              className="w-full rounded-lg border border-[#e9edef] px-3 py-2 text-[13px] text-[#111b21] placeholder:text-[#54656f] focus:outline-none focus:border-[#25d366]"
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-2">
+            {bebidasFiltradas.length === 0 && (
+              <p className="text-[13px] text-[#54656f] text-center py-6">Nenhuma bebida encontrada</p>
+            )}
+            {bebidasFiltradas.map((item) => {
+              const qty = draft.bebidasCart?.[item._id]?.qty || 0;
+              return (
+                <div key={item._id} data-id={`delivery-bebida-${item._id}`} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[#e9edef] bg-[#f9fafb]">
+                  <div>
+                    <p className="text-[13px] font-medium text-[#111b21]">{item.nome}</p>
+                    <p className="text-[11px] text-[#54656f]">R$ {item.preco?.toFixed(2).replace(".", ",")}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => updateBebida(item, -1)} disabled={qty === 0} className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] disabled:opacity-30 transition-colors">
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="w-5 text-center text-[14px] font-semibold text-[#111b21]">{qty}</span>
+                    <button onClick={() => updateBebida(item, 1)} className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] transition-colors">
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="p-4 border-t border-[#e9edef] shrink-0">
+            <button
+              onClick={() => setBebidasModalOpen(false)}
+              className="w-full py-2.5 rounded-lg bg-[#25d366] text-white text-[14px] font-medium hover:bg-[#20c55e] transition-colors"
+            >
+              {bebidasCartArr.length > 0 ? `Confirmar (${bebidasCartArr.length} item${bebidasCartArr.length > 1 ? "s" : ""})` : "Fechar"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Rodapé */}
-      <div data-id="delivery-aside-footer" className="p-4 border-t border-[#e9edef] shrink-0 flex flex-col gap-2">
+      <div data-id="delivery-aside-footer" className="p-4 border-t border-[#e9edef] shrink-0 flex flex-col gap-2" style={{ display: bebidasModalOpen ? "none" : undefined }}>
         {total > 0 && (
           <div data-id="delivery-total" className="flex items-center justify-between px-1">
-            <p className="text-[13px] text-[#54656f]">Total dos pratos</p>
+            <p className="text-[13px] text-[#54656f]">Total</p>
             <p className="text-[15px] font-semibold text-[#111b21]">R$ {total.toFixed(2).replace(".", ",")}</p>
           </div>
         )}
@@ -2084,20 +2242,12 @@ export default function WhatsAppPage() {
 
   // Carrega nicknames, hidden chats, chat colors e marcadores na inicialização
   useEffect(() => {
-    // Marcadores de cor (MongoDB) + verificar lastResetAt para auto-clear do IDB
+    // Carrega config: cores de labels, horário de reset e cores de chat do MongoDB
     fetch("/api/whatsapp/config")
       .then((r) => r.json())
-      .then(async (d) => {
+      .then((d) => {
         if (d.colorLabels) setColorLabels(d.colorLabels);
-        if (d.lastResetAt) {
-          const lastResetTs = new Date(d.lastResetAt).getTime();
-          const clearedAt = (await idbGet("chat_colors_cleared_at")) || 0;
-          if (lastResetTs > clearedAt) {
-            await idbSet("chat_colors", {});
-            await idbSet("chat_colors_cleared_at", lastResetTs);
-            setChatColors({});
-          }
-        }
+        if (d.chatColors) setChatColors(d.chatColors);
       })
       .catch(() => {});
 
@@ -2117,12 +2267,6 @@ export default function WhatsAppPage() {
     idbGet("hidden_chats").then((list) => {
       if (Array.isArray(list)) setHiddenChats(new Set(list));
     });
-
-    // Chat colors do IDB — carregado depois do check de lastResetAt (no fetch acima)
-    // Lemos aqui como fallback caso o fetch falhe
-    idbGet("chat_colors").then((map) => {
-      if (map && typeof map === "object") setChatColors((prev) => Object.keys(prev).length ? prev : map);
-    });
   }, []);
 
   // Verifica rascunho de delivery para o chat selecionado
@@ -2140,6 +2284,19 @@ export default function WhatsAppPage() {
     }, delay);
     return () => clearInterval(interval);
   }, [fetchStatus, fetchSessions, status]);
+
+  // Polling do config a cada 60s para detectar reset automático de cores
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/whatsapp/config")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.chatColors) setChatColors(d.chatColors);
+        })
+        .catch(() => {});
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleDisconnect() {
     setDisconnecting(true);
@@ -2334,7 +2491,11 @@ export default function WhatsAppPage() {
     if (colorKey === null) delete next[jid];
     else next[jid] = colorKey;
     setChatColors(next);
-    await idbSet("chat_colors", next);
+    fetch("/api/whatsapp/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jid, colorKey: colorKey ?? null }),
+    }).catch(() => {});
   }
 
   function handleMarkRead(jid) {

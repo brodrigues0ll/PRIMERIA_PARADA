@@ -33,7 +33,7 @@ export async function GET() {
   let doc = await CardapioDoDia.findOne({ data: hoje() }).populate({
     path: "itens.menuItem",
     populate: { path: "categoria", select: "nome cor" },
-    select: "nome preco categoria ativo",
+    select: "nome preco categoria ativo vendavel",
   });
 
   if (!doc) {
@@ -50,6 +50,7 @@ export async function GET() {
         nome: i.menuItem.nome,
         preco: i.menuItem.preco,
         categoria: i.menuItem.categoria,
+        vendavel: i.menuItem.vendavel,
       },
       nivel: i.nivel,
     })),

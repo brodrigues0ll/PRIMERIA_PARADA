@@ -49,7 +49,7 @@ export async function GET(request) {
 
   await WaConfig.findOneAndUpdate(
     {},
-    { $set: { lastResetAt: now } },
+    { $set: { lastResetAt: now, chatColors: {} } },
     { upsert: true }
   );
 

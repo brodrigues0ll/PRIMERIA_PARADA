@@ -15,6 +15,7 @@ export async function GET() {
     colorLabels: cfg?.colorLabels || {},
     resetHorario: cfg?.resetHorario ?? null,
     lastResetAt: cfg?.lastResetAt ?? null,
+    chatColors: cfg?.chatColors || {},
   });
 }
 
@@ -27,8 +28,29 @@ export async function PATCH(request) {
   const $set = {};
   if (body.colorLabels !== undefined) $set.colorLabels = body.colorLabels;
   if ("resetHorario" in body) $set.resetHorario = body.resetHorario ?? null;
+  if ("chatColors" in body) $set.chatColors = body.chatColors;
 
-  // strict: false garante que campos novos não sejam descartados pelo Mongoose
+  // Atualização de cor individual: { jid, colorKey }
+  if (body.jid !== undefined) {
+    const jid = body.jid;
+    if (body.colorKey === null || body.colorKey === undefined) {
+      // Remove a cor deste jid
+      const cfg = await WaConfig.findOneAndUpdate(
+        {},
+        { $unset: { [`chatColors.${jid}`]: "" } },
+        { upsert: true, new: true, strict: false }
+      );
+      return NextResponse.json({ chatColors: cfg?.chatColors || {} });
+    } else {
+      const cfg = await WaConfig.findOneAndUpdate(
+        {},
+        { $set: { [`chatColors.${jid}`]: body.colorKey } },
+        { upsert: true, new: true, strict: false }
+      );
+      return NextResponse.json({ chatColors: cfg?.chatColors || {} });
+    }
+  }
+
   const cfg = await WaConfig.findOneAndUpdate(
     {},
     { $set },
@@ -38,5 +60,6 @@ export async function PATCH(request) {
     colorLabels: cfg.colorLabels || {},
     resetHorario: cfg.resetHorario ?? null,
     lastResetAt: cfg.lastResetAt ?? null,
+    chatColors: cfg.chatColors || {},
   });
 }
