@@ -39,10 +39,10 @@ export async function GET(request) {
     return NextResponse.json({ skipped: true, reason: "not_time_yet", current: currentHHMM, scheduled: cfg.resetHorario });
   }
 
-  // Verificar se já foi resetado nos últimos 5 minutos (evitar duplicatas)
+  // Verificar se já foi resetado nos últimos 90 segundos (evitar duplicatas do cron de 60s)
   if (cfg.lastResetAt) {
     const diffMs = now.getTime() - new Date(cfg.lastResetAt).getTime();
-    if (diffMs < 5 * 60 * 1000) {
+    if (diffMs < 90 * 1000) {
       return NextResponse.json({ skipped: true, reason: "already_reset_recently" });
     }
   }
