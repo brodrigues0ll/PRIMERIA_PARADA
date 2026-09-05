@@ -27,9 +27,13 @@ export async function GET(request) {
   }
 
   const now = new Date();
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  const currentHHMM = `${hh}:${mm}`;
+  // Sempre compara no fuso de São Paulo, independente do TZ do container
+  const currentHHMM = now.toLocaleTimeString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).slice(0, 5);
 
   if (currentHHMM !== cfg.resetHorario) {
     return NextResponse.json({ skipped: true, reason: "not_time_yet", current: currentHHMM, scheduled: cfg.resetHorario });

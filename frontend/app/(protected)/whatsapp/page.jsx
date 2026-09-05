@@ -21,6 +21,7 @@ import {
   Pause,
   Settings,
   Plus,
+  Minus,
   Palette,
   Check,
 } from "lucide-react";
@@ -1535,16 +1536,24 @@ function MessagesPanel({ chat, sessionId, onBack, liveMessage, onSent, onOpenDel
 
 const PAYMENT_OPTS = ["Dinheiro", "Pix", "Cartão"];
 
+const PRATOS_DEF = [
+  { key: "pf",      label: "Prato Feito",       preco: 28 },
+  { key: "quentiG", label: "Quentinha Grande",   preco: 25 },
+  { key: "quentiP", label: "Quentinha Pequena",  preco: 20 },
+];
+
 function DeliveryAside({ jid, chat, nicknames, onClose }) {
   const [draft, setDraft] = useState({
     name: "",
     phone: "",
+    modalidade: "entrega", // "entrega" | "retirada"
     rua: "",
     numero: "",
     bairro: "",
     complemento: "",
     referencia: "",
-    itens: "",
+    pratos: { pf: 0, quentiG: 0, quentiP: 0 },
+    bebidas: "",
     pagamento: "Pix",
     troco: "",
     obs: "",
@@ -1553,11 +1562,10 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
 
   const draftKey = `delivery_draft_${jid}`;
 
-  // Carrega rascunho do IDB na montagem
   useEffect(() => {
     idbGet(draftKey).then((saved) => {
       if (saved) {
-        setDraft(saved);
+        setDraft((d) => ({ ...d, ...saved }));
       } else {
         const displayName = nicknames?.[jid] || chat?.name || "";
         const phone = jid?.replace("@c.us", "").replace("@s.whatsapp.net", "") || "";
@@ -1567,7 +1575,6 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
     });
   }, [jid]);
 
-  // Salva rascunho no IDB a cada mudança
   useEffect(() => {
     if (!loaded) return;
     idbSet(draftKey, draft);
@@ -1577,37 +1584,59 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
     setDraft((d) => ({ ...d, [field]: value }));
   }
 
+  function updatePrato(key, delta) {
+    setDraft((d) => ({
+      ...d,
+      pratos: { ...d.pratos, [key]: Math.max(0, (d.pratos[key] || 0) + delta) },
+    }));
+  }
+
+  const total = PRATOS_DEF.reduce((s, p) => s + (draft.pratos[p.key] || 0) * p.preco, 0);
+
   function handleConfirm() {
+    const pratosStr = PRATOS_DEF
+      .filter((p) => (draft.pratos[p.key] || 0) > 0)
+      .map((p) => `${draft.pratos[p.key]}x ${p.label}`)
+      .join(", ") || "—";
+
     const lines = [
-      `Cliente: ${draft.name}`,
-      `Telefone: ${draft.phone}`,
-      `Endereço: ${draft.rua}, ${draft.numero}${draft.complemento ? ` - ${draft.complemento}` : ""}, ${draft.bairro}`,
-      draft.referencia ? `Referência: ${draft.referencia}` : null,
-      `Itens: ${draft.itens}`,
-      `Pagamento: ${draft.pagamento}`,
-      draft.pagamento === "Dinheiro" && draft.troco ? `Troco para: R$ ${draft.troco}` : null,
-      draft.obs ? `Obs: ${draft.obs}` : null,
+      `🧑 Cliente: ${draft.name}`,
+      draft.phone ? `📱 Telefone: ${draft.phone}` : null,
+      `📦 Modalidade: ${draft.modalidade === "entrega" ? "Entrega" : "Retirada no balcão"}`,
+      draft.modalidade === "entrega" && draft.rua
+        ? `📍 Endereço: ${draft.rua}${draft.numero ? `, ${draft.numero}` : ""}${draft.bairro ? ` - ${draft.bairro}` : ""}${draft.complemento ? ` (${draft.complemento})` : ""}`
+        : null,
+      draft.modalidade === "entrega" && draft.referencia ? `📌 Referência: ${draft.referencia}` : null,
+      `🍽️ Pratos: ${pratosStr}`,
+      draft.bebidas ? `🥤 Bebidas: ${draft.bebidas}` : null,
+      total > 0 ? `💰 Total: R$ ${total.toFixed(2).replace(".", ",")}` : null,
+      `💳 Pagamento: ${draft.pagamento}`,
+      draft.pagamento === "Dinheiro" && draft.troco ? `💵 Troco para: R$ ${draft.troco}` : null,
+      draft.obs ? `📝 Obs: ${draft.obs}` : null,
     ].filter(Boolean).join("\n");
+
     navigator.clipboard?.writeText(lines).catch(() => {});
     toast.success("Resumo copiado!");
     idbSet(draftKey, null);
     onClose?.();
   }
 
-  function Field({ label, value, onChange, placeholder, multiline }) {
+  function Field({ label, value, onChange, placeholder, multiline, "data-id": dataId }) {
     return (
       <div>
         <label className="block text-[11px] font-medium text-[#54656f] mb-1">{label}</label>
         {multiline ? (
           <textarea
+            data-id={dataId}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            rows={3}
+            rows={2}
             className="w-full rounded-lg border border-[#e9edef] px-3 py-2 text-[13px] text-[#111b21] placeholder:text-[#54656f] focus:outline-none focus:border-[#25d366] resize-none"
           />
         ) : (
           <input
+            data-id={dataId}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
@@ -1623,7 +1652,7 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
       {/* Header */}
       <div data-id="delivery-aside-header" className="flex items-center gap-3 px-4 h-[60px] bg-[#f0f2f5] shrink-0 border-b border-[#e9edef]">
         <div className="flex-1">
-          <p className="text-[15px] font-medium text-[#111b21]">Pedido de Delivery</p>
+          <p className="text-[15px] font-medium text-[#111b21]">Pedido</p>
           <p className="text-[12px] text-[#54656f] truncate">{nicknames?.[jid] || chat?.name || jid}</p>
         </div>
         <button
@@ -1637,34 +1666,115 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
 
       {/* Campos */}
       <div data-id="delivery-form" className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-        <Field label="Nome do cliente" value={draft.name} onChange={(v) => update("name", v)} placeholder="Nome" data-id="delivery-client-input" />
-        <Field label="Telefone" value={draft.phone} onChange={(v) => update("phone", v)} placeholder="+55..." />
 
-        <div>
-          <p className="text-[11px] font-medium text-[#54656f] mb-2">Endereço de entrega</p>
-          <div data-id="delivery-address-input" className="flex flex-col gap-2">
-            <Field label="Rua" value={draft.rua} onChange={(v) => update("rua", v)} placeholder="Rua / Av." />
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Field label="Número" value={draft.numero} onChange={(v) => update("numero", v)} placeholder="Nº" />
-              </div>
-              <div className="flex-1">
-                <Field label="Bairro" value={draft.bairro} onChange={(v) => update("bairro", v)} placeholder="Bairro" />
-              </div>
-            </div>
-            <Field label="Complemento" value={draft.complemento} onChange={(v) => update("complemento", v)} placeholder="Apto, bloco..." />
-            <Field label="Referência" value={draft.referencia} onChange={(v) => update("referencia", v)} placeholder="Perto de..." />
+        {/* Cliente */}
+        <div data-id="delivery-client-section" className="flex flex-col gap-2">
+          <Field data-id="delivery-client-input" label="Nome do cliente" value={draft.name} onChange={(v) => update("name", v)} placeholder="Nome" />
+          <Field data-id="delivery-phone-input" label="Telefone" value={draft.phone} onChange={(v) => update("phone", v)} placeholder="+55..." />
+        </div>
+
+        {/* Modalidade */}
+        <div data-id="delivery-modalidade-section">
+          <p className="text-[11px] font-medium text-[#54656f] mb-2">Modalidade</p>
+          <div data-id="delivery-modalidade-toggle" className="flex rounded-lg border border-[#e9edef] overflow-hidden">
+            {[
+              { key: "entrega",  label: "🛵 Entrega" },
+              { key: "retirada", label: "🏪 Retirada no balcão" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                data-id={`delivery-modalidade-${key}`}
+                onClick={() => update("modalidade", key)}
+                className={cn(
+                  "flex-1 py-2 text-[13px] font-medium transition-colors",
+                  draft.modalidade === key
+                    ? "bg-[#25d366] text-white"
+                    : "bg-white text-[#54656f] hover:bg-[#f0f2f5]"
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <Field label="Itens do pedido" value={draft.itens} onChange={(v) => update("itens", v)} placeholder="Descreva os itens..." multiline data-id="delivery-items-list" />
+        {/* Endereço — só para entrega */}
+        {draft.modalidade === "entrega" && (
+          <div data-id="delivery-address-section">
+            <p className="text-[11px] font-medium text-[#54656f] mb-2">Endereço de entrega</p>
+            <div data-id="delivery-address-input" className="flex flex-col gap-2">
+              <Field label="Rua" value={draft.rua} onChange={(v) => update("rua", v)} placeholder="Rua / Av." />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Field label="Número" value={draft.numero} onChange={(v) => update("numero", v)} placeholder="Nº" />
+                </div>
+                <div className="flex-1">
+                  <Field label="Bairro" value={draft.bairro} onChange={(v) => update("bairro", v)} placeholder="Bairro" />
+                </div>
+              </div>
+              <Field label="Complemento" value={draft.complemento} onChange={(v) => update("complemento", v)} placeholder="Apto, bloco..." />
+              <Field label="Referência" value={draft.referencia} onChange={(v) => update("referencia", v)} placeholder="Perto de..." />
+            </div>
+          </div>
+        )}
 
-        <div>
+        {/* Pratos */}
+        <div data-id="delivery-pratos-section">
+          <p className="text-[11px] font-medium text-[#54656f] mb-2">Pratos</p>
+          <div className="flex flex-col gap-2">
+            {PRATOS_DEF.map((p) => (
+              <div
+                key={p.key}
+                data-id={`delivery-prato-${p.key}`}
+                className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[#e9edef] bg-[#f9fafb]"
+              >
+                <div>
+                  <p className="text-[13px] font-medium text-[#111b21]">{p.label}</p>
+                  <p className="text-[11px] text-[#54656f]">R$ {p.preco},00</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    data-id={`delivery-prato-${p.key}-decrement`}
+                    onClick={() => updatePrato(p.key, -1)}
+                    disabled={(draft.pratos[p.key] || 0) === 0}
+                    className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] disabled:opacity-30 transition-colors"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span data-id={`delivery-prato-${p.key}-qty`} className="w-5 text-center text-[14px] font-semibold text-[#111b21]">
+                    {draft.pratos[p.key] || 0}
+                  </span>
+                  <button
+                    data-id={`delivery-prato-${p.key}-increment`}
+                    onClick={() => updatePrato(p.key, 1)}
+                    className="h-7 w-7 rounded-full border border-[#e9edef] flex items-center justify-center text-[#54656f] hover:bg-[#e9edef] transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bebidas */}
+        <Field
+          data-id="delivery-bebidas-input"
+          label="Bebidas (opcional)"
+          value={draft.bebidas}
+          onChange={(v) => update("bebidas", v)}
+          placeholder="Ex: 2 Coca-Cola lata, 1 suco..."
+          multiline
+        />
+
+        {/* Pagamento */}
+        <div data-id="delivery-pagamento-section">
           <label className="block text-[11px] font-medium text-[#54656f] mb-1">Forma de pagamento</label>
           <div className="flex gap-2">
             {PAYMENT_OPTS.map((opt) => (
               <button
                 key={opt}
+                data-id={`delivery-pagamento-${opt.toLowerCase()}`}
                 onClick={() => update("pagamento", opt)}
                 className={cn(
                   "flex-1 py-2 rounded-lg text-[13px] font-medium border transition-colors",
@@ -1680,20 +1790,26 @@ function DeliveryAside({ jid, chat, nicknames, onClose }) {
         </div>
 
         {draft.pagamento === "Dinheiro" && (
-          <Field label="Troco para (R$)" value={draft.troco} onChange={(v) => update("troco", v)} placeholder="0,00" />
+          <Field data-id="delivery-troco-input" label="Troco para (R$)" value={draft.troco} onChange={(v) => update("troco", v)} placeholder="0,00" />
         )}
 
-        <Field label="Observações" value={draft.obs} onChange={(v) => update("obs", v)} placeholder="Observações gerais..." multiline />
+        <Field data-id="delivery-obs-input" label="Observações" value={draft.obs} onChange={(v) => update("obs", v)} placeholder="Sem cebola, sem pimenta..." multiline />
       </div>
 
       {/* Rodapé */}
-      <div className="p-4 border-t border-[#e9edef] shrink-0">
+      <div data-id="delivery-aside-footer" className="p-4 border-t border-[#e9edef] shrink-0 flex flex-col gap-2">
+        {total > 0 && (
+          <div data-id="delivery-total" className="flex items-center justify-between px-1">
+            <p className="text-[13px] text-[#54656f]">Total dos pratos</p>
+            <p className="text-[15px] font-semibold text-[#111b21]">R$ {total.toFixed(2).replace(".", ",")}</p>
+          </div>
+        )}
         <button
           data-id="delivery-send-button"
           onClick={handleConfirm}
           className="w-full py-2.5 rounded-lg bg-[#25d366] text-white text-[14px] font-medium hover:bg-[#20c55e] transition-colors"
         >
-          Confirmar pedido
+          Copiar resumo
         </button>
       </div>
     </div>
