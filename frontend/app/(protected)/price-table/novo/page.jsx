@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, X, Package, ChevronDown, ChevronUp, Link2 } from "lucide-react";
+import { Search, X, Package, ChevronDown, ChevronUp, Link2, DollarSign, BookOpen } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 
 function parseDecimal(str) {
@@ -16,6 +16,9 @@ function parseDecimal(str) {
 
 export default function NovoCardapioPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Se vier ?vendavel=false da listagem, inicia como não-vendável
+  const [vendavel, setVendavel] = useState(searchParams.get("vendavel") !== "false");
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
   const [cats, setCats] = useState([]);
@@ -69,7 +72,8 @@ export default function NovoCardapioPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!nome.trim() || precoNum <= 0) return;
+    if (!nome.trim()) return;
+    if (vendavel && precoNum <= 0) return;
     setLoading(true);
     try {
       const res = await fetch("/api/cardapio", {
@@ -77,8 +81,9 @@ export default function NovoCardapioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome: nome.trim(),
-          preco: precoNum,
-          produtoRef: produtoRef?._id || null,
+          preco: vendavel ? precoNum : 0,
+          vendavel,
+          produtoRef: vendavel ? (produtoRef?._id || null) : null,
           categoria: categoriaId || null,
         }),
       });
@@ -99,9 +104,39 @@ export default function NovoCardapioPage() {
   return (
     <div data-id="price-table-novo-page" className="px-4 pt-6 pb-10">
       <h2 className="text-lg font-semibold mb-1">Novo item do cardápio</h2>
-      <p className="text-sm text-muted-foreground mb-6">Nome e preço de venda</p>
+      <p className="text-sm text-muted-foreground mb-6">
+        {vendavel ? "Item com preço — aparece no PDV" : "Componente informativo — aparece no cardápio do dia"}
+      </p>
 
       <form data-id="price-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+        {/* Toggle de tipo */}
+        <div data-id="price-tipo-toggle" className="grid grid-cols-2 gap-1.5 bg-muted rounded-xl p-1">
+          <button
+            type="button"
+            data-id="price-tipo-vendavel"
+            onClick={() => setVendavel(true)}
+            className={cn(
+              "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              vendavel ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <DollarSign className="h-3.5 w-3.5" />
+            Com preço (PDV)
+          </button>
+          <button
+            type="button"
+            data-id="price-tipo-informativo"
+            onClick={() => setVendavel(false)}
+            className={cn(
+              "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              !vendavel ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Cardápio do dia
+          </button>
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nome">Nome *</Label>
@@ -129,19 +164,21 @@ export default function NovoCardapioPage() {
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="preco">Preço de venda (R$) *</Label>
-          <Input
-            data-id="price-value-input"
-            id="preco" value={preco} onChange={(e) => setPreco(e.target.value)}
-            inputMode="decimal" placeholder="0,00" required
-          />
-        </div>
+        {vendavel && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="preco">Preço de venda (R$) *</Label>
+            <Input
+              data-id="price-value-input"
+              id="preco" value={preco} onChange={(e) => setPreco(e.target.value)}
+              inputMode="decimal" placeholder="0,00" required={vendavel}
+            />
+          </div>
+        )}
 
         <Separator />
 
-        {/* Produto de estoque vinculado */}
-        {produtoRef ? (
+        {/* Produto de estoque vinculado — só para itens vendáveis */}
+        {vendavel && produtoRef ? (
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -159,7 +196,7 @@ export default function NovoCardapioPage() {
               Ao vender, o estoque deste produto será decrementado automaticamente
             </p>
           </div>
-        ) : (
+        ) : vendavel ? (
           <div>
             <button
               type="button"
@@ -232,7 +269,12 @@ export default function NovoCardapioPage() {
           </div>
         )}
 
-        <Button data-id="save-price-button" type="submit" className="w-full bg-primary" disabled={loading || !nome.trim() || precoNum <= 0}>
+        <Button
+          data-id="save-price-button"
+          type="submit"
+          className="w-full bg-primary"
+          disabled={loading || !nome.trim() || (vendavel && precoNum <= 0)}
+        >
           {loading ? "Criando..." : "Adicionar ao cardápio"}
         </Button>
 

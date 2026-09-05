@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 const MenuItemSchema = new mongoose.Schema(
   {
     nome: { type: String, required: [true, "Nome é obrigatório"], trim: true },
-    preco: { type: Number, required: [true, "Preço é obrigatório"], min: [0, "Preço não pode ser negativo"] },
+    preco: { type: Number, default: 0, min: [0, "Preço não pode ser negativo"] },
+    // true = item faturável com preço (aparece no PDV); false = componente informativo do cardápio do dia
+    vendavel: { type: Boolean, default: true },
     // link opcional a um produto do estoque para controle de quantidade ao vender
     produtoRef: { type: mongoose.Schema.Types.ObjectId, ref: "Produto", default: null },
     categoria: { type: mongoose.Schema.Types.ObjectId, ref: "Categoria", default: null },

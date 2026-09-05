@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Plus, Minus, ChevronDown, ShoppingCart, X, CheckCircle2, AlertCircle, Trash2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -234,6 +234,111 @@ function PagamentoDialog({ open, onClose, total, onConfirm, loading }) {
   );
 }
 
+// ─── Grid de itens vendáveis ─────────────────────────────────────────
+function ItensVendaveisGrid({ onSelect }) {
+  const [itens, setItens] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/cardapio?vendavel=true")
+      .then((r) => r.json())
+      .then((d) => setItens(Array.isArray(d.data) ? d.data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Separa pratos (sem categoria ou categoria que não seja "bebida") de bebidas
+  // Agrupa por categoria
+  const grouped = useMemo(() => {
+    const map = {};
+    for (const item of itens) {
+      const catId = item.categoria?._id || "sem-categoria";
+      if (!map[catId]) {
+        map[catId] = { cat: item.categoria || null, items: [] };
+      }
+      map[catId].items.push(item);
+    }
+    return Object.values(map).sort((a, b) => {
+      if (!a.cat && !b.cat) return 0;
+      if (!a.cat) return 1;
+      if (!b.cat) return -1;
+      const ordDiff = (a.cat.ordem ?? 999) - (b.cat.ordem ?? 999);
+      if (ordDiff !== 0) return ordDiff;
+      return a.cat.nome.localeCompare(b.cat.nome, "pt-BR");
+    });
+  }, [itens]);
+
+  // Detecta se categoria é bebida (pelo nome)
+  function isBebida(cat) {
+    if (!cat?.nome) return false;
+    return /bebida/i.test(cat.nome);
+  }
+
+  if (loading) return (
+    <div className="px-4 pb-3">
+      <div className="flex gap-2 flex-wrap">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-14 w-28 rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
+
+  if (itens.length === 0) return null;
+
+  return (
+    <div data-id="pdv-itens-vendaveis" className="px-4 pb-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Seleção rápida</p>
+      <div className="flex flex-col gap-3">
+        {grouped.map(({ cat, items: groupItems }) => {
+          const bebida = isBebida(cat);
+          return (
+            <div key={cat?._id || "sem-categoria"}>
+              {cat?.nome && (
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {cat.cor && (
+                    <div className="h-2.5 w-2.5 rounded-full shrink-0 border border-black/10" style={{ backgroundColor: cat.cor }} />
+                  )}
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{cat.nome}</p>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {groupItems.map((item) => (
+                  <button
+                    data-id={`pdv-quick-item-${item._id}`}
+                    key={item._id}
+                    type="button"
+                    onClick={() => onSelect(item)}
+                    className={cn(
+                      "flex flex-col items-start rounded-xl border transition-all active:scale-[0.97] text-left",
+                      bebida
+                        ? "px-3 py-2 border-border bg-card hover:bg-accent hover:border-primary/30 min-w-[90px]"
+                        : "px-4 py-3 border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 min-w-[120px]"
+                    )}
+                  >
+                    <span className={cn(
+                      "font-semibold leading-tight truncate max-w-[140px]",
+                      bebida ? "text-sm text-foreground" : "text-[15px] text-foreground"
+                    )}>
+                      {item.nome}
+                    </span>
+                    <span className={cn(
+                      "tabular-nums text-muted-foreground mt-0.5",
+                      bebida ? "text-[11px]" : "text-xs"
+                    )}>
+                      R$&nbsp;{formatPrice(item.preco)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Modo AVULSO ─────────────────────────────────────────────────────
 function ModoAvulso() {
   const [cart, setCart] = useState([]);
@@ -310,12 +415,26 @@ function ModoAvulso() {
   const total = cart.reduce((a, p) => a + p.preco * p.quantidade, 0);
   const totalItens = cart.reduce((a, p) => a + p.quantidade, 0);
 
+  function handleQuickSelect(item) {
+    setCart((prev) => {
+      const idx = prev.findIndex((p) => p.menuItemId === item._id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantidade: next[idx].quantidade + 1 };
+        return next;
+      }
+      return [...prev, { menuItemId: item._id, produtoId: item._id, nome: item.nome, preco: item.preco, quantidade: 1 }];
+    });
+    showFeedback({ nome: item.nome, preco: item.preco, ok: true });
+  }
+
   return (
     <>
       <div data-id="pdv-avulso-content" className="flex flex-col pb-36">
         <div className="px-4 pt-4 pb-3">
           <BarcodeScanner data-id="pdv-search-input" onScan={handleScan} placeholder="Escanear produto..." />
         </div>
+        <ItensVendaveisGrid onSelect={handleQuickSelect} />
         <ScanFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
         <div data-id="pdv-cart">
           <ItemList items={cart} onIncrement={increment} onDecrement={decrement} mutating={null} />
@@ -489,6 +608,27 @@ function ModoComanda() {
     }
   }
 
+  async function handleQuickSelectComanda(item) {
+    if (!comanda) { setSelectorOpen(true); return; }
+    const nivel = dailyMenuRef.current ? dailyMenuRef.current[item._id] : undefined;
+    if (nivel === "esgotado") {
+      showFeedback({ nome: item.nome, ok: false, erro: "Item esgotado hoje" });
+      return;
+    }
+    try {
+      const addRes = await fetch(`/api/comandas/${comanda._id}/pedidos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ menuItemId: item._id }),
+      });
+      if (!addRes.ok) { showFeedback({ nome: item.nome, ok: false }); return; }
+      showFeedback({ nome: item.nome, preco: item.preco, ok: true });
+      fetchPedidos(comanda._id);
+    } catch {
+      showFeedback({ nome: item.nome, ok: false });
+    }
+  }
+
   const total = pedidos.reduce((a, p) => a + p.preco * p.quantidade, 0);
   const totalItens = pedidos.reduce((a, p) => a + p.quantidade, 0);
 
@@ -515,6 +655,7 @@ function ModoComanda() {
           </button>
           <BarcodeScanner data-id="pdv-search-input" onScan={handleScan} placeholder="Escanear produto..." />
         </div>
+        <ItensVendaveisGrid onSelect={handleQuickSelectComanda} />
         <ScanFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
         <div data-id="pdv-cart">
           <ItemList

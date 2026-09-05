@@ -30,6 +30,14 @@ export async function GET(request) {
     filter = { ativo: true };
   }
 
+  // Filter by vendavel: "true" → only vendavel, "false" → only non-vendavel, omit → all
+  const vendavelParam = searchParams.get("vendavel");
+  if (vendavelParam === "true") {
+    filter.vendavel = true;
+  } else if (vendavelParam === "false") {
+    filter.vendavel = { $ne: true };
+  }
+
   const items = await MenuItem.find(filter)
     .populate("categoria", "nome cor ordem")
     .sort({ nome: 1 })
@@ -41,16 +49,22 @@ export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const { nome, preco, produtoRef, categoria } = await request.json();
+  const { nome, preco, vendavel, produtoRef, categoria } = await request.json();
 
-  if (!nome?.trim() || preco === undefined || preco === null)
-    return NextResponse.json({ error: "Nome e preço são obrigatórios" }, { status: 400 });
+  if (!nome?.trim())
+    return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
 
   await connectDB();
 
+  const isVendavel = vendavel !== false;
+
+  if (isVendavel && (preco === undefined || preco === null || Number(preco) <= 0))
+    return NextResponse.json({ error: "Itens vendáveis precisam de preço" }, { status: 400 });
+
   const item = await MenuItem.create({
     nome: nome.trim(),
-    preco: Number(preco),
+    preco: preco !== undefined && preco !== null ? Number(preco) : 0,
+    vendavel: isVendavel,
     produtoRef: produtoRef || null,
     categoria: categoria || null,
     ativo: true,

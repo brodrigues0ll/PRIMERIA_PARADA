@@ -41,7 +41,7 @@ export default function CardapioDiaPage() {
     try {
       const [resHoje, resAll] = await Promise.all([
         fetch("/api/cardapio/hoje"),
-        fetch("/api/cardapio"),
+        fetch("/api/cardapio?vendavel=false"),
       ]);
       const [dataHoje, dataAll] = await Promise.all([
         resHoje.json(),
@@ -328,9 +328,6 @@ export default function CardapioDiaPage() {
                             <p className="text-[12px] text-[#54656f]">{item.categoria.nome}</p>
                           )}
                         </div>
-                        <span className="text-[13px] font-semibold text-[#111b21] tabular-nums shrink-0">
-                          R$&nbsp;{formatPrice(item.preco)}
-                        </span>
                       </button>
                     ))}
                   </div>
