@@ -104,7 +104,6 @@ services:
           done"
     env_file: .env.local
     environment:
-      - CRON_SECRET=${CRON_SECRET:-primeria-cron-secret}
       - TZ=America/Sao_Paulo
     depends_on:
       - frontend
